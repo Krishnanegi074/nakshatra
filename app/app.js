@@ -10,7 +10,7 @@ const state = {
   palmAnswers: {},
   palmReport: null,
   unlocked: false,
-  selectedTier: "bundle",
+  selectedTier: "onetime",
   payMethod: "upi",
   history: ["screen-landing"],
   compatResult: null,
@@ -579,7 +579,7 @@ function resetLocalSessionState() {
   Object.assign(state, {
     user: null, birth: { year: null, month: null, day: null, hour: 12, minute: 0, unknownTime: false, city: null },
     computed: { sunIdx: null, moonIdx: null, ascIdx: null, moonPhase: null }, palmAnswers: {}, palmReport: null, unlocked: false,
-    selectedTier: "bundle", payMethod: "upi", compatResult: null,
+    selectedTier: "onetime", payMethod: "upi", compatResult: null,
     giftInProgress: null, lastGiftCode: null, giftTier: "bundle",
     chats: {}, activeChatId: null,
   });
