@@ -81,7 +81,7 @@ const fs = require("fs");
   await shot("03-post-scan-suggestions");
 
   // Check that suggestions were applied: analyzable questions should have a selected option + visible cv-tag
-  const ANALYZABLE = ["lifeLength", "lifeDepth", "heartShape", "headShape", "fate"];
+  const ANALYZABLE = ["lifeLength", "lifeDepth", "heartShape", "headShape", "fate", "heartStart"];
   for (const qid of ANALYZABLE) {
     const info = await page.evaluate((qid) => {
       const group = document.querySelector(`.option-grid[data-qid="${qid}"]`);
@@ -97,19 +97,26 @@ const fs = require("fs");
     console.log(`  [${qid}]`, JSON.stringify(info));
   }
 
-  // Manual-only questions must NOT have been auto-selected
-  for (const qid of ["heartStart", "mount"]) {
-    const info = await page.evaluate((qid) => {
-      const group = document.querySelector(`.option-grid[data-qid="${qid}"]`);
-      const selected = group ? group.querySelector(".option-btn.selected") : null;
-      return { hasSelection: !!selected };
-    }, qid);
-    console.log(`  [${qid}] (should be manual-only, hasSelection=false):`, JSON.stringify(info));
-  }
+  // "mount" is the one question left manual by design (see cv-engine.js) — it
+  // must NOT have been auto-selected, but the photo should now carry finger
+  // labels (Index/Middle/Ring/Pinky/Thumb) so answering it needs no palmistry
+  // knowledge, just a glance at the labeled picture.
+  const mountInfo = await page.evaluate(() => {
+    const group = document.querySelector('.option-grid[data-qid="mount"]');
+    const selected = group ? group.querySelector(".option-btn.selected") : null;
+    return { hasSelection: !!selected };
+  });
+  console.log("  [mount] (should be manual-only, hasSelection=false):", JSON.stringify(mountInfo));
 
-  // Generate button should still be disabled (2 manual-only questions unanswered)
+  const fingerLabels = await page.evaluate(() => {
+    const box = document.getElementById("palm-finger-labels");
+    return box ? Array.from(box.children).map(el => ({ text: el.textContent, left: el.style.left, top: el.style.top })) : [];
+  });
+  console.log("Finger labels rendered on photo:", JSON.stringify(fingerLabels));
+
+  // Generate button should still be disabled (mount unanswered)
   const genDisabled = await page.evaluate(() => document.getElementById("btn-palm-generate").disabled);
-  console.log("Generate disabled before manual questions answered:", genDisabled);
+  console.log("Generate disabled before mount answered:", genDisabled);
 
   // --- User overrides one scanned suggestion ---
   const heartGroup = await page.$('.option-grid[data-qid="heartShape"]');
@@ -122,8 +129,7 @@ const fs = require("fs");
   });
   console.log("cv-tag hidden after manual override of heartShape:", heartTagHiddenAfterOverride);
 
-  // --- Answer the two manual-only questions to complete the form ---
-  await page.click('.option-grid[data-qid="heartStart"] .option-btn:first-child');
+  // --- Answer the one manual-only question (mount) to complete the form ---
   await page.click('.option-grid[data-qid="mount"] .option-btn:first-child');
   await page.waitForTimeout(100);
   const genEnabledNow = await page.evaluate(() => !document.getElementById("btn-palm-generate").disabled);

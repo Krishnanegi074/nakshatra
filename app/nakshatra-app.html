@@ -311,6 +311,19 @@ button { font-family: inherit; }
 }
 .cv-tag.low { background: var(--text-faint); color: var(--navy-0); }
 
+#palm-finger-labels { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }
+.finger-label {
+  position: absolute; transform: translate(-50%, -100%); white-space: nowrap;
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.02em; color: var(--navy-0);
+  background: var(--gold-bright); border-radius: 999px; padding: 3px 9px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+}
+.finger-label::after {
+  content: ""; position: absolute; left: 50%; top: 100%; transform: translateX(-50%);
+  border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 5px solid var(--gold-bright);
+}
+.finger-label.thumb { background: rgba(232,198,135,0.85); }
+
 .lang-option.active { border-color: var(--gold); background: rgba(201,161,95,0.14); color: var(--text); font-weight: 600; }
 
 /* ---------- Payment / checkout ---------- */
@@ -701,13 +714,14 @@ button { font-family: inherit; }
           <div class="crop-handle" data-h="bl"></div>
           <div class="crop-handle" data-h="br"></div>
         </div>
+        <div id="palm-finger-labels"></div>
       </div>
-      <p class="muted" id="palm-crop-hint" style="display:none;margin-top:8px" data-i18n="palm.crop.hint">Drag the frame so it covers your palm — fingers toward the top — then tap Scan.</p>
+      <p class="muted" id="palm-crop-hint" style="display:none;margin-top:8px" data-i18n="palm.crop.hint">Drag the frame so it covers your palm — fingers toward the top, thumb toward the left — then tap Scan.</p>
       <button class="btn btn-secondary btn-block" id="btn-palm-analyze" style="display:none;margin-top:10px" data-i18n="palm.btn.analyze">📸 Scan Palm From Photo</button>
       <button class="btn btn-ghost btn-block" id="btn-palm-change-photo" style="display:none;margin-top:8px" data-i18n="palm.btn.change">Choose a different photo</button>
       <div id="palm-cv-status" class="muted" style="display:none;margin-top:8px;font-size:0.85rem"></div>
 
-      <p class="muted" style="margin-top:14px" data-i18n="palm.confirm-note">Now confirm what you see on your own palm — this "assisted" step is what makes the reading rule-based instead of a black-box guess. Scanning a photo fills in a starting guess for 5 of the 7 questions below (marked "Scanned"); the other 2 always need your own read, since a flat photo can't reliably tell one finger from another.</p>
+      <p class="muted" style="margin-top:14px" data-i18n="palm.confirm-note">Now confirm what you see on your own palm — this "assisted" step is what makes the reading rule-based instead of a black-box guess. Scanning a photo fills in a starting guess for 6 of the 7 questions below (marked "Scanned"). The last one — which finger-pad looks fullest — is labeled right on your photo above, so it's a quick look-and-tap too, no palmistry knowledge needed.</p>
       <div id="palm-questions" class="stack grid-list" style="margin-top:10px"></div>
       <button class="btn btn-primary btn-block" id="btn-palm-generate" style="margin-top:18px" disabled data-i18n="palm.btn.generate">Generate My Palm Reading</button>
     </div>
@@ -2744,9 +2758,16 @@ if (typeof module !== "undefined") {
 // pixels within a region the USER frames (drag-to-align), which is a real
 // automation upgrade over Phase 1's blind self-report questions — but it is
 // NOT the same as a trained ML model finding a hand anywhere in an arbitrary
-// photo. Two questions (heartStart, mount) genuinely require knowing which
-// finger is which, which pixel-edge analysis alone cannot determine reliably,
-// so those stay manual-only by design (see ANALYZABLE_QUESTIONS below).
+// photo. Knowing which finger is which (needed for heartStart and mount)
+// isn't something pixel-edge analysis can do directly either — but
+// detectFingerColumns below gets a usable approximation of it classically,
+// by reading the brightness dips between fingers near the top of the crop,
+// rather than requiring a trained landmark model. heartStart uses that to
+// auto-answer itself (see ANALYZABLE_QUESTIONS below); mount stays manual
+// (see the comment just below the list) because "which pad looks physically
+// fullest" is dominated by lighting/shadow in a way a brightness heuristic
+// can't safely resolve — instead the same finger columns are drawn as labels
+// directly on the user's photo, so answering it needs no palmistry knowledge.
 //
 // Second honesty note (found via synthetic testing, see test-cv-engine.js):
 // every real palm has all four lines in the same photo at once, and their
@@ -2760,7 +2781,14 @@ if (typeof module !== "undefined") {
 // they are a starting point for the user to confirm or correct, not a final
 // answer.
 
-const ANALYZABLE_QUESTIONS = ["lifeLength", "lifeDepth", "heartShape", "headShape", "fate"];
+const ANALYZABLE_QUESTIONS = ["lifeLength", "lifeDepth", "heartShape", "headShape", "fate", "heartStart"];
+// "mount" stays out of this list on purpose: it asks which finger-base pad
+// looks *physically fullest/most raised* to the eye, which in a real photo
+// is dominated by lighting angle and shadow — a brightness heuristic there
+// would be wrong often enough to undermine trust in the other suggestions.
+// Instead of guessing it, the app labels each detected finger column right
+// on the user's own photo (see detectFingerColumns below), so answering it
+// needs zero palmistry knowledge, just a glance at the labeled picture.
 
 // ---- Core image ops. `img` = { data: Uint8ClampedArray|Array (RGBA), width, height } ----
 
@@ -2853,7 +2881,7 @@ function analyzeHorizontalBand(mag, width, height, rowStart, rowEnd, threshold) 
     if (bestY >= 0) { points.push([x, bestY]); lastY = bestY; lastX = x; }
   }
   if (points.length < width * 0.05) {
-    return { coverage: points.length / width, slope: 0, curviness: 0, segments: 0 };
+    return { coverage: points.length / width, slope: 0, curviness: 0, segments: 0, points };
   }
   // Longest contiguous run (coverage / continuity) + segment count (branch proxy).
   // A "segment break" must be a real loss of the line — a gap bigger than what the
@@ -2893,7 +2921,101 @@ function analyzeHorizontalBand(mag, width, height, rowStart, rowEnd, threshold) 
   // `slope` (Δy/Δx from the regression) is already a dimensionless ratio — do NOT
   // divide by height again here. (An earlier version did, which shrank it ~500x
   // and made the "steep" classification unreachable for any real line.)
-  return { coverage: longestRun / width, slope, curviness, segments: runs };
+  return { coverage: longestRun / width, slope, curviness, segments: runs, points };
+}
+
+// ---- Finger-column detection ----
+// Approximates the x-boundaries between the four fingers (index..pinky) by
+// scanning a thin band near the very top of the crop for brightness valleys —
+// the gap/webbing between two fingers reads darker there than the finger
+// surface itself. This relies on the app's stated photo convention: fingers
+// toward the top of the frame, THUMB TOWARD THE LEFT (see palm.crop.hint) —
+// that fixed orientation is what lets "leftmost column = index finger" be a
+// safe assumption without ever having to ask the user which hand this is.
+// Like the rest of this file this is classical pixel math, not a trained
+// landmark model — treat the columns as a starting approximation, not a
+// guaranteed fit, which is why a confidence score comes back alongside them.
+function detectFingerColumns(gray, width, height) {
+  const bandStart = Math.max(0, Math.round(height * 0.04));
+  const bandEnd = Math.min(height, Math.max(bandStart + 1, Math.round(height * 0.16)));
+  if (width < 10 || height < 10) {
+    return { columns: [], valleys: [], confidence: 0.1 };
+  }
+
+  const profile = new Float32Array(width);
+  for (let x = 0; x < width; x++) {
+    let sum = 0, n = 0;
+    for (let y = bandStart; y < bandEnd; y++) { sum += gray[y * width + x]; n++; }
+    profile[x] = n ? sum / n : 0;
+  }
+
+  // Smooth with a small moving average so single-pixel noise can't fake a valley.
+  const win = Math.max(1, Math.round(width * 0.015));
+  const smooth = new Float32Array(width);
+  for (let x = 0; x < width; x++) {
+    let sum = 0, n = 0;
+    for (let dx = -win; dx <= win; dx++) {
+      const xx = x + dx;
+      if (xx < 0 || xx >= width) continue;
+      sum += profile[xx]; n++;
+    }
+    smooth[x] = n ? sum / n : profile[x];
+  }
+
+  // Candidate valleys: local minima, away from the frame edges (an edge is the
+  // outermost finger's OUTER side, not a gap between two fingers).
+  const margin = Math.max(1, Math.round(width * 0.06));
+  function localMaxAround(x, dir) {
+    let v = smooth[x], xx = x;
+    for (let i = 0; i < width; i++) {
+      const nx = xx + dir;
+      if (nx < 0 || nx >= width) break;
+      if (smooth[nx] < v) break;
+      v = smooth[nx]; xx = nx;
+    }
+    return v;
+  }
+  const candidates = [];
+  for (let x = margin + 1; x < width - margin - 1; x++) {
+    if (smooth[x] <= smooth[x - 1] && smooth[x] <= smooth[x + 1]) {
+      const depth = Math.min(localMaxAround(x, -1), localMaxAround(x, 1)) - smooth[x];
+      if (depth > 2) candidates.push({ x, depth });
+    }
+  }
+  // A single real gap between two fingers often has a flat (or near-flat)
+  // bottom, which yields a RUN of tied/near-tied local-minima candidates, not
+  // just one. Cluster adjacent candidates into one representative valley per
+  // run BEFORE ranking by depth — ranking first would let one wide gap's run
+  // of ties crowd out every other real gap entirely (all top slots going to
+  // the same valley), which is what an earlier version of this got wrong.
+  const minGap = Math.max(4, Math.round(width * 0.05));
+  const clusters = [];
+  for (const c of candidates) {
+    const last = clusters[clusters.length - 1];
+    if (last && c.x - last.xs[last.xs.length - 1] <= minGap) {
+      last.xs.push(c.x);
+      if (c.depth > last.depth) last.depth = c.depth;
+    } else {
+      clusters.push({ xs: [c.x], depth: c.depth });
+    }
+  }
+  const valleyPoints = clusters.map(cl => ({
+    x: Math.round(cl.xs.reduce((a, b) => a + b, 0) / cl.xs.length),
+    depth: cl.depth,
+  }));
+  valleyPoints.sort((a, b) => b.depth - a.depth);
+  let valleys = valleyPoints.slice(0, 3).map(c => c.x).sort((a, b) => a - b);
+
+  const names = ["index", "middle", "ring", "pinky"];
+  const bounds = [0, ...valleys, width];
+  const columns = [];
+  for (let i = 0; i < Math.min(names.length, bounds.length - 1); i++) {
+    columns.push({ name: names[i], x0: bounds[i], x1: bounds[i + 1] });
+  }
+  // Full marks for exactly 3 well-separated valleys (4 clean finger columns);
+  // partial credit scales down with fewer/noisier valleys found.
+  const confidence = Math.min(0.85, 0.25 + 0.2 * valleys.length);
+  return { columns, valleys, confidence };
 }
 
 // Vertical strip scan (used for fate line): continuity down the center.
@@ -2989,11 +3111,36 @@ function analyzePalmRegion(region) {
   suggestions.fate = fate.continuity > 0.55 ? "strong" : fate.continuity > 0.22 ? "faint" : "absent";
   confidence.fate = Math.min(0.9, 0.3 + fate.continuity);
 
-  return { suggestions, confidence, raw: { heart, head, fate, life, threshold } };
+  // Heart line start-finger. This app crops with the thumb toward the left
+  // (see detectFingerColumns), so the index/middle side that classical
+  // palmistry reads the line's "start" from is also the LEFT side of the
+  // frame — the traced heart-line's leftmost point is what we map to a
+  // finger column. A line that spans nearly the full width with very low
+  // curviness doesn't localize to one finger at all, hence "flat".
+  const fingerCols = detectFingerColumns(gray, width, height);
+  const heartPoints = heart.points || [];
+  if (heartPoints.length > 2) {
+    const firstPt = heartPoints[0], lastPt = heartPoints[heartPoints.length - 1];
+    const span = (lastPt[0] - firstPt[0]) / width;
+    if (span > 0.82 && heart.curviness < 0.006) {
+      suggestions.heartStart = "flat";
+      confidence.heartStart = Math.min(0.75, 0.3 + heart.coverage * 0.4);
+    } else {
+      const startX = firstPt[0];
+      const col = fingerCols.columns.find(c => startX >= c.x0 && startX < c.x1);
+      suggestions.heartStart = col && (col.name === "index" || col.name === "middle") ? col.name : "index";
+      confidence.heartStart = Math.min(0.85, 0.2 + fingerCols.confidence * 0.5 + heart.coverage * 0.25);
+    }
+  } else {
+    suggestions.heartStart = "flat";
+    confidence.heartStart = 0.25;
+  }
+
+  return { suggestions, confidence, fingerColumns: fingerCols, raw: { heart, head, fate, life, threshold } };
 }
 
 if (typeof module !== "undefined") {
-  module.exports = { ANALYZABLE_QUESTIONS, analyzePalmRegion, toGrayscaleContrastStretched, sobelMagnitude, analyzeHorizontalBand, analyzeVerticalStrip, analyzeArc };
+  module.exports = { ANALYZABLE_QUESTIONS, analyzePalmRegion, detectFingerColumns, toGrayscaleContrastStretched, sobelMagnitude, analyzeHorizontalBand, analyzeVerticalStrip, analyzeArc };
 }
 
 </script>
@@ -3148,10 +3295,10 @@ const I18N = {
     "palm.title": "Palm Reading",
     "palm.upload.title": "Upload a clear photo of your palm",
     "palm.upload.desc": "Used only on this device for this session — never uploaded anywhere.",
-    "palm.crop.hint": "Drag the frame so it covers your palm — fingers toward the top — then tap Scan.",
+    "palm.crop.hint": "Drag the frame so it covers your palm — fingers toward the top, thumb toward the left — then tap Scan.",
     "palm.btn.analyze": "📸 Scan Palm From Photo",
     "palm.btn.change": "Choose a different photo",
-    "palm.confirm-note": 'Now confirm what you see on your own palm — this "assisted" step is what makes the reading rule-based instead of a black-box guess. Scanning a photo fills in a starting guess for 5 of the 7 questions below (marked "Scanned"); the other 2 always need your own read, since a flat photo can\'t reliably tell one finger from another.',
+    "palm.confirm-note": 'Now confirm what you see on your own palm — this "assisted" step is what makes the reading rule-based instead of a black-box guess. Scanning a photo fills in a starting guess for 6 of the 7 questions below (marked "Scanned"). The last one — which finger-pad looks fullest — is labeled right on your photo above, so it\'s a quick look-and-tap too, no palmistry knowledge needed.',
     "palm.btn.generate": "Generate My Palm Reading",
     "palm.lock.title": "Unlock your full palm report",
     "palm.lock.desc": "All 7 lines & mounts, fully interpreted",
@@ -3400,10 +3547,10 @@ const I18N = {
     "palm.title": "हस्तरेखा पठन",
     "palm.upload.title": "अपनी हथेली की एक स्पष्ट फ़ोटो अपलोड करें",
     "palm.upload.desc": "केवल इस सत्र के लिए इस डिवाइस पर उपयोग किया जाता है — कहीं भी अपलोड नहीं किया जाता।",
-    "palm.crop.hint": "फ्रेम को अपनी हथेली पर खींचें — उंगलियां ऊपर की ओर — फिर स्कैन पर टैप करें।",
+    "palm.crop.hint": "फ्रेम को अपनी हथेली पर खींचें — उंगलियां ऊपर की ओर, अंगूठा बाईं ओर — फिर स्कैन पर टैप करें।",
     "palm.btn.analyze": "📸 फ़ोटो से हथेली स्कैन करें",
     "palm.btn.change": "एक अलग फ़ोटो चुनें",
-    "palm.confirm-note": 'अब अपनी हथेली पर जो देखते हैं उसकी पुष्टि करें — यह "सहायता प्राप्त" चरण ही रीडिंग को नियम-आधारित बनाता है, न कि एक ब्लैक-बॉक्स अनुमान। फ़ोटो स्कैन करने से नीचे दिए गए 7 में से 5 सवालों के लिए एक शुरुआती अनुमान भर जाता है (चिह्नित "स्कैन किया गया"); बाकी 2 के लिए हमेशा आपकी अपनी राय चाहिए, क्योंकि एक सपाट फ़ोटो भरोसे के साथ एक उंगली को दूसरी से अलग नहीं बता सकती।',
+    "palm.confirm-note": 'अब अपनी हथेली पर जो देखते हैं उसकी पुष्टि करें — यह "सहायता प्राप्त" चरण ही रीडिंग को नियम-आधारित बनाता है, न कि एक ब्लैक-बॉक्स अनुमान। फ़ोटो स्कैन करने से नीचे दिए गए 7 में से 6 सवालों के लिए एक शुरुआती अनुमान भर जाता है (चिह्नित "स्कैन किया गया")। आखिरी सवाल — कौन सा उंगली-पैड सबसे उभरा हुआ दिखता है — ऊपर आपकी फ़ोटो पर ही लेबल किया गया है, तो यह भी बस देखकर टैप करने जितना आसान है, हस्तरेखा शास्त्र की कोई जानकारी ज़रूरी नहीं।',
     "palm.btn.generate": "मेरी हथेली रीडिंग बनाएं",
     "palm.lock.title": "अपनी पूर्ण हथेली रिपोर्ट अनलॉक करें",
     "palm.lock.desc": "सभी 7 रेखाएं और माउंट, पूरी तरह से व्याख्या की गई",
@@ -4160,6 +4307,7 @@ function resetPalmUI() {
   $("#palm-cv-status").textContent = "";
   cropRect = null;
   cropDrag = null;
+  $("#palm-finger-labels").innerHTML = "";
   $all(".cv-tag").forEach(t => { t.style.display = "none"; t.textContent = ""; t.classList.remove("low"); });
   $all(".option-btn.selected").forEach(b => b.classList.remove("selected"));
   $("#btn-palm-generate").disabled = true;
@@ -4471,6 +4619,40 @@ function initCropDrag() {
   $all(".crop-handle").forEach(h => h.addEventListener("pointerdown", (e) => onDown(e, h.dataset.h)));
 }
 
+// Draws small labels ("Index", "Middle", ...) directly on the uploaded photo
+// at each finger column detectFingerColumns() found, mapped from the CV
+// engine's crop-pixel coordinate space back to on-screen wrap coordinates
+// using the same scale/offset math runPalmAnalysis uses to build that crop in
+// the first place. This is what lets the "mount" question — the one thing the
+// pixel-math engine can't safely auto-answer (see cv-engine.js) — be a quick
+// look-and-tap instead of something the user has to know palmistry terms for.
+const FINGER_LABEL_TEXT = { index: "Index", middle: "Middle", ring: "Ring", pinky: "Pinky" };
+function renderFingerLabels(fingerColumns, mapPt) {
+  const box = $("#palm-finger-labels");
+  box.innerHTML = "";
+  if (!fingerColumns || !fingerColumns.columns || !fingerColumns.columns.length) return;
+  for (const col of fingerColumns.columns) {
+    const cx = (col.x0 + col.x1) / 2;
+    const p = mapPt(cx, 0.1);
+    const el = document.createElement("span");
+    el.className = "finger-label";
+    el.style.left = p.x + "px";
+    el.style.top = p.y + "px";
+    el.textContent = FINGER_LABEL_TEXT[col.name] || col.name;
+    box.appendChild(el);
+  }
+  // The thumb isn't one of the four detected columns (it sits outside the
+  // finger-valley scan band) — approximate its mount position near the
+  // frame's left edge, per the app's thumb-left photo convention.
+  const thumbPt = mapPt(0, 0.42);
+  const thumbEl = document.createElement("span");
+  thumbEl.className = "finger-label thumb";
+  thumbEl.style.left = thumbPt.x + "px";
+  thumbEl.style.top = thumbPt.y + "px";
+  thumbEl.textContent = "Thumb";
+  box.appendChild(thumbEl);
+}
+
 function applyPalmSuggestions(result) {
   ANALYZABLE_QUESTIONS.forEach((qid) => {
     const val = result.suggestions[qid];
@@ -4529,6 +4711,13 @@ function runPalmAnalysis() {
     const imageData = ctx.getImageData(0, 0, sw, sh);
     const result = analyzePalmRegion({ data: imageData.data, width: sw, height: sh });
     applyPalmSuggestions(result);
+    // Map a point in crop-pixel space (cvX in [0,sw), cvYFrac as a 0..1 fraction
+    // of sh) back to CSS px within #palm-crop-wrap, for positioning the finger labels.
+    const mapPt = (cvX, cvYFrac) => ({
+      x: offX + (sx + cvX) * scale,
+      y: offY + (sy + cvYFrac * sh) * scale,
+    });
+    renderFingerLabels(result.fingerColumns, mapPt);
     statusEl.textContent = "Scan complete — suggestions filled in below (marked \"Scanned\"). Tap any answer to correct it.";
   } catch (err) {
     statusEl.textContent = "Couldn't scan that photo — please answer the questions below by hand instead.";

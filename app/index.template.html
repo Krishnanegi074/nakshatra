@@ -284,13 +284,14 @@
           <div class="crop-handle" data-h="bl"></div>
           <div class="crop-handle" data-h="br"></div>
         </div>
+        <div id="palm-finger-labels"></div>
       </div>
-      <p class="muted" id="palm-crop-hint" style="display:none;margin-top:8px" data-i18n="palm.crop.hint">Drag the frame so it covers your palm — fingers toward the top — then tap Scan.</p>
+      <p class="muted" id="palm-crop-hint" style="display:none;margin-top:8px" data-i18n="palm.crop.hint">Drag the frame so it covers your palm — fingers toward the top, thumb toward the left — then tap Scan.</p>
       <button class="btn btn-secondary btn-block" id="btn-palm-analyze" style="display:none;margin-top:10px" data-i18n="palm.btn.analyze">📸 Scan Palm From Photo</button>
       <button class="btn btn-ghost btn-block" id="btn-palm-change-photo" style="display:none;margin-top:8px" data-i18n="palm.btn.change">Choose a different photo</button>
       <div id="palm-cv-status" class="muted" style="display:none;margin-top:8px;font-size:0.85rem"></div>
 
-      <p class="muted" style="margin-top:14px" data-i18n="palm.confirm-note">Now confirm what you see on your own palm — this "assisted" step is what makes the reading rule-based instead of a black-box guess. Scanning a photo fills in a starting guess for 5 of the 7 questions below (marked "Scanned"); the other 2 always need your own read, since a flat photo can't reliably tell one finger from another.</p>
+      <p class="muted" style="margin-top:14px" data-i18n="palm.confirm-note">Now confirm what you see on your own palm — this "assisted" step is what makes the reading rule-based instead of a black-box guess. Scanning a photo fills in a starting guess for 6 of the 7 questions below (marked "Scanned"). The last one — which finger-pad looks fullest — is labeled right on your photo above, so it's a quick look-and-tap too, no palmistry knowledge needed.</p>
       <div id="palm-questions" class="stack grid-list" style="margin-top:10px"></div>
       <button class="btn btn-primary btn-block" id="btn-palm-generate" style="margin-top:18px" disabled data-i18n="palm.btn.generate">Generate My Palm Reading</button>
     </div>

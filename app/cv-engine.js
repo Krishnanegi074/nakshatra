@@ -5,9 +5,16 @@
 // pixels within a region the USER frames (drag-to-align), which is a real
 // automation upgrade over Phase 1's blind self-report questions — but it is
 // NOT the same as a trained ML model finding a hand anywhere in an arbitrary
-// photo. Two questions (heartStart, mount) genuinely require knowing which
-// finger is which, which pixel-edge analysis alone cannot determine reliably,
-// so those stay manual-only by design (see ANALYZABLE_QUESTIONS below).
+// photo. Knowing which finger is which (needed for heartStart and mount)
+// isn't something pixel-edge analysis can do directly either — but
+// detectFingerColumns below gets a usable approximation of it classically,
+// by reading the brightness dips between fingers near the top of the crop,
+// rather than requiring a trained landmark model. heartStart uses that to
+// auto-answer itself (see ANALYZABLE_QUESTIONS below); mount stays manual
+// (see the comment just below the list) because "which pad looks physically
+// fullest" is dominated by lighting/shadow in a way a brightness heuristic
+// can't safely resolve — instead the same finger columns are drawn as labels
+// directly on the user's photo, so answering it needs no palmistry knowledge.
 //
 // Second honesty note (found via synthetic testing, see test-cv-engine.js):
 // every real palm has all four lines in the same photo at once, and their
@@ -21,7 +28,14 @@
 // they are a starting point for the user to confirm or correct, not a final
 // answer.
 
-const ANALYZABLE_QUESTIONS = ["lifeLength", "lifeDepth", "heartShape", "headShape", "fate"];
+const ANALYZABLE_QUESTIONS = ["lifeLength", "lifeDepth", "heartShape", "headShape", "fate", "heartStart"];
+// "mount" stays out of this list on purpose: it asks which finger-base pad
+// looks *physically fullest/most raised* to the eye, which in a real photo
+// is dominated by lighting angle and shadow — a brightness heuristic there
+// would be wrong often enough to undermine trust in the other suggestions.
+// Instead of guessing it, the app labels each detected finger column right
+// on the user's own photo (see detectFingerColumns below), so answering it
+// needs zero palmistry knowledge, just a glance at the labeled picture.
 
 // ---- Core image ops. `img` = { data: Uint8ClampedArray|Array (RGBA), width, height } ----
 
@@ -114,7 +128,7 @@ function analyzeHorizontalBand(mag, width, height, rowStart, rowEnd, threshold) 
     if (bestY >= 0) { points.push([x, bestY]); lastY = bestY; lastX = x; }
   }
   if (points.length < width * 0.05) {
-    return { coverage: points.length / width, slope: 0, curviness: 0, segments: 0 };
+    return { coverage: points.length / width, slope: 0, curviness: 0, segments: 0, points };
   }
   // Longest contiguous run (coverage / continuity) + segment count (branch proxy).
   // A "segment break" must be a real loss of the line — a gap bigger than what the
@@ -154,7 +168,101 @@ function analyzeHorizontalBand(mag, width, height, rowStart, rowEnd, threshold) 
   // `slope` (Δy/Δx from the regression) is already a dimensionless ratio — do NOT
   // divide by height again here. (An earlier version did, which shrank it ~500x
   // and made the "steep" classification unreachable for any real line.)
-  return { coverage: longestRun / width, slope, curviness, segments: runs };
+  return { coverage: longestRun / width, slope, curviness, segments: runs, points };
+}
+
+// ---- Finger-column detection ----
+// Approximates the x-boundaries between the four fingers (index..pinky) by
+// scanning a thin band near the very top of the crop for brightness valleys —
+// the gap/webbing between two fingers reads darker there than the finger
+// surface itself. This relies on the app's stated photo convention: fingers
+// toward the top of the frame, THUMB TOWARD THE LEFT (see palm.crop.hint) —
+// that fixed orientation is what lets "leftmost column = index finger" be a
+// safe assumption without ever having to ask the user which hand this is.
+// Like the rest of this file this is classical pixel math, not a trained
+// landmark model — treat the columns as a starting approximation, not a
+// guaranteed fit, which is why a confidence score comes back alongside them.
+function detectFingerColumns(gray, width, height) {
+  const bandStart = Math.max(0, Math.round(height * 0.04));
+  const bandEnd = Math.min(height, Math.max(bandStart + 1, Math.round(height * 0.16)));
+  if (width < 10 || height < 10) {
+    return { columns: [], valleys: [], confidence: 0.1 };
+  }
+
+  const profile = new Float32Array(width);
+  for (let x = 0; x < width; x++) {
+    let sum = 0, n = 0;
+    for (let y = bandStart; y < bandEnd; y++) { sum += gray[y * width + x]; n++; }
+    profile[x] = n ? sum / n : 0;
+  }
+
+  // Smooth with a small moving average so single-pixel noise can't fake a valley.
+  const win = Math.max(1, Math.round(width * 0.015));
+  const smooth = new Float32Array(width);
+  for (let x = 0; x < width; x++) {
+    let sum = 0, n = 0;
+    for (let dx = -win; dx <= win; dx++) {
+      const xx = x + dx;
+      if (xx < 0 || xx >= width) continue;
+      sum += profile[xx]; n++;
+    }
+    smooth[x] = n ? sum / n : profile[x];
+  }
+
+  // Candidate valleys: local minima, away from the frame edges (an edge is the
+  // outermost finger's OUTER side, not a gap between two fingers).
+  const margin = Math.max(1, Math.round(width * 0.06));
+  function localMaxAround(x, dir) {
+    let v = smooth[x], xx = x;
+    for (let i = 0; i < width; i++) {
+      const nx = xx + dir;
+      if (nx < 0 || nx >= width) break;
+      if (smooth[nx] < v) break;
+      v = smooth[nx]; xx = nx;
+    }
+    return v;
+  }
+  const candidates = [];
+  for (let x = margin + 1; x < width - margin - 1; x++) {
+    if (smooth[x] <= smooth[x - 1] && smooth[x] <= smooth[x + 1]) {
+      const depth = Math.min(localMaxAround(x, -1), localMaxAround(x, 1)) - smooth[x];
+      if (depth > 2) candidates.push({ x, depth });
+    }
+  }
+  // A single real gap between two fingers often has a flat (or near-flat)
+  // bottom, which yields a RUN of tied/near-tied local-minima candidates, not
+  // just one. Cluster adjacent candidates into one representative valley per
+  // run BEFORE ranking by depth — ranking first would let one wide gap's run
+  // of ties crowd out every other real gap entirely (all top slots going to
+  // the same valley), which is what an earlier version of this got wrong.
+  const minGap = Math.max(4, Math.round(width * 0.05));
+  const clusters = [];
+  for (const c of candidates) {
+    const last = clusters[clusters.length - 1];
+    if (last && c.x - last.xs[last.xs.length - 1] <= minGap) {
+      last.xs.push(c.x);
+      if (c.depth > last.depth) last.depth = c.depth;
+    } else {
+      clusters.push({ xs: [c.x], depth: c.depth });
+    }
+  }
+  const valleyPoints = clusters.map(cl => ({
+    x: Math.round(cl.xs.reduce((a, b) => a + b, 0) / cl.xs.length),
+    depth: cl.depth,
+  }));
+  valleyPoints.sort((a, b) => b.depth - a.depth);
+  let valleys = valleyPoints.slice(0, 3).map(c => c.x).sort((a, b) => a - b);
+
+  const names = ["index", "middle", "ring", "pinky"];
+  const bounds = [0, ...valleys, width];
+  const columns = [];
+  for (let i = 0; i < Math.min(names.length, bounds.length - 1); i++) {
+    columns.push({ name: names[i], x0: bounds[i], x1: bounds[i + 1] });
+  }
+  // Full marks for exactly 3 well-separated valleys (4 clean finger columns);
+  // partial credit scales down with fewer/noisier valleys found.
+  const confidence = Math.min(0.85, 0.25 + 0.2 * valleys.length);
+  return { columns, valleys, confidence };
 }
 
 // Vertical strip scan (used for fate line): continuity down the center.
@@ -250,9 +358,34 @@ function analyzePalmRegion(region) {
   suggestions.fate = fate.continuity > 0.55 ? "strong" : fate.continuity > 0.22 ? "faint" : "absent";
   confidence.fate = Math.min(0.9, 0.3 + fate.continuity);
 
-  return { suggestions, confidence, raw: { heart, head, fate, life, threshold } };
+  // Heart line start-finger. This app crops with the thumb toward the left
+  // (see detectFingerColumns), so the index/middle side that classical
+  // palmistry reads the line's "start" from is also the LEFT side of the
+  // frame — the traced heart-line's leftmost point is what we map to a
+  // finger column. A line that spans nearly the full width with very low
+  // curviness doesn't localize to one finger at all, hence "flat".
+  const fingerCols = detectFingerColumns(gray, width, height);
+  const heartPoints = heart.points || [];
+  if (heartPoints.length > 2) {
+    const firstPt = heartPoints[0], lastPt = heartPoints[heartPoints.length - 1];
+    const span = (lastPt[0] - firstPt[0]) / width;
+    if (span > 0.82 && heart.curviness < 0.006) {
+      suggestions.heartStart = "flat";
+      confidence.heartStart = Math.min(0.75, 0.3 + heart.coverage * 0.4);
+    } else {
+      const startX = firstPt[0];
+      const col = fingerCols.columns.find(c => startX >= c.x0 && startX < c.x1);
+      suggestions.heartStart = col && (col.name === "index" || col.name === "middle") ? col.name : "index";
+      confidence.heartStart = Math.min(0.85, 0.2 + fingerCols.confidence * 0.5 + heart.coverage * 0.25);
+    }
+  } else {
+    suggestions.heartStart = "flat";
+    confidence.heartStart = 0.25;
+  }
+
+  return { suggestions, confidence, fingerColumns: fingerCols, raw: { heart, head, fate, life, threshold } };
 }
 
 if (typeof module !== "undefined") {
-  module.exports = { ANALYZABLE_QUESTIONS, analyzePalmRegion, toGrayscaleContrastStretched, sobelMagnitude, analyzeHorizontalBand, analyzeVerticalStrip, analyzeArc };
+  module.exports = { ANALYZABLE_QUESTIONS, analyzePalmRegion, detectFingerColumns, toGrayscaleContrastStretched, sobelMagnitude, analyzeHorizontalBand, analyzeVerticalStrip, analyzeArc };
 }

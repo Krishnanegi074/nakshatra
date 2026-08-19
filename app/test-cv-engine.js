@@ -6,6 +6,7 @@ const {
   analyzeHorizontalBand,
   analyzeVerticalStrip,
   analyzeArc,
+  detectFingerColumns,
   sobelMagnitude,
   toGrayscaleContrastStretched,
 } = require("./cv-engine.js");
@@ -281,6 +282,74 @@ console.log("\n== Group 5: edge cases (tiny regions, degenerate input) ==");
   let threw = false;
   try { analyzePalmRegion(solid); } catch (e) { threw = true; console.log("    threw:", e.message); }
   check("solid uniform-color region: does not throw (div-by-zero guard)", !threw);
+}
+
+console.log("\n== Group 6: detectFingerColumns + heartStart (thumb-left convention) ==");
+// Draw 3 dark "gap" stripes near the top of the frame, splitting it into 4
+// bright finger columns, matching the app's stated thumb-left photo convention.
+// bandEnd is kept well clear of the heart-line trace's wide re-acquire tolerance
+// (see analyzeHorizontalBand) so these synthetic finger-gap stripes can't bleed
+// a spurious early trace point into the heart-line scan below them.
+function drawFingerGaps(region, width, gapXs, bandStart = 0.04, bandEnd = 0.075, gapColor = [70, 60, 55], gapWidth = 8) {
+  const y0 = Math.round(region.height * bandStart), y1 = Math.round(region.height * bandEnd);
+  for (const gx of gapXs) {
+    for (let x = gx - gapWidth / 2; x < gx + gapWidth / 2; x++)
+      for (let y = y0; y < y1; y++) setPx(region, Math.round(x), y, gapColor);
+  }
+}
+{
+  const region = blankRegion(W, H);
+  drawFingerGaps(region, W, [100, 200, 300]);
+  const gray = toGrayscaleContrastStretched(region);
+  const cols = detectFingerColumns(gray, W, H);
+  check("4-finger synthetic: finds 4 columns", cols.columns.length === 4, cols.columns);
+  check("4-finger synthetic: column order index..pinky", cols.columns.map(c => c.name).join(",") === "index,middle,ring,pinky", cols.columns);
+  if (cols.columns.length === 4) {
+    check("4-finger synthetic: index column ends near x=100", Math.abs(cols.columns[0].x1 - 100) < 20, cols.columns[0]);
+    check("4-finger synthetic: pinky column starts near x=300", Math.abs(cols.columns[3].x0 - 300) < 20, cols.columns[3]);
+  }
+  check("4-finger synthetic: confidence reasonably high", cols.confidence > 0.5, cols.confidence);
+}
+{
+  // No gaps at all (blank top band) — should degrade gracefully, not crash, low-ish confidence.
+  const region = blankRegion(W, H);
+  const gray = toGrayscaleContrastStretched(region);
+  const cols = detectFingerColumns(gray, W, H);
+  check("blank top band: does not crash, returns array", Array.isArray(cols.columns));
+  check("blank top band: low confidence", cols.confidence < 0.5, cols.confidence);
+}
+{
+  // Heart line starting well inside the index column (x~20, thumb-left convention),
+  // kept under the 82%-of-width "flat" span cutoff so it tests the finger-mapping
+  // branch specifically rather than the no-clear-start-point branch.
+  const region = blankRegion(W, H);
+  drawFingerGaps(region, W, [100, 200, 300]);
+  drawHLine(region, Math.round(H * 0.2), 20, 300, LINE, 3);
+  const result = analyzePalmRegion(region);
+  check("heart line starting at x=20: heartStart=index", result.suggestions.heartStart === "index", result.suggestions);
+}
+{
+  // Heart line starting well inside the middle column (x~120).
+  const region = blankRegion(W, H);
+  drawFingerGaps(region, W, [100, 200, 300]);
+  drawHLine(region, Math.round(H * 0.2), 120, W - 20, LINE, 3);
+  const result = analyzePalmRegion(region);
+  check("heart line starting at x=120: heartStart=middle", result.suggestions.heartStart === "middle", result.suggestions);
+}
+{
+  // Heart line spanning almost the full width, dead straight -> no localized start.
+  const region = blankRegion(W, H);
+  drawFingerGaps(region, W, [100, 200, 300]);
+  drawHLine(region, Math.round(H * 0.2), 8, W - 8, LINE, 3);
+  const result = analyzePalmRegion(region);
+  check("full-width straight heart line: heartStart=flat", result.suggestions.heartStart === "flat", result.suggestions);
+}
+{
+  // heartStart confidence always in [0,1] and suggestion always one of the 3 valid values, even blank.
+  const region = blankRegion(W, H);
+  const result = analyzePalmRegion(region);
+  check("blank photo: heartStart is a valid enum value", ["index", "middle", "flat"].includes(result.suggestions.heartStart), result.suggestions.heartStart);
+  check("blank photo: heartStart confidence in [0,1]", result.confidence.heartStart >= 0 && result.confidence.heartStart <= 1, result.confidence.heartStart);
 }
 
 console.log(`\n=== RESULT: ${pass} passed, ${fail} failed ===`);

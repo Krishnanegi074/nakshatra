@@ -413,6 +413,7 @@ function resetPalmUI() {
   $("#palm-cv-status").textContent = "";
   cropRect = null;
   cropDrag = null;
+  $("#palm-finger-labels").innerHTML = "";
   $all(".cv-tag").forEach(t => { t.style.display = "none"; t.textContent = ""; t.classList.remove("low"); });
   $all(".option-btn.selected").forEach(b => b.classList.remove("selected"));
   $("#btn-palm-generate").disabled = true;
@@ -724,6 +725,40 @@ function initCropDrag() {
   $all(".crop-handle").forEach(h => h.addEventListener("pointerdown", (e) => onDown(e, h.dataset.h)));
 }
 
+// Draws small labels ("Index", "Middle", ...) directly on the uploaded photo
+// at each finger column detectFingerColumns() found, mapped from the CV
+// engine's crop-pixel coordinate space back to on-screen wrap coordinates
+// using the same scale/offset math runPalmAnalysis uses to build that crop in
+// the first place. This is what lets the "mount" question — the one thing the
+// pixel-math engine can't safely auto-answer (see cv-engine.js) — be a quick
+// look-and-tap instead of something the user has to know palmistry terms for.
+const FINGER_LABEL_TEXT = { index: "Index", middle: "Middle", ring: "Ring", pinky: "Pinky" };
+function renderFingerLabels(fingerColumns, mapPt) {
+  const box = $("#palm-finger-labels");
+  box.innerHTML = "";
+  if (!fingerColumns || !fingerColumns.columns || !fingerColumns.columns.length) return;
+  for (const col of fingerColumns.columns) {
+    const cx = (col.x0 + col.x1) / 2;
+    const p = mapPt(cx, 0.1);
+    const el = document.createElement("span");
+    el.className = "finger-label";
+    el.style.left = p.x + "px";
+    el.style.top = p.y + "px";
+    el.textContent = FINGER_LABEL_TEXT[col.name] || col.name;
+    box.appendChild(el);
+  }
+  // The thumb isn't one of the four detected columns (it sits outside the
+  // finger-valley scan band) — approximate its mount position near the
+  // frame's left edge, per the app's thumb-left photo convention.
+  const thumbPt = mapPt(0, 0.42);
+  const thumbEl = document.createElement("span");
+  thumbEl.className = "finger-label thumb";
+  thumbEl.style.left = thumbPt.x + "px";
+  thumbEl.style.top = thumbPt.y + "px";
+  thumbEl.textContent = "Thumb";
+  box.appendChild(thumbEl);
+}
+
 function applyPalmSuggestions(result) {
   ANALYZABLE_QUESTIONS.forEach((qid) => {
     const val = result.suggestions[qid];
@@ -782,6 +817,13 @@ function runPalmAnalysis() {
     const imageData = ctx.getImageData(0, 0, sw, sh);
     const result = analyzePalmRegion({ data: imageData.data, width: sw, height: sh });
     applyPalmSuggestions(result);
+    // Map a point in crop-pixel space (cvX in [0,sw), cvYFrac as a 0..1 fraction
+    // of sh) back to CSS px within #palm-crop-wrap, for positioning the finger labels.
+    const mapPt = (cvX, cvYFrac) => ({
+      x: offX + (sx + cvX) * scale,
+      y: offY + (sy + cvYFrac * sh) * scale,
+    });
+    renderFingerLabels(result.fingerColumns, mapPt);
     statusEl.textContent = "Scan complete — suggestions filled in below (marked \"Scanned\"). Tap any answer to correct it.";
   } catch (err) {
     statusEl.textContent = "Couldn't scan that photo — please answer the questions below by hand instead.";
