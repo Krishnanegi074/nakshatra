@@ -355,7 +355,34 @@ button { font-family: inherit; }
 }
 
 /* ---------- Landing screen ---------- */
-.landing-hero { padding-top: 54px; text-align: center; }
+/* position:sticky doesn't work here — #app-root has overflow:hidden (for its
+   rounded corners) which establishes its own scroll container, and since
+   #app-root itself never scrolls (the window does), a sticky descendant has
+   nothing to stick against and just scrolls away. position:fixed avoids that,
+   but must be independently centered/width-matched to #app-root's own
+   breakpoints (mobile fills the viewport; >=700px it's a bounded, margined
+   card) so the bar still lines up with the card's edges at every width. */
+.landing-navbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 20;
+  max-width: 460px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 12px 20px;
+  background: linear-gradient(180deg, rgba(13,8,32,0.97), rgba(13,8,32,0.9));
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+}
+.landing-navbar-brand { font-size: 1.3rem; line-height: 1; }
+.landing-navbar-actions { display: flex; align-items: center; gap: 8px; }
+.landing-navbar .btn-sm { padding: 8px 14px; font-size: 0.78rem; white-space: nowrap; }
+.landing-navbar .icon-btn { width: 34px; height: 34px; font-size: 0.9rem; flex-shrink: 0; }
+@media (min-width: 700px) {
+  .landing-navbar { top: 24px; max-width: 640px; border-radius: 32px 32px 0 0; }
+}
+@media (min-width: 1024px) {
+  .landing-navbar { max-width: 800px; }
+}
+
+.landing-hero { padding-top: 74px; text-align: center; }
 .landing-logo { font-size: 2.4rem; margin-bottom: 10px; }
 .landing-hero h1 { font-size: 2rem; line-height: 1.15; }
 .landing-hero .sub { color: var(--text-dim); font-size: 0.98rem; margin-bottom: 28px; }
@@ -366,6 +393,34 @@ button { font-family: inherit; }
 .trust-strip { display:flex; justify-content:center; gap: 18px; margin-top: 22px; }
 .trust-strip .t-num { font-family: 'Cinzel', serif; color: var(--gold-bright); font-size: 1.05rem; }
 .trust-strip .t-lbl { font-size: 0.68rem; color: var(--text-faint); }
+
+/* ---------- Landing: "why us" / "how it works" sections ---------- */
+.section-eyebrow { text-align: center; margin: 34px 0 4px; }
+.section-eyebrow .eyebrow { margin-bottom: 2px; }
+.section-title { text-align: center; font-size: 1.15rem; margin: 0 0 18px; }
+
+.why-grid { display: flex; flex-direction: column; gap: 12px; }
+@media (min-width: 560px) {
+  .why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+}
+.why-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; }
+.why-item .why-icon { font-size: 1.3rem; margin-bottom: 6px; }
+.why-item strong { display: block; font-size: 0.92rem; margin-bottom: 4px; }
+.why-item p { font-size: 0.82rem; margin: 0; }
+
+.steps-list { display: flex; flex-direction: column; gap: 14px; }
+.step-item { display: flex; gap: 14px; align-items: flex-start; }
+.step-num {
+  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, var(--gold-bright), var(--gold));
+  color: #2a1b0a; font-family: 'Cinzel', serif; font-weight: 700; font-size: 0.85rem;
+}
+.step-item strong { font-size: 0.92rem; }
+.step-item p { font-size: 0.86rem; margin: 3px 0 0; }
+
+.pricing-note { text-align: center; font-size: 0.82rem; color: var(--text-dim); margin: 26px 0 14px; }
+.pricing-note strong { color: var(--gold-bright); }
 
 /* ---------- Toast ---------- */
 #toast {
@@ -455,7 +510,14 @@ button { font-family: inherit; }
 
   <!-- ============ LANDING ============ -->
   <section id="screen-landing" class="screen active no-nav">
-    <button class="icon-btn" id="btn-lang-toggle" style="position:absolute;top:14px;right:14px;z-index:5">🌐</button>
+    <div class="landing-navbar">
+      <div class="landing-navbar-brand">🌙</div>
+      <div class="landing-navbar-actions">
+        <button class="btn btn-ghost btn-sm" id="btn-navbar-login" data-i18n="landing.navbar.login">Log In</button>
+        <button class="btn btn-primary btn-sm" id="btn-navbar-start" data-i18n="landing.navbar.start">Start</button>
+        <button class="icon-btn" id="btn-lang-toggle">🌐</button>
+      </div>
+    </div>
     <div class="landing-hero">
       <div class="landing-logo">🌙✨</div>
       <div class="eyebrow" data-i18n="landing.eyebrow">Nakshatra · Rule-Based Cosmic Guidance</div>
@@ -496,6 +558,61 @@ button { font-family: inherit; }
           </div>
         </div>
       </div>
+
+      <div class="section-eyebrow"><div class="eyebrow" data-i18n="landing.why.eyebrow">Why Nakshatra</div></div>
+      <h2 class="section-title" data-i18n="landing.why.title">Built to be honest with you</h2>
+      <div class="why-grid">
+        <div class="why-item">
+          <div class="why-icon">🔭</div>
+          <strong data-i18n="landing.why1.title">Real astronomy, not guesses</strong>
+          <p data-i18n="landing.why1.desc">Your chart comes from real planetary positions (ephemeris data) for your exact birth date, time, and place — not a generic template.</p>
+        </div>
+        <div class="why-item">
+          <div class="why-icon">📜</div>
+          <strong data-i18n="landing.why2.title">Classical rules, applied precisely</strong>
+          <p data-i18n="landing.why2.desc">Every reading follows documented astrology and palmistry principles — not an AI improvising an answer.</p>
+        </div>
+        <div class="why-item">
+          <div class="why-icon">🔐</div>
+          <strong data-i18n="landing.why3.title">Your palm photo stays on your phone</strong>
+          <p data-i18n="landing.why3.desc">Photo-assisted palm reading is analyzed on your own device. It's never uploaded to or stored on our servers.</p>
+        </div>
+        <div class="why-item">
+          <div class="why-icon">🎯</div>
+          <strong data-i18n="landing.why4.title">Made specifically for you</strong>
+          <p data-i18n="landing.why4.desc">No two results are the same canned text. Every reading is generated fresh from your own details.</p>
+        </div>
+      </div>
+
+      <div class="section-eyebrow"><div class="eyebrow" data-i18n="landing.how.eyebrow">How it works</div></div>
+      <h2 class="section-title" data-i18n="landing.how.title">Three simple steps</h2>
+      <div class="steps-list">
+        <div class="step-item">
+          <div class="step-num">1</div>
+          <div>
+            <strong data-i18n="landing.step1.title">Share your details</strong>
+            <p data-i18n="landing.step1.desc">Enter your birth date, time and place, or upload a palm photo — under a minute.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">2</div>
+          <div>
+            <strong data-i18n="landing.step2.title">See a free preview</strong>
+            <p data-i18n="landing.step2.desc">Get an instant preview of your chart or palm reading, no payment needed, so you can see it's genuinely yours.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">3</div>
+          <div>
+            <strong data-i18n="landing.step3.title">Unlock the full report</strong>
+            <p data-i18n="landing.step3.desc">Like what you see? Unlock your complete detailed report for a one-time ₹399 — no subscription unless you choose one.</p>
+          </div>
+        </div>
+      </div>
+
+      <p class="pricing-note" data-i18n-html="landing.pricing-note">Free to preview. <strong>Pay once, only if you want your full report.</strong></p>
+      <button class="btn btn-primary btn-block" id="btn-landing-start-bottom" data-i18n="landing.cta.start">Begin Your Reading →</button>
+
       <p class="muted center" style="margin-top:16px;font-size:0.72rem" data-i18n-html="landing.legal-footer">By continuing, you agree to our <a href="javascript:void(0)" id="link-landing-terms">Terms of Service</a> and <a href="javascript:void(0)" id="link-landing-privacy">Privacy Policy</a>.</p>
     </div>
   </section>
@@ -3232,6 +3349,8 @@ const I18N = {
     "landing.sub": "Real astronomical calculations, classical palmistry rules —<br>no vague AI guesses, ever.",
     "landing.cta.start": "Begin Your Reading →",
     "landing.cta.login": "I already have an account",
+    "landing.navbar.start": "Start",
+    "landing.navbar.login": "Log In",
     "landing.trust.rulebased": "Rule-based",
     "landing.trust.real": "Real",
     "landing.trust.ephemeris": "Ephemeris data",
@@ -3244,6 +3363,25 @@ const I18N = {
     "landing.card1.desc": "Upload a photo, confirm your line shapes, get a classical palmistry read.",
     "landing.card2.title": "Sun · Moon · Rising",
     "landing.card2.desc": "Computed from your real birth date, time, and place — not a guess.",
+    "landing.why.eyebrow": "Why Nakshatra",
+    "landing.why.title": "Built to be honest with you",
+    "landing.why1.title": "Real astronomy, not guesses",
+    "landing.why1.desc": "Your chart comes from real planetary positions (ephemeris data) for your exact birth date, time, and place — not a generic template.",
+    "landing.why2.title": "Classical rules, applied precisely",
+    "landing.why2.desc": "Every reading follows documented astrology and palmistry principles — not an AI improvising an answer.",
+    "landing.why3.title": "Your palm photo stays on your phone",
+    "landing.why3.desc": "Photo-assisted palm reading is analyzed on your own device. It's never uploaded to or stored on our servers.",
+    "landing.why4.title": "Made specifically for you",
+    "landing.why4.desc": "No two results are the same canned text. Every reading is generated fresh from your own details.",
+    "landing.how.eyebrow": "How it works",
+    "landing.how.title": "Three simple steps",
+    "landing.step1.title": "Share your details",
+    "landing.step1.desc": "Enter your birth date, time and place, or upload a palm photo — under a minute.",
+    "landing.step2.title": "See a free preview",
+    "landing.step2.desc": "Get an instant preview of your chart or palm reading, no payment needed, so you can see it's genuinely yours.",
+    "landing.step3.title": "Unlock the full report",
+    "landing.step3.desc": "Like what you see? Unlock your complete detailed report for a one-time ₹399 — no subscription unless you choose one.",
+    "landing.pricing-note": "Free to preview. <strong>Pay once, only if you want your full report.</strong>",
     "landing.legal-footer": "By continuing, you agree to our <a href=\"javascript:void(0)\" id=\"link-landing-terms\">Terms of Service</a> and <a href=\"javascript:void(0)\" id=\"link-landing-privacy\">Privacy Policy</a>.",
 
     "settings.title": "Settings",
@@ -3492,6 +3630,8 @@ const I18N = {
     "landing.sub": "वास्तविक खगोलीय गणनाएं, पारंपरिक हस्तरेखा नियम —<br>कोई अस्पष्ट AI अनुमान नहीं, कभी नहीं।",
     "landing.cta.start": "अपनी रीडिंग शुरू करें →",
     "landing.cta.login": "मेरा पहले से खाता है",
+    "landing.navbar.start": "शुरू करें",
+    "landing.navbar.login": "लॉग इन",
     "landing.trust.rulebased": "नियम-आधारित",
     "landing.trust.real": "वास्तविक",
     "landing.trust.ephemeris": "एफेमेरिस डेटा",
@@ -3504,6 +3644,25 @@ const I18N = {
     "landing.card1.desc": "एक फ़ोटो अपलोड करें, अपनी रेखाओं के आकार की पुष्टि करें, और एक पारंपरिक हस्तरेखा पठन प्राप्त करें।",
     "landing.card2.title": "सूर्य · चंद्र · लग्न",
     "landing.card2.desc": "आपकी वास्तविक जन्म तिथि, समय और स्थान से गणना की गई — अनुमान नहीं।",
+    "landing.why.eyebrow": "नक्षत्र क्यों",
+    "landing.why.title": "आपके साथ ईमानदार रहने के लिए बनाया गया",
+    "landing.why1.title": "असली खगोल विज्ञान, अनुमान नहीं",
+    "landing.why1.desc": "आपकी कुंडली आपकी सटीक जन्म तिथि, समय और स्थान के लिए वास्तविक ग्रह स्थितियों (एफेमेरिस डेटा) से बनती है — किसी सामान्य टेम्पलेट से नहीं।",
+    "landing.why2.title": "पारंपरिक नियम, सटीकता से लागू",
+    "landing.why2.desc": "हर रीडिंग दस्तावेज़ीकृत ज्योतिष और हस्तरेखा सिद्धांतों का पालन करती है — कोई AI मनगढ़ंत जवाब नहीं देता।",
+    "landing.why3.title": "आपकी हथेली की फ़ोटो आपके फ़ोन पर ही रहती है",
+    "landing.why3.desc": "फ़ोटो-सहायता प्राप्त हस्तरेखा पठन का विश्लेषण आपके अपने डिवाइस पर होता है। यह कभी भी हमारे सर्वर पर अपलोड या संग्रहीत नहीं होती।",
+    "landing.why4.title": "विशेष रूप से आपके लिए बनाई गई",
+    "landing.why4.desc": "कोई भी दो परिणाम एक जैसे टेम्पलेट टेक्स्ट नहीं होते। हर रीडिंग आपके अपने विवरण से नए सिरे से तैयार की जाती है।",
+    "landing.how.eyebrow": "यह कैसे काम करता है",
+    "landing.how.title": "तीन आसान चरण",
+    "landing.step1.title": "अपना विवरण साझा करें",
+    "landing.step1.desc": "अपनी जन्म तिथि, समय और स्थान दर्ज करें, या एक हथेली की फ़ोटो अपलोड करें — एक मिनट से भी कम समय में।",
+    "landing.step2.title": "एक मुफ़्त झलक देखें",
+    "landing.step2.desc": "अपनी कुंडली या हस्तरेखा पठन की तुरंत झलक पाएं, बिना किसी भुगतान के, ताकि आप देख सकें कि यह सच में आपकी है।",
+    "landing.step3.title": "पूरी रिपोर्ट अनलॉक करें",
+    "landing.step3.desc": "जो देखा वह पसंद आया? अपनी पूरी विस्तृत रिपोर्ट को एक बार के ₹399 में अनलॉक करें — जब तक आप खुद न चुनें, कोई सदस्यता नहीं।",
+    "landing.pricing-note": "झलक देखना मुफ़्त है। <strong>केवल तभी भुगतान करें जब आपको अपनी पूरी रिपोर्ट चाहिए।</strong>",
     "landing.legal-footer": "जारी रखकर, आप हमारी <a href=\"javascript:void(0)\" id=\"link-landing-terms\">सेवा शर्तों</a> और <a href=\"javascript:void(0)\" id=\"link-landing-privacy\">गोपनीयता नीति</a> से सहमत होते हैं।",
 
     "settings.title": "सेटिंग्स",
@@ -4270,7 +4429,10 @@ document.addEventListener("click", (e) => {
 // ================= AUTH =================
 function initAuth() {
   $("#btn-landing-start").addEventListener("click", () => { state.authMode = "signup"; syncAuthTabs(); showScreen("screen-auth"); });
+  $("#btn-landing-start-bottom").addEventListener("click", () => { state.authMode = "signup"; syncAuthTabs(); showScreen("screen-auth"); });
+  $("#btn-navbar-start").addEventListener("click", () => { state.authMode = "signup"; syncAuthTabs(); showScreen("screen-auth"); });
   $("#btn-landing-login").addEventListener("click", () => { state.authMode = "login"; syncAuthTabs(); showScreen("screen-auth"); });
+  $("#btn-navbar-login").addEventListener("click", () => { state.authMode = "login"; syncAuthTabs(); showScreen("screen-auth"); });
   $("#tab-signup").addEventListener("click", () => { state.authMode = "signup"; syncAuthTabs(); });
   $("#tab-login").addEventListener("click", () => { state.authMode = "login"; syncAuthTabs(); });
 
