@@ -169,6 +169,18 @@ const fs = require("fs");
   const staleSelection = await page.evaluate(() => document.querySelectorAll(".option-btn.selected").length);
   console.log("RESET-CHECK: stale crop rect visible for new user:", staleCropVisible, "| stale cv-tag visible:", staleTagVisible, "| stale selected buttons:", staleSelection);
 
+  // --- Low-quality photo: a blank/featureless image should trigger the
+  // "try a clearer photo" guidance instead of silently showing bogus answers ---
+  const blankFileInput = await page.$("#palm-file-input");
+  await blankFileInput.setInputFiles(path.resolve(__dirname, "test-assets-palm-blank.png"));
+  await page.waitForTimeout(300);
+  await page.click("#btn-palm-analyze");
+  await page.waitForTimeout(300);
+  const qualityWarningVisible = await page.isVisible("#palm-quality-warning");
+  const qualityStatusText = await page.textContent("#palm-cv-status");
+  console.log("Blank photo -> quality warning shown:", qualityWarningVisible, "| status text:", qualityStatusText);
+  await shot("05-blank-photo-quality-warning");
+
   console.log("\nERRORS FOUND:", errors.length);
   errors.forEach(e => console.log(" -", e));
 

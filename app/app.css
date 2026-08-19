@@ -315,6 +315,12 @@ button { font-family: inherit; }
 }
 .finger-label.thumb { background: rgba(232,198,135,0.85); }
 
+.quality-warning {
+  background: rgba(232,198,135,0.08); border: 1px solid var(--gold); border-radius: var(--radius-sm);
+  padding: 14px 16px;
+}
+.quality-warning li { font-size: 0.88rem; line-height: 1.5; }
+
 .lang-option.active { border-color: var(--gold); background: rgba(201,161,95,0.14); color: var(--text); font-weight: 600; }
 
 /* ---------- Payment / checkout ---------- */

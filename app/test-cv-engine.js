@@ -352,5 +352,44 @@ function drawFingerGaps(region, width, gapXs, bandStart = 0.04, bandEnd = 0.075,
   check("blank photo: heartStart confidence in [0,1]", result.confidence.heartStart >= 0 && result.confidence.heartStart <= 1, result.confidence.heartStart);
 }
 
+console.log("\n== Group 7: scan quality flag (nudge the user toward a better photo) ==");
+{
+  const region = blankRegion(W, H); // no lines at all -> nothing detected anywhere
+  const result = analyzePalmRegion(region);
+  check("blank photo: flagged as low quality", result.quality.lowQuality === true, result.quality);
+}
+{
+  const region = blankRegion(W, H);
+  for (let p = 0; p < W * H; p++) {
+    const n = 150 + Math.floor(Math.random() * 60);
+    region.data[p * 4] = n; region.data[p * 4 + 1] = n - 10; region.data[p * 4 + 2] = n - 20;
+  }
+  const result = analyzePalmRegion(region);
+  check("random noise photo: flagged as low quality", result.quality.lowQuality === true, result.quality);
+}
+{
+  // Reuse scenario A from Group 4 (long/deep life line, strong fate, steep head line) —
+  // a real, well-formed synthetic reading should NOT trip the low-quality flag.
+  const region = blankRegion(W, H);
+  drawArcSegment(region, W, H, 0, 1, LINE, 5);
+  drawVLine(region, Math.round(W * 0.5), 10, H - 10, LINE, 4);
+  drawHLine(region, Math.round(H * 0.22), 20, W - 20, LINE, 3);
+  drawSlopedLine(region, 30, Math.round(H * 0.34), W - 30, Math.round(H * 0.58), LINE, 3);
+  const result = analyzePalmRegion(region);
+  check("well-formed synthetic reading: NOT flagged as low quality", result.quality.lowQuality === false, result.quality);
+}
+{
+  // A clear 4-finger photo with clean line signal (from Group 6's setup) should
+  // also read as good quality, confirming the flag isn't overly trigger-happy.
+  const region = blankRegion(W, H);
+  drawFingerGaps(region, W, [100, 200, 300]);
+  drawHLine(region, Math.round(H * 0.2), 120, W - 20, LINE, 3);
+  drawCurvedLine(region, Math.round(H * 0.46), 20, W - 20, 20, LINE, 3);
+  drawArcSegment(region, W, H, 0, 0.8, LINE, 4);
+  drawVLine(region, Math.round(W * 0.5), 10, H - 10, LINE, 4);
+  const result = analyzePalmRegion(region);
+  check("clean multi-line photo with finger gaps: NOT flagged as low quality", result.quality.lowQuality === false, result.quality);
+}
+
 console.log(`\n=== RESULT: ${pass} passed, ${fail} failed ===`);
 process.exit(fail > 0 ? 1 : 0);

@@ -330,6 +330,18 @@ function analyzePalmRegion(region) {
   const fate = analyzeVerticalStrip(mag, width, height, Math.round(width * 0.42), Math.round(width * 0.58), threshold);
   const life = analyzeArc(mag, width, height, threshold);
 
+  // Whole-image edge density — a second, independent quality signal (see
+  // `quality` below). A real palm photo is mostly smooth skin between the
+  // handful of actual lines, so only a small slice of pixels ever clear the
+  // edge threshold. Uniform sensor noise or a heavily textured/non-palm photo
+  // instead clears threshold almost everywhere, which the coverage-based
+  // confidences above can misread as one long "continuous line" (a gap-free
+  // trace looks the same whether the line is real or just noise everywhere) —
+  // this catches that case directly instead of relying on coverage alone.
+  let edgeCount = 0;
+  for (let i = 0; i < mag.length; i++) if (mag[i] > threshold) edgeCount++;
+  const edgeDensity = edgeCount / mag.length;
+
   const suggestions = {};
   const confidence = {};
 
@@ -383,7 +395,25 @@ function analyzePalmRegion(region) {
     confidence.heartStart = 0.25;
   }
 
-  return { suggestions, confidence, fingerColumns: fingerCols, raw: { heart, head, fate, life, threshold } };
+  // Overall scan quality. A blank, badly-lit, out-of-focus, or "not actually a
+  // palm" photo doesn't crash (every branch above has a safe floor value) but
+  // it also doesn't find any real line signal, so every confidence sits near
+  // its floor (~0.25-0.35, see the floors used throughout this function). A
+  // genuine reading — even a faint one — tends to push at least most values
+  // well above that floor. Two signals, either one enough to flag it: most
+  // questions individually near the floor, or the overall average low.
+  const analyzableConfidences = ANALYZABLE_QUESTIONS.map((q) => confidence[q]);
+  const avgConfidence = analyzableConfidences.reduce((a, b) => a + b, 0) / analyzableConfidences.length;
+  const lowCount = analyzableConfidences.filter((c) => c < 0.35).length;
+  // edgeDensity threshold (0.12) is calibrated with real margin either side:
+  // pure random sensor noise measured ~0.27 in testing, a clean synthetic
+  // line photo ~0.007 — real photos with natural skin texture/grain should
+  // still land well under 0.12, but this is a heuristic cutoff, not a proof,
+  // so it may need adjusting once tested against real-world photos.
+  const lowQuality = lowCount >= 5 || avgConfidence < 0.38 || edgeDensity > 0.12;
+  const quality = { average: avgConfidence, lowCount, edgeDensity, lowQuality };
+
+  return { suggestions, confidence, fingerColumns: fingerCols, quality, raw: { heart, head, fate, life, threshold } };
 }
 
 if (typeof module !== "undefined") {

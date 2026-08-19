@@ -324,6 +324,12 @@ button { font-family: inherit; }
 }
 .finger-label.thumb { background: rgba(232,198,135,0.85); }
 
+.quality-warning {
+  background: rgba(232,198,135,0.08); border: 1px solid var(--gold); border-radius: var(--radius-sm);
+  padding: 14px 16px;
+}
+.quality-warning li { font-size: 0.88rem; line-height: 1.5; }
+
 .lang-option.active { border-color: var(--gold); background: rgba(201,161,95,0.14); color: var(--text); font-weight: 600; }
 
 /* ---------- Payment / checkout ---------- */
@@ -720,6 +726,17 @@ button { font-family: inherit; }
       <button class="btn btn-secondary btn-block" id="btn-palm-analyze" style="display:none;margin-top:10px" data-i18n="palm.btn.analyze">📸 Scan Palm From Photo</button>
       <button class="btn btn-ghost btn-block" id="btn-palm-change-photo" style="display:none;margin-top:8px" data-i18n="palm.btn.change">Choose a different photo</button>
       <div id="palm-cv-status" class="muted" style="display:none;margin-top:8px;font-size:0.85rem"></div>
+      <div id="palm-quality-warning" class="quality-warning" style="display:none;margin-top:10px">
+        <p style="margin:0 0 8px;font-weight:600;color:var(--text)" data-i18n="palm.quality.heading">This photo's hard to read clearly</p>
+        <p class="muted" style="margin:0 0 8px" data-i18n="palm.quality.desc">The scan couldn't find clear palm lines in this photo. You can still answer the questions below yourself, but for a better automatic read, try uploading a different photo:</p>
+        <ul style="margin:0 0 8px;padding-left:20px;color:var(--text-dim)">
+          <li data-i18n="palm.quality.tip1">Bright, even light — avoid strong shadows or glare</li>
+          <li data-i18n="palm.quality.tip2">Hold your palm flat and fully open</li>
+          <li data-i18n="palm.quality.tip3">Fit your whole hand — fingertips to wrist — in the frame</li>
+          <li data-i18n="palm.quality.tip4">Hold the camera directly above your palm, not at an angle</li>
+          <li data-i18n="palm.quality.tip5">Make sure the photo is in focus, not blurry</li>
+        </ul>
+      </div>
 
       <p class="muted" style="margin-top:14px" data-i18n="palm.confirm-note">Now confirm what you see on your own palm — this "assisted" step is what makes the reading rule-based instead of a black-box guess. Scanning a photo fills in a starting guess for 6 of the 7 questions below (marked "Scanned"). The last one — which finger-pad looks fullest — is labeled right on your photo above, so it's a quick look-and-tap too, no palmistry knowledge needed.</p>
       <div id="palm-questions" class="stack grid-list" style="margin-top:10px"></div>
@@ -3083,6 +3100,18 @@ function analyzePalmRegion(region) {
   const fate = analyzeVerticalStrip(mag, width, height, Math.round(width * 0.42), Math.round(width * 0.58), threshold);
   const life = analyzeArc(mag, width, height, threshold);
 
+  // Whole-image edge density — a second, independent quality signal (see
+  // `quality` below). A real palm photo is mostly smooth skin between the
+  // handful of actual lines, so only a small slice of pixels ever clear the
+  // edge threshold. Uniform sensor noise or a heavily textured/non-palm photo
+  // instead clears threshold almost everywhere, which the coverage-based
+  // confidences above can misread as one long "continuous line" (a gap-free
+  // trace looks the same whether the line is real or just noise everywhere) —
+  // this catches that case directly instead of relying on coverage alone.
+  let edgeCount = 0;
+  for (let i = 0; i < mag.length; i++) if (mag[i] > threshold) edgeCount++;
+  const edgeDensity = edgeCount / mag.length;
+
   const suggestions = {};
   const confidence = {};
 
@@ -3136,7 +3165,25 @@ function analyzePalmRegion(region) {
     confidence.heartStart = 0.25;
   }
 
-  return { suggestions, confidence, fingerColumns: fingerCols, raw: { heart, head, fate, life, threshold } };
+  // Overall scan quality. A blank, badly-lit, out-of-focus, or "not actually a
+  // palm" photo doesn't crash (every branch above has a safe floor value) but
+  // it also doesn't find any real line signal, so every confidence sits near
+  // its floor (~0.25-0.35, see the floors used throughout this function). A
+  // genuine reading — even a faint one — tends to push at least most values
+  // well above that floor. Two signals, either one enough to flag it: most
+  // questions individually near the floor, or the overall average low.
+  const analyzableConfidences = ANALYZABLE_QUESTIONS.map((q) => confidence[q]);
+  const avgConfidence = analyzableConfidences.reduce((a, b) => a + b, 0) / analyzableConfidences.length;
+  const lowCount = analyzableConfidences.filter((c) => c < 0.35).length;
+  // edgeDensity threshold (0.12) is calibrated with real margin either side:
+  // pure random sensor noise measured ~0.27 in testing, a clean synthetic
+  // line photo ~0.007 — real photos with natural skin texture/grain should
+  // still land well under 0.12, but this is a heuristic cutoff, not a proof,
+  // so it may need adjusting once tested against real-world photos.
+  const lowQuality = lowCount >= 5 || avgConfidence < 0.38 || edgeDensity > 0.12;
+  const quality = { average: avgConfidence, lowCount, edgeDensity, lowQuality };
+
+  return { suggestions, confidence, fingerColumns: fingerCols, quality, raw: { heart, head, fate, life, threshold } };
 }
 
 if (typeof module !== "undefined") {
@@ -3300,6 +3347,13 @@ const I18N = {
     "palm.btn.change": "Choose a different photo",
     "palm.confirm-note": 'Now confirm what you see on your own palm — this "assisted" step is what makes the reading rule-based instead of a black-box guess. Scanning a photo fills in a starting guess for 6 of the 7 questions below (marked "Scanned"). The last one — which finger-pad looks fullest — is labeled right on your photo above, so it\'s a quick look-and-tap too, no palmistry knowledge needed.',
     "palm.btn.generate": "Generate My Palm Reading",
+    "palm.quality.heading": "This photo's hard to read clearly",
+    "palm.quality.desc": "The scan couldn't find clear palm lines in this photo. You can still answer the questions below yourself, but for a better automatic read, try uploading a different photo:",
+    "palm.quality.tip1": "Bright, even light — avoid strong shadows or glare",
+    "palm.quality.tip2": "Hold your palm flat and fully open",
+    "palm.quality.tip3": "Fit your whole hand — fingertips to wrist — in the frame",
+    "palm.quality.tip4": "Hold the camera directly above your palm, not at an angle",
+    "palm.quality.tip5": "Make sure the photo is in focus, not blurry",
     "palm.lock.title": "Unlock your full palm report",
     "palm.lock.desc": "All 7 lines & mounts, fully interpreted",
 
@@ -3552,6 +3606,13 @@ const I18N = {
     "palm.btn.change": "एक अलग फ़ोटो चुनें",
     "palm.confirm-note": 'अब अपनी हथेली पर जो देखते हैं उसकी पुष्टि करें — यह "सहायता प्राप्त" चरण ही रीडिंग को नियम-आधारित बनाता है, न कि एक ब्लैक-बॉक्स अनुमान। फ़ोटो स्कैन करने से नीचे दिए गए 7 में से 6 सवालों के लिए एक शुरुआती अनुमान भर जाता है (चिह्नित "स्कैन किया गया")। आखिरी सवाल — कौन सा उंगली-पैड सबसे उभरा हुआ दिखता है — ऊपर आपकी फ़ोटो पर ही लेबल किया गया है, तो यह भी बस देखकर टैप करने जितना आसान है, हस्तरेखा शास्त्र की कोई जानकारी ज़रूरी नहीं।',
     "palm.btn.generate": "मेरी हथेली रीडिंग बनाएं",
+    "palm.quality.heading": "यह फ़ोटो साफ़ तौर पर पढ़ना मुश्किल है",
+    "palm.quality.desc": "इस फ़ोटो में स्कैन को साफ़ हथेली रेखाएं नहीं मिलीं। आप नीचे दिए गए सवालों के जवाब खुद दे सकते हैं, लेकिन बेहतर ऑटोमैटिक रीडिंग के लिए एक अलग फ़ोटो अपलोड करके देखें:",
+    "palm.quality.tip1": "तेज़, एकसमान रोशनी — तेज़ परछाई या चमक से बचें",
+    "palm.quality.tip2": "अपनी हथेली सपाट और पूरी तरह खुली रखें",
+    "palm.quality.tip3": "पूरा हाथ — उंगलियों की नोक से कलाई तक — फ्रेम में रखें",
+    "palm.quality.tip4": "कैमरे को अपनी हथेली के ठीक ऊपर रखें, किसी कोण पर नहीं",
+    "palm.quality.tip5": "सुनिश्चित करें कि फ़ोटो फोकस में है, धुंधली न हो",
     "palm.lock.title": "अपनी पूर्ण हथेली रिपोर्ट अनलॉक करें",
     "palm.lock.desc": "सभी 7 रेखाएं और माउंट, पूरी तरह से व्याख्या की गई",
 
@@ -4305,6 +4366,7 @@ function resetPalmUI() {
   $("#btn-palm-change-photo").style.display = "none";
   $("#palm-cv-status").style.display = "none";
   $("#palm-cv-status").textContent = "";
+  $("#palm-quality-warning").style.display = "none";
   cropRect = null;
   cropDrag = null;
   $("#palm-finger-labels").innerHTML = "";
@@ -4698,6 +4760,8 @@ function runPalmAnalysis() {
   const sx = Math.round(rx / scale), sy = Math.round(ry / scale);
   const sw = Math.round(rw / scale), sh = Math.round(rh / scale);
 
+  $("#palm-quality-warning").style.display = "none";
+
   if (sw < 20 || sh < 20) {
     statusEl.textContent = "That frame is too small to scan — drag the corner handles to make it bigger, over your palm.";
     return;
@@ -4718,7 +4782,15 @@ function runPalmAnalysis() {
       y: offY + (sy + cvYFrac * sh) * scale,
     });
     renderFingerLabels(result.fingerColumns, mapPt);
-    statusEl.textContent = "Scan complete — suggestions filled in below (marked \"Scanned\"). Tap any answer to correct it.";
+    if (result.quality && result.quality.lowQuality) {
+      // Don't just report a low score and stop — tell the user what to do
+      // about it (upload a clearer photo) and how to get a better one, since
+      // "the scan found nothing" on its own isn't an actionable message.
+      statusEl.textContent = "Scan finished, but the suggestions below are low-confidence guesses (see tip below). You can still answer manually, or try a clearer photo.";
+      $("#palm-quality-warning").style.display = "block";
+    } else {
+      statusEl.textContent = "Scan complete — suggestions filled in below (marked \"Scanned\"). Tap any answer to correct it.";
+    }
   } catch (err) {
     statusEl.textContent = "Couldn't scan that photo — please answer the questions below by hand instead.";
   }
@@ -4741,6 +4813,7 @@ function initPalmUpload() {
       $("#btn-palm-change-photo").style.display = "block";
       $("#palm-cv-status").style.display = "none";
       $("#palm-cv-status").textContent = "";
+      $("#palm-quality-warning").style.display = "none";
     };
     reader.readAsDataURL(file);
   });
@@ -4753,6 +4826,7 @@ function initPalmUpload() {
     $("#btn-palm-analyze").style.display = "none";
     $("#btn-palm-change-photo").style.display = "none";
     $("#palm-cv-status").style.display = "none";
+    $("#palm-quality-warning").style.display = "none";
     $("#palm-file-input").value = "";
     cropRect = null;
   });

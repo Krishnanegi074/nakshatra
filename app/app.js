@@ -411,6 +411,7 @@ function resetPalmUI() {
   $("#btn-palm-change-photo").style.display = "none";
   $("#palm-cv-status").style.display = "none";
   $("#palm-cv-status").textContent = "";
+  $("#palm-quality-warning").style.display = "none";
   cropRect = null;
   cropDrag = null;
   $("#palm-finger-labels").innerHTML = "";
@@ -804,6 +805,8 @@ function runPalmAnalysis() {
   const sx = Math.round(rx / scale), sy = Math.round(ry / scale);
   const sw = Math.round(rw / scale), sh = Math.round(rh / scale);
 
+  $("#palm-quality-warning").style.display = "none";
+
   if (sw < 20 || sh < 20) {
     statusEl.textContent = "That frame is too small to scan — drag the corner handles to make it bigger, over your palm.";
     return;
@@ -824,7 +827,15 @@ function runPalmAnalysis() {
       y: offY + (sy + cvYFrac * sh) * scale,
     });
     renderFingerLabels(result.fingerColumns, mapPt);
-    statusEl.textContent = "Scan complete — suggestions filled in below (marked \"Scanned\"). Tap any answer to correct it.";
+    if (result.quality && result.quality.lowQuality) {
+      // Don't just report a low score and stop — tell the user what to do
+      // about it (upload a clearer photo) and how to get a better one, since
+      // "the scan found nothing" on its own isn't an actionable message.
+      statusEl.textContent = "Scan finished, but the suggestions below are low-confidence guesses (see tip below). You can still answer manually, or try a clearer photo.";
+      $("#palm-quality-warning").style.display = "block";
+    } else {
+      statusEl.textContent = "Scan complete — suggestions filled in below (marked \"Scanned\"). Tap any answer to correct it.";
+    }
   } catch (err) {
     statusEl.textContent = "Couldn't scan that photo — please answer the questions below by hand instead.";
   }
@@ -847,6 +858,7 @@ function initPalmUpload() {
       $("#btn-palm-change-photo").style.display = "block";
       $("#palm-cv-status").style.display = "none";
       $("#palm-cv-status").textContent = "";
+      $("#palm-quality-warning").style.display = "none";
     };
     reader.readAsDataURL(file);
   });
@@ -859,6 +871,7 @@ function initPalmUpload() {
     $("#btn-palm-analyze").style.display = "none";
     $("#btn-palm-change-photo").style.display = "none";
     $("#palm-cv-status").style.display = "none";
+    $("#palm-quality-warning").style.display = "none";
     $("#palm-file-input").value = "";
     cropRect = null;
   });

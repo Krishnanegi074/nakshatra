@@ -290,6 +290,17 @@
       <button class="btn btn-secondary btn-block" id="btn-palm-analyze" style="display:none;margin-top:10px" data-i18n="palm.btn.analyze">📸 Scan Palm From Photo</button>
       <button class="btn btn-ghost btn-block" id="btn-palm-change-photo" style="display:none;margin-top:8px" data-i18n="palm.btn.change">Choose a different photo</button>
       <div id="palm-cv-status" class="muted" style="display:none;margin-top:8px;font-size:0.85rem"></div>
+      <div id="palm-quality-warning" class="quality-warning" style="display:none;margin-top:10px">
+        <p style="margin:0 0 8px;font-weight:600;color:var(--text)" data-i18n="palm.quality.heading">This photo's hard to read clearly</p>
+        <p class="muted" style="margin:0 0 8px" data-i18n="palm.quality.desc">The scan couldn't find clear palm lines in this photo. You can still answer the questions below yourself, but for a better automatic read, try uploading a different photo:</p>
+        <ul style="margin:0 0 8px;padding-left:20px;color:var(--text-dim)">
+          <li data-i18n="palm.quality.tip1">Bright, even light — avoid strong shadows or glare</li>
+          <li data-i18n="palm.quality.tip2">Hold your palm flat and fully open</li>
+          <li data-i18n="palm.quality.tip3">Fit your whole hand — fingertips to wrist — in the frame</li>
+          <li data-i18n="palm.quality.tip4">Hold the camera directly above your palm, not at an angle</li>
+          <li data-i18n="palm.quality.tip5">Make sure the photo is in focus, not blurry</li>
+        </ul>
+      </div>
 
       <p class="muted" style="margin-top:14px" data-i18n="palm.confirm-note">Now confirm what you see on your own palm — this "assisted" step is what makes the reading rule-based instead of a black-box guess. Scanning a photo fills in a starting guess for 6 of the 7 questions below (marked "Scanned"). The last one — which finger-pad looks fullest — is labeled right on your photo above, so it's a quick look-and-tap too, no palmistry knowledge needed.</p>
       <div id="palm-questions" class="stack grid-list" style="margin-top:10px"></div>
