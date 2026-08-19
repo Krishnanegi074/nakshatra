@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Nakshatra — Your Cosmic Guidance App</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/*__APP_CSS__*/
+</style>
+</head>
+<body>
+
+<div id="stars-bg"></div>
+<div id="toast"></div>
+
+<div id="app-root">
+
+  <!-- ============ LANDING ============ -->
+  <section id="screen-landing" class="screen active no-nav">
+    <button class="icon-btn" id="btn-lang-toggle" style="position:absolute;top:14px;right:14px;z-index:5">🌐</button>
+    <div class="landing-hero">
+      <div class="landing-logo">🌙✨</div>
+      <div class="eyebrow" data-i18n="landing.eyebrow">Nakshatra · Rule-Based Cosmic Guidance</div>
+      <h1 data-i18n-html="landing.h1">Your palm and your<br>birth chart, decoded.</h1>
+      <p class="sub" data-i18n-html="landing.sub">Real astronomical calculations, classical palmistry rules —<br>no vague AI guesses, ever.</p>
+      <button class="btn btn-primary btn-block" id="btn-landing-start" data-i18n="landing.cta.start">Begin Your Reading →</button>
+      <div style="height:10px"></div>
+      <button class="btn btn-secondary btn-block" id="btn-landing-login" data-i18n="landing.cta.login">I already have an account</button>
+      <div class="trust-strip">
+        <div><div class="t-num">100%</div><div class="t-lbl" data-i18n="landing.trust.rulebased">Rule-based</div></div>
+        <div><div class="t-num" data-i18n="landing.trust.real">Real</div><div class="t-lbl" data-i18n="landing.trust.ephemeris">Ephemeris data</div></div>
+        <div><div class="t-num">0</div><div class="t-lbl" data-i18n="landing.trust.ai">AI guesswork</div></div>
+      </div>
+    </div>
+
+    <div style="margin-top:34px" class="stack">
+      <div class="row wrap center" style="justify-content:center">
+        <span class="feature-pill" data-i18n="landing.pill.chart">🪐 Birth chart</span>
+        <span class="feature-pill" data-i18n="landing.pill.palm">🖐️ Palm reading</span>
+        <span class="feature-pill" data-i18n="landing.pill.love">💗 Love energy</span>
+        <span class="feature-pill" data-i18n="landing.pill.horoscope">🔮 Weekly horoscope</span>
+      </div>
+      <div class="card">
+        <div class="row">
+          <div class="zodiac-badge">🖐️</div>
+          <div>
+            <strong data-i18n="landing.card1.title">Palm Reading</strong>
+            <p style="margin:2px 0 0" data-i18n="landing.card1.desc">Upload a photo, confirm your line shapes, get a classical palmistry read.</p>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="row">
+          <div class="zodiac-badge">☀️</div>
+          <div>
+            <strong data-i18n="landing.card2.title">Sun · Moon · Rising</strong>
+            <p style="margin:2px 0 0" data-i18n="landing.card2.desc">Computed from your real birth date, time, and place — not a guess.</p>
+          </div>
+        </div>
+      </div>
+      <p class="muted center" style="margin-top:16px;font-size:0.72rem" data-i18n-html="landing.legal-footer">By continuing, you agree to our <a href="javascript:void(0)" id="link-landing-terms">Terms of Service</a> and <a href="javascript:void(0)" id="link-landing-privacy">Privacy Policy</a>.</p>
+    </div>
+  </section>
+
+  <!-- ============ AUTH ============ -->
+  <section id="screen-auth" class="screen no-nav">
+    <div class="topbar"><button class="icon-btn" data-back="screen-landing">←</button><h2 data-i18n="auth.title">Welcome</h2></div>
+    <div class="paytab-row" style="margin-top:6px">
+      <div class="paytab active" id="tab-signup" data-i18n="auth.tab.signup">Sign Up</div>
+      <div class="paytab" id="tab-login" data-i18n="auth.tab.login">Log In</div>
+    </div>
+    <div class="card stack">
+      <div class="field" id="field-name">
+        <label data-i18n="auth.label.name">Your name</label>
+        <input type="text" id="input-name" placeholder="e.g. Ananya Sharma" data-i18n-ph="auth.ph.name">
+      </div>
+      <div class="field">
+        <label data-i18n="auth.label.email">Email</label>
+        <input type="email" id="input-email" placeholder="you@example.com">
+      </div>
+      <div class="field">
+        <label data-i18n="auth.label.password">Password</label>
+        <input type="password" id="input-password" placeholder="At least 6 characters" data-i18n-ph="auth.ph.password">
+      </div>
+      <button class="btn btn-primary btn-block" id="btn-auth-submit">Create Account</button>
+      <p class="muted center" id="auth-demo-note" data-i18n="auth.demo-note">Demo prototype — accounts are stored only in this browser session, no data leaves your device.</p>
+    </div>
+  </section>
+
+  <!-- ============ ONBOARDING ============ -->
+  <section id="screen-onboarding" class="screen no-nav">
+    <div class="topbar"><button class="icon-btn" id="btn-onb-back">←</button><h2 data-i18n="onb.title">Your Birth Details</h2></div>
+    <div class="progress-dots" id="onb-progress">
+      <span></span><span></span><span></span><span></span>
+    </div>
+
+    <div id="onb-step-0">
+      <p class="eyebrow" data-i18n="onb.step0">Step 1 of 4</p>
+      <h2 data-i18n="onb.h2.0">When were you born?</h2>
+      <p class="muted" data-i18n="onb.muted.0">This drives your Sun sign — the core of your chart.</p>
+      <div class="field">
+        <label data-i18n="onb.label.dob">Date of birth</label>
+        <input type="date" id="input-dob">
+      </div>
+    </div>
+
+    <div id="onb-step-1" style="display:none">
+      <p class="eyebrow" data-i18n="onb.step1">Step 2 of 4</p>
+      <h2 data-i18n="onb.h2.1">What time were you born?</h2>
+      <p class="muted" data-i18n="onb.muted.1">Needed for an accurate Moon sign and Rising sign.</p>
+      <div class="field">
+        <label data-i18n="onb.label.tob">Birth time</label>
+        <input type="time" id="input-tob">
+      </div>
+      <div class="toggle-row" id="toggle-unknown-time">
+        <div class="checkbox" id="check-unknown-time"></div>
+        <span style="font-size:0.85rem;color:var(--text-dim)" data-i18n="onb.unknown-time">I don't know my exact birth time</span>
+      </div>
+      <div class="field-hint" data-i18n="onb.hint">If unknown, we'll skip your Rising Sign rather than guess it — a wrong time gives a wrong answer, and we'd rather be upfront about that.</div>
+    </div>
+
+    <div id="onb-step-2" style="display:none">
+      <p class="eyebrow" data-i18n="onb.step2">Step 3 of 4</p>
+      <h2 data-i18n="onb.h2.2">Where were you born?</h2>
+      <p class="muted" data-i18n="onb.muted.2">City-level location is enough — this sets your time zone for the chart.</p>
+      <div class="field">
+        <label data-i18n="onb.label.city">Birth place</label>
+        <input type="text" id="input-city" placeholder="Search city..." readonly data-i18n-ph="onb.ph.city">
+      </div>
+    </div>
+
+    <div id="onb-step-3" style="display:none">
+      <p class="eyebrow" data-i18n="onb.step3">Step 4 of 4</p>
+      <h2 data-i18n="onb.h2.3">Almost there</h2>
+      <p class="muted" data-i18n="onb.muted.3">Double-check the details below before we calculate your chart.</p>
+      <div class="card stack" id="onb-summary"></div>
+    </div>
+
+    <div style="flex:1"></div>
+    <button class="btn btn-primary btn-block" id="btn-onb-next">Continue</button>
+  </section>
+
+  <!-- ============ CALCULATING ============ -->
+  <section id="screen-calculating" class="screen no-nav">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px">
+      <div class="spinner"></div>
+      <div class="center">
+        <h2 data-i18n="calc.h2">Reading the sky...</h2>
+        <p class="muted" id="calc-status">Locating planetary positions for your birth moment</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ DASHBOARD ============ -->
+  <section id="screen-dashboard" class="screen">
+    <div class="topbar"><h2 id="dash-greeting">Your Cosmic Snapshot</h2><button class="icon-btn" id="btn-lang-toggle-dash">🌐</button><button class="icon-btn" id="btn-open-notif">🔔</button><button class="icon-btn" data-nav="screen-settings">⚙️</button><button class="icon-btn" id="btn-dash-logout">⎋</button></div>
+
+    <div class="card">
+      <div class="row wrap" style="justify-content:space-around;text-align:center">
+        <div>
+          <div class="zodiac-badge" id="badge-sun">☀️</div>
+          <div style="margin-top:6px;font-weight:600" id="label-sun">—</div>
+          <div class="muted" data-i18n="dash.label.sun">Sun</div>
+        </div>
+        <div>
+          <div class="zodiac-badge" id="badge-moon">🌙</div>
+          <div style="margin-top:6px;font-weight:600" id="label-moon">—</div>
+          <div class="muted" data-i18n="dash.label.moon">Moon</div>
+        </div>
+        <div>
+          <div class="zodiac-badge" id="badge-asc">⬆️</div>
+          <div style="margin-top:6px;font-weight:600" id="label-asc">—</div>
+          <div class="muted" data-i18n="dash.label.asc">Rising</div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <p id="dash-blurb" style="margin:0"></p>
+    </div>
+
+    <p class="muted" id="dash-lang-note" style="display:none;margin-top:10px;font-size:0.82rem"></p>
+
+    <div class="report-section-title"><span class="eyebrow" style="margin:0" data-i18n="dash.explore">Explore</span><div class="line"></div></div>
+
+    <div class="stack grid-list">
+      <div class="card" data-nav="screen-horoscope" style="cursor:pointer">
+        <div class="row between">
+          <div class="row"><div class="zodiac-badge sm">🔮</div><div><strong data-i18n="dash.card.horoscope.title">Weekly Horoscope</strong><div class="muted" data-i18n="dash.card.horoscope.desc">Based on your Sun &amp; Moon this week</div></div></div>
+          <span>›</span>
+        </div>
+      </div>
+      <div class="card" data-nav="screen-palm" style="cursor:pointer">
+        <div class="row between">
+          <div class="row"><div class="zodiac-badge sm">🖐️</div><div><strong data-i18n="dash.card.palm.title">Palm Reading</strong><div class="muted" data-i18n="dash.card.palm.desc">Guided, assisted line reading</div></div></div>
+          <span>›</span>
+        </div>
+      </div>
+      <div class="card" data-nav="screen-love" style="cursor:pointer">
+        <div class="row between">
+          <div class="row"><div class="zodiac-badge sm">💗</div><div><strong data-i18n="dash.card.love.title">Today's Love Energy</strong><div class="muted" data-i18n="dash.card.love.desc">A one-tap daily check-in</div></div></div>
+          <span>›</span>
+        </div>
+      </div>
+      <div class="card" data-nav="screen-compat" style="cursor:pointer">
+        <div class="row between">
+          <div class="row"><div class="zodiac-badge sm">💞</div><div><strong data-i18n="dash.card.compat.title">Compatibility Report</strong><div class="muted" data-i18n="dash.card.compat.desc">Add a partner's details for a synastry read</div></div></div>
+          <span>›</span>
+        </div>
+      </div>
+      <div class="card" data-nav="screen-yearahead" style="cursor:pointer">
+        <div class="row between">
+          <div class="row"><div class="zodiac-badge sm">🪐</div><div><strong data-i18n="dash.card.yearahead.title">Year Ahead</strong><div class="muted" data-i18n="dash.card.yearahead.desc">Real Jupiter &amp; Saturn transits, this year</div></div></div>
+          <span>›</span>
+        </div>
+      </div>
+      <div class="card" data-nav="screen-gift-send" style="cursor:pointer">
+        <div class="row between">
+          <div class="row"><div class="zodiac-badge sm">🎁</div><div><strong data-i18n="dash.card.gift.title">Gift a Reading</strong><div class="muted" data-i18n="dash.card.gift.desc">Send someone their own full report</div></div></div>
+          <span>›</span>
+        </div>
+      </div>
+      <div class="card" data-nav="screen-chat-picker" style="cursor:pointer">
+        <div class="row between">
+          <div class="row"><div class="zodiac-badge sm">💬</div><div><strong data-i18n="dash.card.chat.title">Chat with an Astrologer</strong><div class="muted" data-i18n="dash.card.chat.desc">Demo — simulated replies, not a real person</div></div></div>
+          <span>›</span>
+        </div>
+      </div>
+      <div class="card" data-nav="screen-community" style="cursor:pointer">
+        <div class="row between">
+          <div class="row"><div class="zodiac-badge sm">🌌</div><div><strong data-i18n="dash.card.community.title">Community</strong><div class="muted" data-i18n="dash.card.community.desc">Demo feed of shared readings</div></div></div>
+          <span>›</span>
+        </div>
+      </div>
+      <div class="card" data-nav="screen-report" style="cursor:pointer; border-color:var(--gold)">
+        <div class="row between">
+          <div class="row"><div class="zodiac-badge sm">📜</div><div><strong data-i18n="dash.card.report.title">Your Full Report</strong><div class="muted" data-i18n="dash.card.report.desc">Unlock the complete reading</div></div></div>
+          <span class="tag" data-i18n="dash.tag.unlock">Unlock</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ WEEKLY HOROSCOPE ============ -->
+  <section id="screen-horoscope" class="screen">
+    <div class="topbar"><button class="icon-btn" data-back="screen-dashboard">←</button><h2 data-i18n="horo.title">Weekly Horoscope</h2></div>
+    <div class="card">
+      <div class="eyebrow" id="horo-headline">Week —</div>
+      <p id="horo-p0"></p>
+    </div>
+    <div class="locked-wrap" style="margin-top:14px" id="horo-lock-wrap">
+      <div class="locked-content stack">
+        <div class="card"><p id="horo-p1"></p></div>
+        <div class="card"><p id="horo-p2"></p></div>
+        <div class="card"><p id="horo-p3"></p></div>
+      </div>
+      <div class="lock-overlay">
+        <div class="lock-icon">🔒</div>
+        <strong data-i18n="horo.lock.title">Unlock this week's full reading</strong>
+        <p class="muted" style="margin:0" data-i18n="horo.lock.desc">Love, career &amp; your weekly focus point</p>
+        <button class="btn btn-primary btn-sm" data-nav="screen-report" data-i18n="unlock.btn">Unlock Full Report</button>
+      </div>
+    </div>
+    <p class="muted" style="margin-top:16px" data-i18n-html="horo.methodology">How this is generated: your Sun sign, Moon sign, and the current real Moon phase — assembled through fixed rules, not AI text generation. <span id="horo-methodology-toggle" style="text-decoration:underline;cursor:pointer">Details</span></p>
+  </section>
+
+  <!-- ============ PALM READING ============ -->
+  <section id="screen-palm" class="screen">
+    <div class="topbar"><button class="icon-btn" data-back="screen-dashboard">←</button><h2 data-i18n="palm.title">Palm Reading</h2></div>
+
+    <div id="palm-intro">
+      <div class="upload-box" id="palm-upload-box">
+        <div style="font-size:2rem">🖐️📷</div>
+        <p style="margin-top:8px"><strong data-i18n="palm.upload.title">Upload a clear photo of your palm</strong></p>
+        <p class="muted" style="margin:0" data-i18n="palm.upload.desc">Used only on this device for this session — never uploaded anywhere.</p>
+        <input type="file" id="palm-file-input" accept="image/*" style="display:none">
+      </div>
+
+      <div id="palm-crop-wrap" style="display:none">
+        <img id="palm-preview" class="upload-preview">
+        <div id="palm-crop-rect" class="crop-rect">
+          <div class="crop-handle" data-h="tl"></div>
+          <div class="crop-handle" data-h="tr"></div>
+          <div class="crop-handle" data-h="bl"></div>
+          <div class="crop-handle" data-h="br"></div>
+        </div>
+        <div id="palm-finger-labels"></div>
+      </div>
+      <p class="muted" id="palm-crop-hint" style="display:none;margin-top:8px" data-i18n="palm.crop.hint">Drag the frame so it covers your palm — fingers toward the top, thumb toward the left — then tap Scan.</p>
+      <button class="btn btn-secondary btn-block" id="btn-palm-analyze" style="display:none;margin-top:10px" data-i18n="palm.btn.analyze">📸 Scan Palm From Photo</button>
+      <button class="btn btn-ghost btn-block" id="btn-palm-change-photo" style="display:none;margin-top:8px" data-i18n="palm.btn.change">Choose a different photo</button>
+      <div id="palm-cv-status" class="muted" style="display:none;margin-top:8px;font-size:0.85rem"></div>
+
+      <p class="muted" style="margin-top:14px" data-i18n="palm.confirm-note">Now confirm what you see on your own palm — this "assisted" step is what makes the reading rule-based instead of a black-box guess. Scanning a photo fills in a starting guess for 6 of the 7 questions below (marked "Scanned"). The last one — which finger-pad looks fullest — is labeled right on your photo above, so it's a quick look-and-tap too, no palmistry knowledge needed.</p>
+      <div id="palm-questions" class="stack grid-list" style="margin-top:10px"></div>
+      <button class="btn btn-primary btn-block" id="btn-palm-generate" style="margin-top:18px" disabled data-i18n="palm.btn.generate">Generate My Palm Reading</button>
+    </div>
+
+    <div id="palm-result" style="display:none">
+      <div class="card"><p id="palm-line-0" style="margin:0"></p></div>
+      <div class="locked-wrap" style="margin-top:14px">
+        <div class="locked-content stack" id="palm-locked-lines"></div>
+        <div class="lock-overlay">
+          <div class="lock-icon">🔒</div>
+          <strong data-i18n="palm.lock.title">Unlock your full palm report</strong>
+          <p class="muted" style="margin:0" data-i18n="palm.lock.desc">All 7 lines &amp; mounts, fully interpreted</p>
+          <button class="btn btn-primary btn-sm" data-nav="screen-report" data-i18n="unlock.btn">Unlock Full Report</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ LOVE ENERGY ============ -->
+  <section id="screen-love" class="screen">
+    <div class="topbar"><button class="icon-btn" data-back="screen-dashboard">←</button><h2 data-i18n="love.title">Today's Love Energy</h2></div>
+    <div class="card center">
+      <div class="meter-wrap">
+        <svg width="168" height="168" viewBox="0 0 168 168">
+          <circle cx="84" cy="84" r="72" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="14"/>
+          <circle id="love-meter-arc" cx="84" cy="84" r="72" fill="none" stroke="url(#loveGrad)" stroke-width="14" stroke-linecap="round" stroke-dasharray="452" stroke-dashoffset="452"/>
+          <defs><linearGradient id="loveGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#e8c687"/><stop offset="100%" stop-color="#9b7ec0"/>
+          </linearGradient></defs>
+        </svg>
+        <div class="meter-value"><div class="num" id="love-score">—</div><div class="lbl" id="love-bucket">—</div></div>
+      </div>
+      <p id="love-blurb" style="margin-top:6px"></p>
+      <p class="muted" style="margin:0" id="love-date"></p>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <p style="margin:0" class="muted" data-i18n="love.desc2">Computed from your Sun sign, today's date, and the Moon's real current phase angle — resets automatically each day, no random dice roll.</p>
+    </div>
+  </section>
+
+  <!-- ============ COMPATIBILITY / SYNASTRY ============ -->
+  <section id="screen-compat" class="screen">
+    <div class="topbar"><button class="icon-btn" data-back="screen-dashboard">←</button><h2 data-i18n="compat.title">Compatibility Report</h2></div>
+
+    <div id="compat-form">
+      <p class="muted" data-i18n="compat.intro">Add their birth details — just a name and date of birth is enough for a Sun-sign read. Add their birth time for a deeper Moon-sign comparison too.</p>
+      <div class="card stack">
+        <div class="field"><label data-i18n="compat.label.name">Their name</label><input type="text" id="compat-name" placeholder="e.g. Rohan Verma"></div>
+        <div class="field"><label data-i18n="compat.label.dob">Their date of birth</label><input type="date" id="compat-dob"></div>
+        <div class="field"><label data-i18n="compat.label.tob">Their birth time</label> <span class="muted" data-i18n="compat.tob.optional">(optional — improves accuracy)</span><input type="time" id="compat-tob"></div>
+      </div>
+      <p class="field-hint" data-i18n="compat.hint">To keep this quick, we calculate their chart using your own birth city's time zone rather than asking for a second location.</p>
+      <button class="btn btn-primary btn-block" id="btn-compat-generate" style="margin-top:10px" disabled data-i18n="compat.btn.generate">Generate Compatibility Report</button>
+    </div>
+
+    <div id="compat-result" style="display:none">
+      <div class="card center">
+        <div class="eyebrow" id="compat-headline">— &amp; — Compatibility</div>
+        <div class="tier-price" id="compat-score" style="font-size:2.2rem">—%</div>
+        <p class="muted" id="compat-verdict" style="margin:4px 0 0"></p>
+      </div>
+      <div class="card"><p id="compat-p0" style="margin:0"></p></div>
+      <div class="locked-wrap" style="margin-top:14px">
+        <div class="locked-content stack" id="compat-locked-lines"></div>
+        <div class="lock-overlay">
+          <div class="lock-icon">🔒</div>
+          <strong data-i18n="compat.lock.title">Unlock the full compatibility read</strong>
+          <p class="muted" style="margin:0" data-i18n="compat.lock.desc">Moon-to-Moon rhythm &amp; cross-chart dynamics</p>
+          <button class="btn btn-primary btn-sm" data-nav="screen-report" data-i18n="unlock.btn">Unlock Full Report</button>
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-block" id="btn-compat-reset" style="margin-top:14px" data-i18n="compat.btn.reset">Try a Different Person</button>
+    </div>
+  </section>
+
+  <!-- ============ YEAR AHEAD ============ -->
+  <section id="screen-yearahead" class="screen">
+    <div class="topbar"><button class="icon-btn" data-back="screen-dashboard">←</button><h2 data-i18n="ya.title">Year Ahead</h2></div>
+    <div class="card center">
+      <div class="row" style="justify-content:center;gap:22px">
+        <div class="center"><div class="zodiac-badge">♃</div><div class="muted" style="margin-top:4px" data-i18n-html="ya.jupiter-label">Jupiter in<br><strong id="ya-jupiter-sign" style="color:var(--text)">—</strong></div></div>
+        <div class="center"><div class="zodiac-badge">♄</div><div class="muted" style="margin-top:4px" data-i18n-html="ya.saturn-label">Saturn in<br><strong id="ya-saturn-sign" style="color:var(--text)">—</strong></div></div>
+      </div>
+      <p class="muted" style="margin-top:10px" data-i18n="ya.desc">Real current transiting positions — recalculated live from today's date.</p>
+    </div>
+    <div class="card"><p id="ya-p0" style="margin:0"></p></div>
+    <div class="locked-wrap" style="margin-top:14px">
+      <div class="locked-content stack" id="ya-locked-lines"></div>
+      <div class="lock-overlay">
+        <div class="lock-icon">🔒</div>
+        <strong data-i18n="ya.lock.title">Unlock your full Year Ahead reading</strong>
+        <p class="muted" style="margin:0" data-i18n="ya.lock.desc">Saturn Return check &amp; your overall yearly focus</p>
+        <button class="btn btn-primary btn-sm" data-nav="screen-report" data-i18n="unlock.btn">Unlock Full Report</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ REPORT / PAYWALL ============ -->
+  <section id="screen-report" class="screen">
+    <div class="topbar"><button class="icon-btn" data-back="screen-dashboard">←</button><h2 data-i18n="report.title">Unlock Your Full Report</h2></div>
+    <div class="card center">
+      <div style="font-size:1.8rem">📜✨</div>
+      <h2 style="margin-top:8px" data-i18n="report.h2">Everything, unlocked</h2>
+      <p class="muted" data-i18n="report.desc">Full birth chart breakdown · Complete weekly horoscope · Full 7-line palm reading · Full compatibility &amp; Year Ahead reports · Shareable result card</p>
+    </div>
+
+    <div class="stack grid-list" style="margin-top:16px" id="tier-list">
+      <div class="tier-card" data-tier="onetime">
+        <div class="row between"><strong data-i18n="tier.onetime.title">One-Time Report</strong><span class="tier-price">₹399</span></div>
+        <p class="muted" style="margin:6px 0 0" data-i18n="tier.onetime.desc.report">Unlock everything, once. No subscription.</p>
+      </div>
+      <div class="tier-card selected" data-tier="bundle">
+        <span class="badge" data-i18n="tier.bundle.badge">Most Popular</span>
+        <div class="row between"><strong data-i18n="tier.bundle.title">Premium Bundle</strong><span class="tier-price"><span class="was">₹999</span>₹599</span></div>
+        <p class="muted" style="margin:6px 0 0" data-i18n="tier.bundle.desc">Full report + Future Partner Report + unlimited Love Energy for 30 days.</p>
+      </div>
+      <div class="tier-card" data-tier="subscription">
+        <div class="row between"><strong data-i18n="tier.sub.title">Monthly Subscription</strong><span class="tier-price">₹299<span style="font-size:0.85rem;color:var(--text-faint)">/mo</span></span></div>
+        <p class="muted" style="margin:6px 0 0" data-i18n="tier.sub.desc">New weekly horoscope + unlimited unlocks every month.</p>
+      </div>
+    </div>
+
+    <div style="flex:1"></div>
+    <button class="btn btn-primary btn-block" id="btn-report-checkout" style="margin-top:18px" data-i18n="report.btn.continue">Continue to Payment</button>
+    <p class="muted center" style="margin-top:10px" id="report-redeem-line" data-i18n-html="report.redeem-line">Have a gift code? <span id="open-redeem-sheet" style="text-decoration:underline;cursor:pointer;color:var(--gold-bright)">Redeem it</span></p>
+    <p class="muted center" style="margin-top:10px" data-i18n="report.disclaimer">For entertainment &amp; self-reflection purposes only. Not a substitute for professional advice.</p>
+  </section>
+
+  <!-- ============ GIFT A READING (send) ============ -->
+  <section id="screen-gift-send" class="screen">
+    <div class="topbar"><button class="icon-btn" data-back="screen-dashboard">←</button><h2 data-i18n="gift.title">Gift a Reading</h2></div>
+    <div class="card center">
+      <div style="font-size:1.8rem">🎁✨</div>
+      <h2 style="margin-top:8px" data-i18n="gift.h2">Send someone their full report</h2>
+      <p class="muted" data-i18n="gift.desc">They'll get a code that unlocks their own full reading. For entertainment purposes only.</p>
+    </div>
+
+    <div class="field" style="margin-top:16px"><label data-i18n="gift.label.recipient">Recipient's name</label><input type="text" id="gift-recipient-name" placeholder="Who is this for?" data-i18n-ph="gift.ph.recipient"></div>
+    <div class="field"><label data-i18n="gift.label.message">A short message (optional)</label><textarea id="gift-message" rows="3" maxlength="180" placeholder="Add a personal note..." data-i18n-ph="gift.ph.message"></textarea></div>
+
+    <div class="stack grid-list" style="margin-top:6px" id="gift-tier-list">
+      <div class="tier-card" data-tier="onetime">
+        <div class="row between"><strong data-i18n="tier.onetime.title">One-Time Report</strong><span class="tier-price">₹399</span></div>
+        <p class="muted" style="margin:6px 0 0" data-i18n="tier.onetime.desc.gift">Unlock everything for them, once.</p>
+      </div>
+      <div class="tier-card selected" data-tier="bundle">
+        <span class="badge" data-i18n="tier.bundle.badge">Most Popular</span>
+        <div class="row between"><strong data-i18n="tier.bundle.title">Premium Bundle</strong><span class="tier-price"><span class="was">₹999</span>₹599</span></div>
+        <p class="muted" style="margin:6px 0 0" data-i18n="tier.bundle.desc">Full report + Future Partner Report + unlimited Love Energy for 30 days.</p>
+      </div>
+    </div>
+
+    <div style="flex:1"></div>
+    <button class="btn btn-primary btn-block" id="btn-gift-continue" style="margin-top:18px" disabled data-i18n="gift.btn.continue">Continue to Payment</button>
+    <p class="muted center" style="margin-top:10px" data-i18n="gift.demo-note">Demo note: in this prototype, gift codes are redeemable only within this same browser tab/session (there's no backend to email them) — a live version would deliver &amp; redeem codes automatically.</p>
+  </section>
+
+  <!-- ============ GIFT SENT (code display) ============ -->
+  <section id="screen-gift-sent" class="screen no-nav">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:0 6px">
+      <div class="success-tick">✓</div>
+      <h2 data-i18n="gift.sent.title">Gift Sent!</h2>
+      <p class="muted" id="gift-sent-sub">Share this code with them.</p>
+      <div class="card center" style="margin-top:8px;width:100%">
+        <p class="muted" style="margin:0 0 6px" data-i18n="gift.sent.code-label">GIFT CODE</p>
+        <div id="gift-code-display" style="font-family:'Cinzel',serif;font-size:1.5rem;letter-spacing:0.08em;color:var(--gold-bright)"></div>
+      </div>
+      <button class="btn btn-secondary btn-block" id="btn-gift-copy-code" style="margin-top:8px" data-i18n="gift.sent.btn.copy">Copy Code</button>
+      <button class="btn btn-primary btn-block" id="btn-gift-download-card" data-i18n="gift.sent.btn.download">Download Gift Card</button>
+      <button class="btn btn-ghost btn-block" id="btn-gift-done" data-i18n="gift.sent.btn.done">Done</button>
+    </div>
+    <canvas id="giftCanvas" width="1080" height="1350" style="display:none"></canvas>
+  </section>
+
+  <!-- ============ ASTROLOGER CHAT — PICKER (demo) ============ -->
+  <section id="screen-chat-picker" class="screen">
+    <div class="topbar"><button class="icon-btn" data-back="screen-dashboard">←</button><h2 data-i18n="chat.picker.title">Chat with an Astrologer</h2></div>
+    <p class="muted center" style="margin-top:-4px" data-i18n="chat.demo-note">Demo feature — these are simulated, rule-based replies, not a real person or an AI chatbot. For entertainment purposes only.</p>
+    <div class="stack grid-list" style="margin-top:10px" id="chat-astrologer-list"></div>
+  </section>
+
+  <!-- ============ ASTROLOGER CHAT — CONVERSATION (demo) ============ -->
+  <section id="screen-chat" class="screen no-nav">
+    <div class="topbar">
+      <button class="icon-btn" data-back="screen-chat-picker">←</button>
+      <div class="row" style="gap:10px;flex:1;min-width:0">
+        <div class="zodiac-badge sm" id="chat-astrologer-avatar">🪷</div>
+        <div style="min-width:0">
+          <h2 style="margin:0;font-size:0.95rem" id="chat-astrologer-name">Priya</h2>
+          <div class="muted" style="font-size:0.72rem" id="chat-astrologer-specialty">Career</div>
+        </div>
+      </div>
+    </div>
+    <p class="muted center" style="font-size:0.74rem;margin-top:-4px" data-i18n="chat.demo-note-short">Simulated demo — not a real person or AI chatbot.</p>
+    <div id="chat-messages" class="chat-messages"></div>
+    <div class="row chat-bar">
+      <input type="text" id="chat-input" class="chat-input" placeholder="Type a message..." data-i18n-ph="chat.ph.message">
+      <button class="btn btn-primary" id="btn-chat-send" style="width:auto;padding:12px 18px;flex-shrink:0" data-i18n="chat.btn.send">Send</button>
+    </div>
+  </section>
+
+  <!-- ============ COMMUNITY FEED (demo) ============ -->
+  <section id="screen-community" class="screen">
+    <div class="topbar"><button class="icon-btn" data-back="screen-dashboard">←</button><h2 data-i18n="community.title">Community</h2></div>
+    <p class="muted center" style="margin-top:-4px" data-i18n="community.demo-note">Demo feed — seeded example posts. Sharing here stays local to this browser tab and doesn't reach real people in this prototype.</p>
+    <div class="stack grid-list" style="margin-top:10px" id="community-feed-list"></div>
+  </section>
+
+  <!-- ============ CHECKOUT ============ -->
+  <section id="screen-checkout" class="screen no-nav">
+    <div class="topbar"><button class="icon-btn" data-back="screen-report" id="btn-checkout-back">←</button><h2 data-i18n="checkout.title">Checkout</h2></div>
+    <div class="test-mode-banner" data-i18n="checkout.test-banner">⚠️ TEST MODE — this is a prototype. No real payment will be processed and no card details are transmitted anywhere.</div>
+
+    <div class="card row between">
+      <div><strong id="checkout-tier-name">Premium Bundle</strong><div class="muted" id="checkout-summary-label">Order summary</div></div>
+      <div class="tier-price" id="checkout-tier-price">₹599</div>
+    </div>
+
+    <div style="margin-top:16px">
+      <div class="paytab-row">
+        <div class="paytab active" data-pay="upi">UPI</div>
+        <div class="paytab" data-pay="card" data-i18n="checkout.pay.card">Card</div>
+        <div class="paytab" data-pay="netbanking" data-i18n="checkout.pay.netbanking">Netbanking</div>
+      </div>
+
+      <div id="pay-upi">
+        <div class="field"><label data-i18n="checkout.label.upi">UPI ID</label><input type="text" id="input-upi" placeholder="yourname@upi"></div>
+      </div>
+      <div id="pay-card" style="display:none">
+        <div class="field"><label data-i18n="checkout.label.card">Card number</label><input type="text" id="input-card" placeholder="4242 4242 4242 4242" maxlength="19"></div>
+        <div class="row" style="gap:12px">
+          <div class="field" style="flex:1"><label data-i18n="checkout.label.expiry">Expiry</label><input type="text" id="input-expiry" placeholder="MM/YY" maxlength="5"></div>
+          <div class="field" style="flex:1"><label data-i18n="checkout.label.cvv">CVV</label><input type="text" id="input-cvv" placeholder="123" maxlength="3"></div>
+        </div>
+      </div>
+      <div id="pay-netbanking" style="display:none">
+        <div class="field"><label data-i18n="checkout.label.bank">Select bank</label>
+          <select id="input-bank"><option>State Bank of India</option><option>HDFC Bank</option><option>ICICI Bank</option><option>Axis Bank</option><option>Punjab National Bank</option></select>
+        </div>
+      </div>
+    </div>
+
+    <div style="flex:1"></div>
+    <button class="btn btn-primary btn-block" id="btn-pay-submit"><span data-i18n="checkout.btn.pay">Pay</span> <span id="btn-pay-amount">₹599</span></button>
+  </section>
+
+  <!-- ============ PAYMENT PROCESSING ============ -->
+  <section id="screen-processing" class="screen no-nav">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px">
+      <div class="spinner"></div>
+      <div class="center"><h2 data-i18n="processing.h2">Processing payment…</h2><p class="muted" data-i18n="processing.desc">Test transaction — please wait</p></div>
+    </div>
+  </section>
+
+  <!-- ============ PAYMENT SUCCESS ============ -->
+  <section id="screen-success" class="screen no-nav">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px">
+      <div class="success-tick">✓</div>
+      <h2 data-i18n="success.h2">Payment Successful</h2>
+      <p class="muted center" id="success-sub">Your full report is ready.</p>
+      <button class="btn btn-primary" id="btn-success-continue" style="margin-top:16px" data-i18n="success.btn.continue">View Full Report →</button>
+    </div>
+  </section>
+
+  <!-- ============ FULL REPORT ============ -->
+  <section id="screen-fullreport" class="screen">
+    <div class="topbar"><button class="icon-btn" data-back="screen-dashboard">←</button><h2 data-i18n="fr.title">Your Full Report</h2><button class="icon-btn" id="btn-open-share">⤴</button></div>
+
+    <div class="card center">
+      <div class="eyebrow">Nakshatra Full Reading</div>
+      <div class="row" style="justify-content:center;gap:20px;margin:10px 0">
+        <div class="center"><div class="zodiac-badge sm" id="fr-badge-sun"></div><div class="muted" id="fr-sun"></div></div>
+        <div class="center"><div class="zodiac-badge sm" id="fr-badge-moon"></div><div class="muted" id="fr-moon"></div></div>
+        <div class="center"><div class="zodiac-badge sm" id="fr-badge-asc"></div><div class="muted" id="fr-asc"></div></div>
+      </div>
+      <p class="muted" style="margin:0" id="fr-name-line"></p>
+    </div>
+
+    <div class="report-section-title"><span class="eyebrow" style="margin:0" data-i18n="fr.section.horoscope">🔮 Weekly Horoscope</span><div class="line"></div></div>
+    <div class="card stack" id="fr-horoscope"></div>
+
+    <div class="report-section-title"><span class="eyebrow" style="margin:0" data-i18n="fr.section.palm">🖐️ Palm Reading</span><div class="line"></div></div>
+    <div class="card stack" id="fr-palm"></div>
+
+    <div class="report-section-title"><span class="eyebrow" style="margin:0" data-i18n="fr.section.love">💗 Love Energy</span><div class="line"></div></div>
+    <div class="card" id="fr-love"></div>
+
+    <div class="report-section-title"><span class="eyebrow" style="margin:0" data-i18n="fr.section.yearahead">🪐 Year Ahead</span><div class="line"></div></div>
+    <div class="card stack" id="fr-yearahead"></div>
+
+    <div class="report-section-title"><span class="eyebrow" style="margin:0" data-i18n="fr.section.compat">💞 Compatibility Report</span><div class="line"></div></div>
+    <div class="card stack" id="fr-compat"></div>
+
+    <div class="report-section-title"><span class="eyebrow" style="margin:0" data-i18n="fr.section.partner">💍 Future Partner Report</span><div class="line"></div></div>
+    <div class="card stack" id="fr-partner"></div>
+    <p class="muted center" style="margin-top:6px" data-i18n="fr.disclaimer">Entertainment-only cosmic prediction — for fun, not fortune-telling.</p>
+
+    <button class="btn btn-primary btn-block" id="btn-fullreport-share" style="margin-top:18px" data-i18n="fr.btn.share">Share as Image Card</button>
+  </section>
+
+  <!-- ============ SETTINGS ============ -->
+  <section id="screen-settings" class="screen no-nav">
+    <div class="topbar"><button class="icon-btn" data-back="screen-dashboard">←</button><h2 data-i18n="settings.title">Settings</h2></div>
+
+    <div class="card">
+      <div class="eyebrow" data-i18n="settings.legal.heading">Legal</div>
+      <button class="btn btn-secondary btn-block" id="btn-settings-privacy" style="margin-top:10px" data-i18n="settings.legal.privacy">Privacy Policy</button>
+      <button class="btn btn-secondary btn-block" id="btn-settings-terms" style="margin-top:10px" data-i18n="settings.legal.terms">Terms of Service</button>
+    </div>
+
+    <div class="card" style="margin-top:14px;border-color:rgba(239,127,127,0.35)">
+      <div class="eyebrow" style="color:var(--danger)" data-i18n="settings.danger.heading">Danger Zone</div>
+      <p class="muted" style="margin-top:8px" data-i18n="settings.danger.intro">Permanently delete your account and everything in it — your birth chart, palm report, purchases, gift codes, chat history, and community posts. This cannot be undone.</p>
+
+      <div id="settings-delete-step1">
+        <button class="btn btn-danger btn-block" id="btn-settings-delete-start" style="margin-top:10px" data-i18n="settings.danger.delete-btn">Delete My Account</button>
+      </div>
+
+      <div id="settings-delete-step2" style="display:none;margin-top:12px">
+        <p style="margin:0 0 12px;font-weight:600;color:var(--danger)" data-i18n="settings.danger.confirm-text">Are you absolutely sure? This immediately and permanently deletes your account and all your data. There is no way to undo this.</p>
+        <button class="btn btn-danger-solid btn-block" id="btn-settings-delete-confirm" data-i18n="settings.danger.confirm-btn">Yes, permanently delete my account</button>
+        <button class="btn btn-ghost btn-block" id="btn-settings-delete-cancel" style="margin-top:8px" data-i18n="settings.danger.cancel-btn">Cancel</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PRIVACY POLICY ============ -->
+  <section id="screen-privacy" class="screen no-nav">
+    <div class="topbar"><button class="icon-btn" id="btn-privacy-back" data-back="screen-landing">←</button><h2 data-i18n="privacy.title">Privacy Policy</h2></div>
+    <div class="card legal-text">
+      <p class="muted" style="margin-bottom:18px">Last updated: 18 August 2026 · <span data-i18n="legal.language-note">Provided in English only.</span></p>
+
+      <h3>Who we are</h3>
+      <p>Nakshatra ("we", "us", "the app") provides astrology and palmistry content for entertainment and self-reflection. This policy explains what information we collect when you use the app, how we use it, and the choices you have.</p>
+
+      <h3>Information we collect</h3>
+      <ul>
+        <li><strong>Account details</strong> — your name, email address, and password. Your password is handled by our authentication provider and is never stored by us in plain text.</li>
+        <li><strong>Birth details</strong> — the date, time (if you provide it), and place of birth you enter, used only to calculate your birth chart.</li>
+        <li><strong>Palm reading answers</strong> — your responses to the palmistry questionnaire. If you use the photo-assisted option, the photo is analyzed on your own device only — it is never uploaded to or stored on our servers.</li>
+        <li><strong>Content you create</strong> — messages sent through the in-app astrologer chat, community posts and likes, and gift messages.</li>
+        <li><strong>Purchase records</strong> — which tier you bought or were gifted, and the payment method selected.</li>
+      </ul>
+
+      <h3>How we use this information</h3>
+      <ul>
+        <li>To calculate and display your birth chart, horoscope, palm reading, compatibility, and other reports.</li>
+        <li>To let you sign back in and see your saved chart and reports on any device.</li>
+        <li>To operate features you choose to use, like gifting a report to someone else or posting to the community feed.</li>
+      </ul>
+      <p>We do not sell your personal information. We do not use your data to train AI models — every piece of astrology and palmistry content in this app comes from fixed calculation and content rules, not from an AI reading your personal data.</p>
+
+      <h3>Where your data is stored</h3>
+      <p>Your data is stored with our database provider, Supabase, behind access controls (Row Level Security) that stop any other app account from reading or writing your rows in the database. Your login session is kept in your browser's local storage so you stay signed in between visits.</p>
+
+      <h3>Third parties</h3>
+      <p>We currently share data with Supabase as part of running the app's backend. If and when real payments are enabled, a payment gateway will process the payment details needed to complete a purchase — we do not handle or store your card or bank details ourselves.</p>
+
+      <h3>Your choices</h3>
+      <ul>
+        <li>You can update your birth details at any time by re-entering them.</li>
+        <li>You can permanently delete your account and all associated data from <strong>Settings → Delete My Account</strong>. This cannot be undone.</li>
+        <li>You can contact us with any privacy question or request at the address below.</li>
+      </ul>
+
+      <h3>Children's privacy</h3>
+      <p>Nakshatra is not directed at children. You must be at least 18 years old, or the age of majority where you live, to create an account.</p>
+
+      <h3>Changes to this policy</h3>
+      <p>We may update this policy as the app changes. The "Last updated" date above will reflect the most recent revision.</p>
+
+      <h3>Contact</h3>
+      <p>For any privacy question or request, email <a href="mailto:krishnanegi074@gmail.com">krishnanegi074@gmail.com</a>.</p>
+    </div>
+  </section>
+
+  <!-- ============ TERMS OF SERVICE ============ -->
+  <section id="screen-terms" class="screen no-nav">
+    <div class="topbar"><button class="icon-btn" id="btn-terms-back" data-back="screen-landing">←</button><h2 data-i18n="terms.title">Terms of Service</h2></div>
+    <div class="card legal-text">
+      <p class="muted" style="margin-bottom:18px">Last updated: 18 August 2026 · <span data-i18n="legal.language-note">Provided in English only.</span></p>
+
+      <p>By creating an account or using Nakshatra, you agree to these terms.</p>
+
+      <h3>1. Entertainment purposes only</h3>
+      <p>Nakshatra provides astrology, palmistry, and related content for entertainment and self-reflection. It is not professional advice of any kind — medical, legal, financial, or psychological — and should not be used as a substitute for it. Sun, Moon, and Ascendant placements are computed from real astronomical data using the traditional Vedic (sidereal, Lahiri ayanamsa) system; the interpretive text is generated from fixed content rules, not written by a human astrologer or an AI.</p>
+
+      <h3>2. Your account</h3>
+      <p>You're responsible for keeping your password confidential and for all activity under your account. Please use a real email address you control, since it's how you sign back in. You must be at least 18 years old, or the age of majority where you live, to create an account.</p>
+
+      <h3>3. Acceptable use</h3>
+      <p>Don't use the app to harass others, post illegal or abusive content in the community feed or chat, attempt to access another user's data, or interfere with the app's normal operation.</p>
+
+      <h3>4. The astrologer chat feature</h3>
+      <p>The "chat with an astrologer" feature is simulated: replies are selected from pre-written, rule-based responses. They are not generated by a real person or by an AI system, and are not written specifically for you.</p>
+
+      <h3>5. Purchases and gifting</h3>
+      <p>Where a report tier requires payment, pricing and refund terms will be presented to you at checkout before you pay. Gift codes you send can be redeemed once by their recipient, and cannot be redeemed by the account that sent them.</p>
+
+      <h3>6. Community content</h3>
+      <p>Posts and captions you share to the community feed are visible to other signed-in users. Don't share anything there you wouldn't want other users to see, and don't post anyone else's personal information without their consent.</p>
+
+      <h3>7. Intellectual property</h3>
+      <p>The app's design, calculations, and content rules belong to us. You keep ownership of what you personally write, such as chat messages or captions — but by posting to the community feed, you allow other users to view it within the app.</p>
+
+      <h3>8. Disclaimer &amp; limitation of liability</h3>
+      <p>The app is provided "as is." We don't guarantee the accuracy, completeness, or usefulness of any astrology or palmistry content, and we are not liable for decisions you make based on it. To the extent permitted by law, our liability for any claim relating to the app is limited to the amount you paid us in the past 12 months.</p>
+
+      <h3>9. Ending your account</h3>
+      <p>You can delete your account at any time from Settings. We may suspend or terminate accounts that violate these terms.</p>
+
+      <h3>10. Changes to these terms</h3>
+      <p>We may update these terms as the app evolves. Continuing to use the app after an update means you accept the revised terms.</p>
+
+      <h3>11. Governing law</h3>
+      <p>These terms are governed by the laws of India, without regard to conflict-of-law principles.</p>
+
+      <h3>Contact</h3>
+      <p>For any question about these terms, email <a href="mailto:krishnanegi074@gmail.com">krishnanegi074@gmail.com</a>.</p>
+    </div>
+  </section>
+
+  <!-- Bottom nav -->
+  <nav class="bottom-nav" id="bottom-nav">
+    <button class="nav-item" data-nav="screen-dashboard"><span class="nav-icon">🏠</span><span data-i18n="nav.home">Home</span></button>
+    <button class="nav-item" data-nav="screen-horoscope"><span class="nav-icon">🔮</span><span data-i18n="nav.horoscope">Horoscope</span></button>
+    <button class="nav-item" data-nav="screen-palm"><span class="nav-icon">🖐️</span><span data-i18n="nav.palm">Palm</span></button>
+    <button class="nav-item" data-nav="screen-love"><span class="nav-icon">💗</span><span data-i18n="nav.love">Love</span></button>
+    <button class="nav-item" data-nav="screen-fullreport"><span class="nav-icon">📜</span><span data-i18n="nav.report">Report</span></button>
+  </nav>
+</div>
+
+<!-- City picker sheet -->
+<div class="sheet-backdrop" id="sheet-city-backdrop">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="field"><input type="text" id="city-search" placeholder="Search for your birth city..." data-i18n-ph="onb.ph.city"></div>
+    <div id="city-list" style="max-height:50vh;overflow-y:auto"></div>
+  </div>
+</div>
+
+<!-- Share card sheet -->
+<div class="sheet-backdrop" id="sheet-share-backdrop">
+  <div class="sheet center">
+    <div class="sheet-handle"></div>
+    <h3 data-i18n="sheet.share.title">Share Your Reading</h3>
+    <canvas id="shareCanvas" width="1080" height="1920"></canvas>
+    <button class="btn btn-primary btn-block" id="btn-download-card" style="margin-top:14px" data-i18n="sheet.share.btn.download">Download Image</button>
+    <button class="btn btn-secondary btn-block" id="btn-post-community" data-i18n="sheet.share.btn.community">Post to Community (Demo)</button>
+    <button class="btn btn-ghost btn-block" id="btn-close-share" data-i18n="sheet.btn.close">Close</button>
+  </div>
+</div>
+
+<!-- Redeem gift code sheet -->
+<div class="sheet-backdrop" id="sheet-redeem-backdrop">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3 data-i18n="sheet.redeem.title">Redeem a Gift Code</h3>
+    <p class="muted" style="margin-top:-6px" data-i18n="sheet.redeem.desc">Enter the code someone sent you to unlock your full report for free.</p>
+    <div class="field"><label data-i18n="sheet.redeem.label.code">Gift code</label><input type="text" id="input-gift-code" placeholder="NKSH-XXXX-XXXX" style="text-transform:uppercase;letter-spacing:0.05em"></div>
+    <button class="btn btn-primary btn-block" id="btn-redeem-submit" data-i18n="sheet.redeem.btn.submit">Redeem</button>
+    <button class="btn btn-ghost btn-block" id="btn-close-redeem" data-i18n="sheet.redeem.btn.cancel">Cancel</button>
+  </div>
+</div>
+
+<!-- Language picker sheet -->
+<div class="sheet-backdrop" id="sheet-lang-backdrop">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3 data-i18n="lang.sheet.title">Choose Language</h3>
+    <div class="stack">
+      <button class="btn btn-secondary btn-block lang-option" data-lang="en">English</button>
+      <button class="btn btn-secondary btn-block lang-option" data-lang="hi">हिन्दी (Hindi)</button>
+    </div>
+    <button class="btn btn-ghost btn-block" id="btn-close-lang" style="margin-top:10px" data-i18n="sheet.btn.close">Close</button>
+  </div>
+</div>
+
+<!-- Methodology sheet -->
+<div class="sheet-backdrop" id="sheet-method-backdrop">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3 data-i18n="sheet.method.title">How your horoscope is generated</h3>
+    <p data-i18n="sheet.method.p0">Every word is assembled from a fixed rule library — not written freshly by an AI model each time. Two real, independently verifiable inputs drive it:</p>
+    <p data-i18n-html="sheet.method.p1"><strong>1. Your Sun &amp; Moon sign</strong> — computed from real planetary ecliptic longitudes at your exact birth moment, using the same open-source astronomical engine (Astronomy Engine) that professional astronomy software relies on.</p>
+    <p data-i18n-html="sheet.method.p2"><strong>2. The current real Moon phase</strong> — recalculated every time you open the app.</p>
+    <p data-i18n="sheet.method.p3">Those two real inputs pick which pre-written template lines are shown to you. Nothing here is generated on the fly by a language model.</p>
+    <button class="btn btn-secondary btn-block" id="btn-close-method" data-i18n="sheet.method.btn">Got it</button>
+  </div>
+</div>
+
+<!-- Notifications sheet -->
+<div class="sheet-backdrop" id="sheet-notif-backdrop">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3 data-i18n="sheet.notif.title">Daily Guidance Notifications</h3>
+    <p id="notif-status-text" class="muted">Checking notification support…</p>
+    <button class="btn btn-primary btn-block" id="btn-notif-enable" data-i18n="sheet.notif.btn.enable">Enable Notifications</button>
+    <button class="btn btn-secondary btn-block" id="btn-notif-test" style="margin-top:10px" disabled data-i18n="sheet.notif.btn.test">Send Today's Guidance Now</button>
+    <p class="muted" style="margin-top:14px" data-i18n="sheet.notif.note">Honest note: in this prototype, notifications only fire while this tab is open in your browser. A real production version would need a backend + push service (like Firebase Cloud Messaging) to deliver these even when the app is closed — that's Phase 3 infrastructure, not something a front-end-only prototype can do.</p>
+    <button class="btn btn-ghost btn-block" id="btn-close-notif" data-i18n="sheet.btn.close">Close</button>
+  </div>
+</div>
+
+<script>
+/*__ASTRONOMY_LIB__*/
+</script>
+<script>
+/*__ENGINE_JS__*/
+</script>
+<script>
+/*__CITY_DATA__*/
+</script>
+<script>
+/*__RULES_JS__*/
+</script>
+<script>
+/*__CV_ENGINE_JS__*/
+</script>
+<script>
+/*__I18N_JS__*/
+</script>
+<!--
+  Real backend (Supabase). If this CDN can't load (offline, or a network
+  that blocks it), window.supabase stays undefined — supabase-client.js
+  below detects that and NakshatraDB.db comes back null, and app.js already
+  checks for that everywhere and falls back to the old in-memory-only demo
+  behavior. So this file degrades gracefully rather than breaking outright.
+-->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+/*__SUPABASE_CLIENT_JS__*/
+</script>
+<script>
+/*__APP_JS__*/
+</script>
+</body>
+</html>
