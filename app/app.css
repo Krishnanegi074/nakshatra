@@ -346,7 +346,34 @@ button { font-family: inherit; }
 }
 
 /* ---------- Landing screen ---------- */
-.landing-hero { padding-top: 54px; text-align: center; }
+/* position:sticky doesn't work here — #app-root has overflow:hidden (for its
+   rounded corners) which establishes its own scroll container, and since
+   #app-root itself never scrolls (the window does), a sticky descendant has
+   nothing to stick against and just scrolls away. position:fixed avoids that,
+   but must be independently centered/width-matched to #app-root's own
+   breakpoints (mobile fills the viewport; >=700px it's a bounded, margined
+   card) so the bar still lines up with the card's edges at every width. */
+.landing-navbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 20;
+  max-width: 460px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 12px 20px;
+  background: linear-gradient(180deg, rgba(13,8,32,0.97), rgba(13,8,32,0.9));
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+}
+.landing-navbar-brand { font-size: 1.3rem; line-height: 1; }
+.landing-navbar-actions { display: flex; align-items: center; gap: 8px; }
+.landing-navbar .btn-sm { padding: 8px 14px; font-size: 0.78rem; white-space: nowrap; }
+.landing-navbar .icon-btn { width: 34px; height: 34px; font-size: 0.9rem; flex-shrink: 0; }
+@media (min-width: 700px) {
+  .landing-navbar { top: 24px; max-width: 640px; border-radius: 32px 32px 0 0; }
+}
+@media (min-width: 1024px) {
+  .landing-navbar { max-width: 800px; }
+}
+
+.landing-hero { padding-top: 74px; text-align: center; }
 .landing-logo { font-size: 2.4rem; margin-bottom: 10px; }
 .landing-hero h1 { font-size: 2rem; line-height: 1.15; }
 .landing-hero .sub { color: var(--text-dim); font-size: 0.98rem; margin-bottom: 28px; }
@@ -357,6 +384,34 @@ button { font-family: inherit; }
 .trust-strip { display:flex; justify-content:center; gap: 18px; margin-top: 22px; }
 .trust-strip .t-num { font-family: 'Cinzel', serif; color: var(--gold-bright); font-size: 1.05rem; }
 .trust-strip .t-lbl { font-size: 0.68rem; color: var(--text-faint); }
+
+/* ---------- Landing: "why us" / "how it works" sections ---------- */
+.section-eyebrow { text-align: center; margin: 34px 0 4px; }
+.section-eyebrow .eyebrow { margin-bottom: 2px; }
+.section-title { text-align: center; font-size: 1.15rem; margin: 0 0 18px; }
+
+.why-grid { display: flex; flex-direction: column; gap: 12px; }
+@media (min-width: 560px) {
+  .why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+}
+.why-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; }
+.why-item .why-icon { font-size: 1.3rem; margin-bottom: 6px; }
+.why-item strong { display: block; font-size: 0.92rem; margin-bottom: 4px; }
+.why-item p { font-size: 0.82rem; margin: 0; }
+
+.steps-list { display: flex; flex-direction: column; gap: 14px; }
+.step-item { display: flex; gap: 14px; align-items: flex-start; }
+.step-num {
+  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, var(--gold-bright), var(--gold));
+  color: #2a1b0a; font-family: 'Cinzel', serif; font-weight: 700; font-size: 0.85rem;
+}
+.step-item strong { font-size: 0.92rem; }
+.step-item p { font-size: 0.86rem; margin: 3px 0 0; }
+
+.pricing-note { text-align: center; font-size: 0.82rem; color: var(--text-dim); margin: 26px 0 14px; }
+.pricing-note strong { color: var(--gold-bright); }
 
 /* ---------- Toast ---------- */
 #toast {

@@ -312,7 +312,10 @@ document.addEventListener("click", (e) => {
 // ================= AUTH =================
 function initAuth() {
   $("#btn-landing-start").addEventListener("click", () => { state.authMode = "signup"; syncAuthTabs(); showScreen("screen-auth"); });
+  $("#btn-landing-start-bottom").addEventListener("click", () => { state.authMode = "signup"; syncAuthTabs(); showScreen("screen-auth"); });
+  $("#btn-navbar-start").addEventListener("click", () => { state.authMode = "signup"; syncAuthTabs(); showScreen("screen-auth"); });
   $("#btn-landing-login").addEventListener("click", () => { state.authMode = "login"; syncAuthTabs(); showScreen("screen-auth"); });
+  $("#btn-navbar-login").addEventListener("click", () => { state.authMode = "login"; syncAuthTabs(); showScreen("screen-auth"); });
   $("#tab-signup").addEventListener("click", () => { state.authMode = "signup"; syncAuthTabs(); });
   $("#tab-login").addEventListener("click", () => { state.authMode = "login"; syncAuthTabs(); });
 

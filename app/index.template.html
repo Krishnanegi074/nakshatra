@@ -19,7 +19,14 @@
 
   <!-- ============ LANDING ============ -->
   <section id="screen-landing" class="screen active no-nav">
-    <button class="icon-btn" id="btn-lang-toggle" style="position:absolute;top:14px;right:14px;z-index:5">🌐</button>
+    <div class="landing-navbar">
+      <div class="landing-navbar-brand">🌙</div>
+      <div class="landing-navbar-actions">
+        <button class="btn btn-ghost btn-sm" id="btn-navbar-login" data-i18n="landing.navbar.login">Log In</button>
+        <button class="btn btn-primary btn-sm" id="btn-navbar-start" data-i18n="landing.navbar.start">Start</button>
+        <button class="icon-btn" id="btn-lang-toggle">🌐</button>
+      </div>
+    </div>
     <div class="landing-hero">
       <div class="landing-logo">🌙✨</div>
       <div class="eyebrow" data-i18n="landing.eyebrow">Nakshatra · Rule-Based Cosmic Guidance</div>
@@ -60,6 +67,61 @@
           </div>
         </div>
       </div>
+
+      <div class="section-eyebrow"><div class="eyebrow" data-i18n="landing.why.eyebrow">Why Nakshatra</div></div>
+      <h2 class="section-title" data-i18n="landing.why.title">Built to be honest with you</h2>
+      <div class="why-grid">
+        <div class="why-item">
+          <div class="why-icon">🔭</div>
+          <strong data-i18n="landing.why1.title">Real astronomy, not guesses</strong>
+          <p data-i18n="landing.why1.desc">Your chart comes from real planetary positions (ephemeris data) for your exact birth date, time, and place — not a generic template.</p>
+        </div>
+        <div class="why-item">
+          <div class="why-icon">📜</div>
+          <strong data-i18n="landing.why2.title">Classical rules, applied precisely</strong>
+          <p data-i18n="landing.why2.desc">Every reading follows documented astrology and palmistry principles — not an AI improvising an answer.</p>
+        </div>
+        <div class="why-item">
+          <div class="why-icon">🔐</div>
+          <strong data-i18n="landing.why3.title">Your palm photo stays on your phone</strong>
+          <p data-i18n="landing.why3.desc">Photo-assisted palm reading is analyzed on your own device. It's never uploaded to or stored on our servers.</p>
+        </div>
+        <div class="why-item">
+          <div class="why-icon">🎯</div>
+          <strong data-i18n="landing.why4.title">Made specifically for you</strong>
+          <p data-i18n="landing.why4.desc">No two results are the same canned text. Every reading is generated fresh from your own details.</p>
+        </div>
+      </div>
+
+      <div class="section-eyebrow"><div class="eyebrow" data-i18n="landing.how.eyebrow">How it works</div></div>
+      <h2 class="section-title" data-i18n="landing.how.title">Three simple steps</h2>
+      <div class="steps-list">
+        <div class="step-item">
+          <div class="step-num">1</div>
+          <div>
+            <strong data-i18n="landing.step1.title">Share your details</strong>
+            <p data-i18n="landing.step1.desc">Enter your birth date, time and place, or upload a palm photo — under a minute.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">2</div>
+          <div>
+            <strong data-i18n="landing.step2.title">See a free preview</strong>
+            <p data-i18n="landing.step2.desc">Get an instant preview of your chart or palm reading, no payment needed, so you can see it's genuinely yours.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">3</div>
+          <div>
+            <strong data-i18n="landing.step3.title">Unlock the full report</strong>
+            <p data-i18n="landing.step3.desc">Like what you see? Unlock your complete detailed report for a one-time ₹399 — no subscription unless you choose one.</p>
+          </div>
+        </div>
+      </div>
+
+      <p class="pricing-note" data-i18n-html="landing.pricing-note">Free to preview. <strong>Pay once, only if you want your full report.</strong></p>
+      <button class="btn btn-primary btn-block" id="btn-landing-start-bottom" data-i18n="landing.cta.start">Begin Your Reading →</button>
+
       <p class="muted center" style="margin-top:16px;font-size:0.72rem" data-i18n-html="landing.legal-footer">By continuing, you agree to our <a href="javascript:void(0)" id="link-landing-terms">Terms of Service</a> and <a href="javascript:void(0)" id="link-landing-privacy">Privacy Policy</a>.</p>
     </div>
   </section>
