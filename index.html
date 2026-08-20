@@ -343,6 +343,10 @@ button { font-family: inherit; }
   background: rgba(239,127,127,0.14); border: 1px solid rgba(239,127,127,0.4); color: #f3b9b9;
   padding: 10px 14px; border-radius: var(--radius-sm); font-size: 0.78rem; margin-bottom: 16px; text-align: center;
 }
+.secure-banner {
+  background: rgba(120,200,150,0.12); border: 1px solid rgba(120,200,150,0.35); color: #a9e0bb;
+  padding: 10px 14px; border-radius: var(--radius-sm); font-size: 0.78rem; margin-bottom: 16px; text-align: center;
+}
 .spinner {
   width: 44px; height: 44px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.15);
   border-top-color: var(--gold); animation: spin 0.85s linear infinite; margin: 0 auto;
@@ -1068,35 +1072,11 @@ button { font-family: inherit; }
   <!-- ============ CHECKOUT ============ -->
   <section id="screen-checkout" class="screen no-nav">
     <div class="topbar"><button class="icon-btn" data-back="screen-report" id="btn-checkout-back">←</button><h2 data-i18n="checkout.title">Checkout</h2></div>
-    <div class="test-mode-banner" data-i18n="checkout.test-banner">⚠️ TEST MODE — this is a prototype. No real payment will be processed and no card details are transmitted anywhere.</div>
+    <div class="secure-banner" data-i18n="checkout.secure-banner">🔒 Secure payment powered by Razorpay — pay by UPI, card, netbanking, or wallet on the next screen. We never see or store your card/UPI details.</div>
 
     <div class="card row between">
       <div><strong id="checkout-tier-name">Premium Bundle</strong><div class="muted" id="checkout-summary-label">Order summary</div></div>
       <div class="tier-price" id="checkout-tier-price">₹599</div>
-    </div>
-
-    <div style="margin-top:16px">
-      <div class="paytab-row">
-        <div class="paytab active" data-pay="upi">UPI</div>
-        <div class="paytab" data-pay="card" data-i18n="checkout.pay.card">Card</div>
-        <div class="paytab" data-pay="netbanking" data-i18n="checkout.pay.netbanking">Netbanking</div>
-      </div>
-
-      <div id="pay-upi">
-        <div class="field"><label data-i18n="checkout.label.upi">UPI ID</label><input type="text" id="input-upi" placeholder="yourname@upi"></div>
-      </div>
-      <div id="pay-card" style="display:none">
-        <div class="field"><label data-i18n="checkout.label.card">Card number</label><input type="text" id="input-card" placeholder="4242 4242 4242 4242" maxlength="19"></div>
-        <div class="row" style="gap:12px">
-          <div class="field" style="flex:1"><label data-i18n="checkout.label.expiry">Expiry</label><input type="text" id="input-expiry" placeholder="MM/YY" maxlength="5"></div>
-          <div class="field" style="flex:1"><label data-i18n="checkout.label.cvv">CVV</label><input type="text" id="input-cvv" placeholder="123" maxlength="3"></div>
-        </div>
-      </div>
-      <div id="pay-netbanking" style="display:none">
-        <div class="field"><label data-i18n="checkout.label.bank">Select bank</label>
-          <select id="input-bank"><option>State Bank of India</option><option>HDFC Bank</option><option>ICICI Bank</option><option>Axis Bank</option><option>Punjab National Bank</option></select>
-        </div>
-      </div>
     </div>
 
     <div style="flex:1"></div>
@@ -3552,6 +3532,7 @@ const I18N = {
 
     "checkout.title": "Checkout",
     "checkout.test-banner": "⚠️ TEST MODE — this is a prototype. No real payment will be processed and no card details are transmitted anywhere.",
+    "checkout.secure-banner": "🔒 Secure payment powered by Razorpay — pay by UPI, card, netbanking, or wallet on the next screen. We never see or store your card/UPI details.",
     "checkout.summary.order": "Order summary",
     "checkout.summary.gift": "Gift for {name}",
     "checkout.pay.card": "Card",
@@ -3833,6 +3814,7 @@ const I18N = {
 
     "checkout.title": "चेकआउट",
     "checkout.test-banner": "⚠️ परीक्षण मोड — यह एक प्रोटोटाइप है। कोई वास्तविक भुगतान संसाधित नहीं किया जाएगा और कोई कार्ड विवरण कहीं भी प्रसारित नहीं किया जाता।",
+    "checkout.secure-banner": "🔒 रेज़रपे द्वारा सुरक्षित भुगतान — अगली स्क्रीन पर UPI, कार्ड, नेटबैंकिंग या वॉलेट से भुगतान करें। हम आपका कार्ड/UPI विवरण न तो देखते हैं, न ही सुरक्षित रखते हैं।",
     "checkout.summary.order": "ऑर्डर सारांश",
     "checkout.summary.gift": "{name} के लिए उपहार",
     "checkout.pay.card": "कार्ड",
@@ -3919,6 +3901,13 @@ if (typeof module !== "undefined") {
   behavior. So this file degrades gracefully rather than breaking outright.
 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<!--
+  Razorpay's own Checkout widget — this is what actually pops up the secure
+  payment sheet (UPI/card/netbanking/wallet) when the user pays. If this
+  CDN can't load, window.Razorpay stays undefined and app.js shows a toast
+  asking the user to check their connection rather than silently failing.
+-->
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
 // ============================================================================
 // Nakshatra — Supabase data-access layer.
@@ -4020,9 +4009,9 @@ if (typeof module !== "undefined") {
       },
 
       // ==================== PURCHASES / UNLOCKS ====================
-      // TEST MODE ONLY — see the note above record_test_purchase() in
-      // sql/002_schema.sql before this is ever wired to a real payment
-      // gateway. amountPaise is an integer (₹1 = 100 paise).
+      // TEST MODE ONLY — kept around in case it's ever useful again, but the
+      // app itself no longer calls this. Real purchases go through
+      // createRazorpayOrder + verifyRazorpayPayment below.
       async recordTestPurchase(tier, amountPaise, paymentMethod) {
         return supabase.rpc("record_test_purchase", {
           p_tier: tier,
@@ -4037,7 +4026,35 @@ if (typeof module !== "undefined") {
         return supabase.from("unlocks").select("*").eq("user_id", uid).maybeSingle();
       },
 
+      // ==================== REAL PAYMENTS (Razorpay) ====================
+      // Both of these call Supabase Edge Functions (sql/004_razorpay_payments.sql
+      // + supabase/functions/*) rather than touching any table directly —
+      // the server looks up the real price and re-verifies everything with
+      // Razorpay itself, so nothing here can be spoofed from the browser.
+      //
+      // gift is optional: { recipientName, message } — pass it to buy the
+      // report as a gift for someone else instead of unlocking it for
+      // yourself; the server-side function returns the redeemable code.
+      async createRazorpayOrder(tier, gift) {
+        return supabase.functions.invoke("create-razorpay-order", {
+          body: gift ? { tier, gift } : { tier },
+        });
+      },
+
+      // razorpayResponse is the object Razorpay Checkout's handler callback
+      // hands you: { razorpay_order_id, razorpay_payment_id, razorpay_signature }.
+      async verifyRazorpayPayment(razorpayResponse) {
+        return supabase.functions.invoke("verify-razorpay-payment", {
+          body: razorpayResponse,
+        });
+      },
+
       // ==================== GIFTING ====================
+      // NOTE: sending a gift is a real purchase now — see createRazorpayOrder
+      // above with a `gift` argument. This direct insert is left here only
+      // for local/offline testing; sql/004_razorpay_payments.sql removes the
+      // RLS policy that let it succeed against the real database, since a
+      // gift code must now always be backed by a verified payment.
       async sendGift(code, tier, recipientName, message) {
         return supabase.from("gift_codes").insert({ code, tier, recipient_name: recipientName, message });
       },
@@ -5219,65 +5236,72 @@ function renderCheckout() {
   $("#btn-checkout-back").setAttribute("data-back", gifting ? "screen-gift-send" : "screen-report");
 }
 
+// Opens the real Razorpay Checkout popup for the currently-selected tier
+// (or the gift-in-progress tier). The whole flow never trusts the browser
+// about price or "did it actually succeed" — createRazorpayOrder asks the
+// server to look the price up itself, and the handler callback below hands
+// Razorpay's response straight to verifyRazorpayPayment, which
+// independently re-checks everything with Razorpay before unlocking
+// anything. See supabase/functions/*.ts and sql/004_razorpay_payments.sql.
 function initCheckout() {
-  $all(".paytab[data-pay]").forEach(tab => tab.addEventListener("click", () => {
-    $all(".paytab[data-pay]").forEach(t => t.classList.remove("active"));
-    tab.classList.add("active");
-    state.payMethod = tab.dataset.pay;
-    ["upi", "card", "netbanking"].forEach(m => $("#pay-" + m).style.display = m === state.payMethod ? "block" : "none");
-  }));
+  $("#btn-pay-submit").addEventListener("click", async () => {
+    const dbInstance = backendDb();
+    if (!dbInstance) return toast("Payments aren't available right now — please check your connection.");
+    if (typeof Razorpay === "undefined") return toast("Payment couldn't load — please check your connection and try again.");
 
-  $("#input-card").addEventListener("input", (e) => {
-    let v = e.target.value.replace(/\D/g, "").slice(0, 16);
-    e.target.value = v.replace(/(.{4})/g, "$1 ").trim();
-  });
-  $("#input-expiry").addEventListener("input", (e) => {
-    let v = e.target.value.replace(/\D/g, "").slice(0, 4);
-    if (v.length > 2) v = v.slice(0, 2) + "/" + v.slice(2);
-    e.target.value = v;
-  });
-  $("#input-cvv").addEventListener("input", (e) => { e.target.value = e.target.value.replace(/\D/g, "").slice(0, 3); });
+    const gifting = !!state.giftInProgress;
+    const tierKey = gifting ? state.giftInProgress.tier : state.selectedTier;
+    const tier = TIER_INFO[tierKey];
+    const giftArg = gifting
+      ? { recipientName: state.giftInProgress.recipientName, message: state.giftInProgress.message }
+      : undefined;
 
-  $("#btn-pay-submit").addEventListener("click", () => {
-    if (state.payMethod === "upi" && !$("#input-upi").value.includes("@")) return toast("Enter a valid UPI ID (e.g. name@upi)");
-    if (state.payMethod === "card" && $("#input-card").value.replace(/\s/g, "").length < 12) return toast("Enter a valid card number");
-    showScreen("screen-processing", { silent: true });
-    setTimeout(async () => {
-      const dbInstance = backendDb();
-      if (state.giftInProgress) {
-        const g = state.giftInProgress;
-        const code = generateGiftCode();
-        const giftRow = {
-          code, tier: g.tier, recipientName: g.recipientName, message: g.message,
-          senderName: (state.user && state.user.name) || "A friend", redeemed: false, redeemedBy: null,
-        };
-        if (dbInstance) {
-          const { error } = await backendCall(dbInstance.sendGift(code, g.tier, g.recipientName, g.message), "sendGift");
-          if (error) {
-            toast("Couldn't create the gift code — please try again.");
-            showScreen("screen-gift-send", { silent: true });
-            return;
-          }
+    const submitBtn = $("#btn-pay-submit");
+    submitBtn.disabled = true;
+    const { data: orderData, error: orderErr } = await backendCall(dbInstance.createRazorpayOrder(tierKey, giftArg), "createRazorpayOrder");
+    submitBtn.disabled = false;
+    if (orderErr || !orderData || orderData.error) {
+      return toast("Couldn't start the payment — please try again.");
+    }
+
+    const rzp = new Razorpay({
+      key: orderData.key_id,
+      order_id: orderData.order_id,
+      amount: orderData.amount,
+      currency: orderData.currency,
+      name: "Nakshatra",
+      description: gifting ? `Gift: ${tier.name} for ${state.giftInProgress.recipientName}` : tier.name,
+      theme: { color: "#e8c687" },
+      prefill: state.user ? { name: state.user.name, email: state.user.email } : {},
+      handler: async function (response) {
+        showScreen("screen-processing", { silent: true });
+        const { data: verifyData, error: verifyErr } = await backendCall(dbInstance.verifyRazorpayPayment(response), "verifyRazorpayPayment");
+        if (verifyErr || !verifyData || verifyData.error) {
+          toast("Payment succeeded but couldn't be confirmed — please contact support with your payment ID: " + (response.razorpay_payment_id || ""));
+          showScreen("screen-checkout", { silent: true });
+          return;
         }
-        state.giftCodes[code] = giftRow;
-        state.lastGiftCode = code;
-        state.giftInProgress = null;
-        showScreen("screen-gift-sent", { silent: true });
-      } else {
-        if (dbInstance) {
-          const amountPaise = TIER_INFO[state.selectedTier].price * 100;
-          const { error } = await backendCall(dbInstance.recordTestPurchase(state.selectedTier, amountPaise, state.payMethod), "recordTestPurchase");
-          if (error) {
-            toast("Payment could not be recorded — please try again.");
-            showScreen("screen-checkout", { silent: true });
-            return;
-          }
+        if (gifting) {
+          const g = state.giftInProgress;
+          const code = verifyData.gift_code;
+          state.giftCodes[code] = {
+            code, tier: g.tier, recipientName: g.recipientName, message: g.message,
+            senderName: (state.user && state.user.name) || "A friend", redeemed: false, redeemedBy: null,
+          };
+          state.lastGiftCode = code;
+          state.giftInProgress = null;
+          showScreen("screen-gift-sent", { silent: true });
+        } else {
+          state.unlocked = true;
+          $("#success-sub").textContent = tr("success.sub-template", { tier: tierDisplayName(tierKey) });
+          showScreen("screen-success", { silent: true });
         }
-        state.unlocked = true;
-        $("#success-sub").textContent = tr("success.sub-template", { tier: tierDisplayName(state.selectedTier) });
-        showScreen("screen-success", { silent: true });
-      }
-    }, 1700);
+      },
+    });
+    rzp.on("payment.failed", function () {
+      toast("Payment failed — please try again.");
+    });
+    rzp.open();
   });
 
   $("#btn-success-continue").addEventListener("click", () => showScreen("screen-fullreport"));
