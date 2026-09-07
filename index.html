@@ -700,6 +700,8 @@ button { font-family: inherit; }
       <button class="btn btn-primary btn-block" id="btn-landing-start-bottom" data-i18n="landing.cta.start">Begin Your Reading →</button>
 
       <p class="muted center" style="margin-top:16px;font-size:0.72rem" data-i18n-html="landing.legal-footer">By continuing, you agree to our <a href="javascript:void(0)" id="link-landing-terms">Terms of Service</a> and <a href="javascript:void(0)" id="link-landing-privacy">Privacy Policy</a>.</p>
+
+      <p class="muted center" style="margin-top:10px;font-size:0.7rem;line-height:1.9" data-i18n-html="landing.footer-nav"><a href="how-it-works.html">How It Works</a> · <a href="sample-report.html">Sample Report</a> · <a href="faq.html">FAQ</a> · <a href="about.html">About</a> · <a href="responsible-guidance.html">Responsible Use</a> · <a href="refund-policy.html">Refund Policy</a></p>
     </div>
   </section>
 
@@ -3487,6 +3489,7 @@ const I18N = {
     "landing.step3.desc": "Like what you see? Unlock your complete detailed report for a one-time ₹399 — no subscription unless you choose one.",
     "landing.pricing-note": "Free to preview. <strong>Pay once, only if you want your full report.</strong>",
     "landing.legal-footer": "By continuing, you agree to our <a href=\"javascript:void(0)\" id=\"link-landing-terms\">Terms of Service</a> and <a href=\"javascript:void(0)\" id=\"link-landing-privacy\">Privacy Policy</a>.",
+    "landing.footer-nav": "<a href=\"how-it-works.html\">How It Works</a> · <a href=\"sample-report.html\">Sample Report</a> · <a href=\"faq.html\">FAQ</a> · <a href=\"about.html\">About</a> · <a href=\"responsible-guidance.html\">Responsible Use</a> · <a href=\"refund-policy.html\">Refund Policy</a>",
 
     "settings.title": "Settings",
     "settings.legal.heading": "Legal",
@@ -3784,6 +3787,7 @@ const I18N = {
     "landing.step3.desc": "जो देखा वह पसंद आया? अपनी पूरी विस्तृत रिपोर्ट को एक बार के ₹399 में अनलॉक करें — जब तक आप खुद न चुनें, कोई सदस्यता नहीं।",
     "landing.pricing-note": "झलक देखना मुफ़्त है। <strong>केवल तभी भुगतान करें जब आपको अपनी पूरी रिपोर्ट चाहिए।</strong>",
     "landing.legal-footer": "जारी रखकर, आप हमारी <a href=\"javascript:void(0)\" id=\"link-landing-terms\">सेवा शर्तों</a> और <a href=\"javascript:void(0)\" id=\"link-landing-privacy\">गोपनीयता नीति</a> से सहमत होते हैं।",
+    "landing.footer-nav": "<a href=\"how-it-works.html\">यह कैसे काम करता है</a> · <a href=\"sample-report.html\">नमूना रिपोर्ट</a> · <a href=\"faq.html\">सामान्य प्रश्न</a> · <a href=\"about.html\">हमारे बारे में</a> · <a href=\"responsible-guidance.html\">जिम्मेदार उपयोग</a> · <a href=\"refund-policy.html\">रिफंड नीति</a>",
 
     "settings.title": "सेटिंग्स",
     "settings.legal.heading": "कानूनी",
@@ -6237,6 +6241,29 @@ function initSettings() {
   });
 }
 
+// Deep-link support: nakshatra.ind.in/#terms or /#privacy jumps straight to
+// that legal screen. This app has no client-side router, so on its own a URL
+// hash does nothing — this is what makes links like "/#terms" work from the
+// standalone static pages (refund-policy.html, faq.html, etc.), which live
+// outside the SPA and can't call showScreen() directly. Returns true if it
+// handled the hash, so the caller can skip the normal session-resume flow —
+// someone following a legal link wants to read the policy, not get bounced
+// to their dashboard.
+function initHashDeepLink() {
+  const hash = (window.location.hash || "").slice(1);
+  if (hash === "terms") {
+    $("#btn-terms-back").setAttribute("data-back", "screen-landing");
+    showScreen("screen-terms");
+    return true;
+  }
+  if (hash === "privacy") {
+    $("#btn-privacy-back").setAttribute("data-back", "screen-landing");
+    showScreen("screen-privacy");
+    return true;
+  }
+  return false;
+}
+
 // ================= METHODOLOGY SHEET =================
 function initMethodology() {
   $("#horo-methodology-toggle").addEventListener("click", () => $("#sheet-method-backdrop").classList.add("visible"));
@@ -6277,7 +6304,11 @@ document.addEventListener("DOMContentLoaded", () => {
   // If a backend is configured and this browser already has a valid,
   // persisted Supabase session, silently resume straight to the dashboard
   // (or onboarding, if they never finished it) instead of the landing screen.
-  bootstrapSession();
+  // Skip that when the URL is a direct link to a legal page (e.g. "/#terms"
+  // from the standalone static pages) — showing that page takes priority.
+  if (!initHashDeepLink()) {
+    bootstrapSession();
+  }
 });
 
 })();
