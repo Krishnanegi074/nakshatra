@@ -724,7 +724,7 @@ button { font-family: inherit; }
         <input type="password" id="input-password" placeholder="At least 6 characters" data-i18n-ph="auth.ph.password">
       </div>
       <button class="btn btn-primary btn-block" id="btn-auth-submit">Create Account</button>
-      <p class="muted center" id="auth-demo-note" data-i18n="auth.demo-note">Demo prototype — accounts are stored only in this browser session, no data leaves your device.</p>
+      <p class="muted center" id="auth-demo-note" data-i18n="auth.demo-note">Your account is real — saved securely with our authentication provider, so you can sign back in from any device.</p>
     </div>
   </section>
 
@@ -1057,17 +1057,18 @@ button { font-family: inherit; }
       <div class="tier-card" data-tier="bundle">
         <span class="badge" data-i18n="tier.bundle.badge">Most Popular</span>
         <div class="row between"><strong data-i18n="tier.bundle.title">Premium Bundle</strong><span class="tier-price"><span class="was">₹999</span>₹599</span></div>
-        <p class="muted" style="margin:6px 0 0" data-i18n="tier.bundle.desc">Full report + Future Partner Report + unlimited Love Energy for 30 days.</p>
+        <p class="muted" style="margin:6px 0 0" data-i18n="tier.bundle.desc">Full report + Future Partner Report + unlimited Love Energy, unlocked permanently.</p>
       </div>
       <div class="tier-card" data-tier="subscription">
-        <div class="row between"><strong data-i18n="tier.sub.title">Monthly Subscription</strong><span class="tier-price">₹299<span style="font-size:0.85rem;color:var(--text-faint)">/mo</span></span></div>
-        <p class="muted" style="margin:6px 0 0" data-i18n="tier.sub.desc">New weekly horoscope + unlimited unlocks every month.</p>
+        <div class="row between"><strong data-i18n="tier.sub.title">Horoscope Access Pass</strong><span class="tier-price">₹299</span></div>
+        <p class="muted" style="margin:6px 0 0" data-i18n="tier.sub.desc">Fresh weekly horoscope updates + unlimited unlocks. One-time payment, unlocked permanently.</p>
       </div>
     </div>
 
     <div style="flex:1"></div>
     <button class="btn btn-primary btn-block" id="btn-report-checkout" style="margin-top:18px" data-i18n="report.btn.continue">Continue to Payment</button>
     <p class="muted center" style="margin-top:10px" id="report-redeem-line" data-i18n-html="report.redeem-line">Have a gift code? <span id="open-redeem-sheet" style="text-decoration:underline;cursor:pointer;color:var(--gold-bright)">Redeem it</span></p>
+    <p class="muted center" style="margin-top:6px" data-i18n-html="report.refund-line">Refunds: see our <span data-nav="screen-terms" style="text-decoration:underline;cursor:pointer;color:var(--gold-bright)">Refund Policy</span> before you pay.</p>
     <p class="muted center" style="margin-top:10px" data-i18n="report.disclaimer">For entertainment &amp; self-reflection purposes only. Not a substitute for professional advice.</p>
   </section>
 
@@ -1091,13 +1092,14 @@ button { font-family: inherit; }
       <div class="tier-card selected" data-tier="bundle">
         <span class="badge" data-i18n="tier.bundle.badge">Most Popular</span>
         <div class="row between"><strong data-i18n="tier.bundle.title">Premium Bundle</strong><span class="tier-price"><span class="was">₹999</span>₹599</span></div>
-        <p class="muted" style="margin:6px 0 0" data-i18n="tier.bundle.desc">Full report + Future Partner Report + unlimited Love Energy for 30 days.</p>
+        <p class="muted" style="margin:6px 0 0" data-i18n="tier.bundle.desc">Full report + Future Partner Report + unlimited Love Energy, unlocked permanently.</p>
       </div>
     </div>
 
     <div style="flex:1"></div>
     <button class="btn btn-primary btn-block" id="btn-gift-continue" style="margin-top:18px" disabled data-i18n="gift.btn.continue">Continue to Payment</button>
-    <p class="muted center" style="margin-top:10px" data-i18n="gift.demo-note">Demo note: in this prototype, gift codes are redeemable only within this same browser tab/session (there's no backend to email them) — a live version would deliver &amp; redeem codes automatically.</p>
+    <p class="muted center" style="margin-top:6px" data-i18n-html="report.refund-line">Refunds: see our <span data-nav="screen-terms" style="text-decoration:underline;cursor:pointer;color:var(--gold-bright)">Refund Policy</span> before you pay.</p>
+    <p class="muted center" style="margin-top:10px" data-i18n="gift.demo-note">Gift codes are real — the person you send one to can redeem it from any device of their own. There's no automatic email delivery yet, so copy the code or download the gift card and send it to them yourself.</p>
   </section>
 
   <!-- ============ GIFT SENT (code display) ============ -->
@@ -1147,7 +1149,7 @@ button { font-family: inherit; }
   <!-- ============ COMMUNITY FEED (demo) ============ -->
   <section id="screen-community" class="screen">
     <div class="topbar"><button class="icon-btn" data-back="screen-dashboard">←</button><h2 data-i18n="community.title">Community</h2></div>
-    <p class="muted center" style="margin-top:-4px" data-i18n="community.demo-note">Demo feed — seeded example posts. Sharing here stays local to this browser tab and doesn't reach real people in this prototype.</p>
+    <p class="muted center" style="margin-top:-4px" data-i18n="community.demo-note">This is a shared community feed — a few posts are seeded examples, but your own posts and likes are real and visible to other users of the app.</p>
     <div class="stack grid-list" style="margin-top:10px" id="community-feed-list"></div>
   </section>
 
@@ -1249,7 +1251,7 @@ button { font-family: inherit; }
   <section id="screen-privacy" class="screen no-nav">
     <div class="topbar"><button class="icon-btn" id="btn-privacy-back" data-back="screen-landing">←</button><h2 data-i18n="privacy.title">Privacy Policy</h2></div>
     <div class="card legal-text">
-      <p class="muted" style="margin-bottom:18px">Last updated: 18 August 2026 · <span data-i18n="legal.language-note">Provided in English only.</span></p>
+      <p class="muted" style="margin-bottom:18px">Last updated: 7 September 2026 · <span data-i18n="legal.language-note">Provided in English only.</span></p>
 
       <h3>Who we are</h3>
       <p>Nakshatra ("we", "us", "the app") provides astrology and palmistry content for entertainment and self-reflection. This policy explains what information we collect when you use the app, how we use it, and the choices you have.</p>
@@ -1275,7 +1277,7 @@ button { font-family: inherit; }
       <p>Your data is stored with our database provider, Supabase, behind access controls (Row Level Security) that stop any other app account from reading or writing your rows in the database. Your login session is kept in your browser's local storage so you stay signed in between visits.</p>
 
       <h3>Third parties</h3>
-      <p>We currently share data with Supabase as part of running the app's backend. If and when real payments are enabled, a payment gateway will process the payment details needed to complete a purchase — we do not handle or store your card or bank details ourselves.</p>
+      <p>We currently share data with two third parties: Supabase, which runs the app's backend and database, and Razorpay, our live payment gateway, which processes the payment details needed to complete a real purchase. We do not handle or store your card, UPI, or bank details ourselves — Razorpay handles that directly.</p>
 
       <h3>Your choices</h3>
       <ul>
@@ -1299,7 +1301,7 @@ button { font-family: inherit; }
   <section id="screen-terms" class="screen no-nav">
     <div class="topbar"><button class="icon-btn" id="btn-terms-back" data-back="screen-landing">←</button><h2 data-i18n="terms.title">Terms of Service</h2></div>
     <div class="card legal-text">
-      <p class="muted" style="margin-bottom:18px">Last updated: 18 August 2026 · <span data-i18n="legal.language-note">Provided in English only.</span></p>
+      <p class="muted" style="margin-bottom:18px">Last updated: 7 September 2026 · <span data-i18n="legal.language-note">Provided in English only.</span></p>
 
       <p>By creating an account or using Nakshatra, you agree to these terms.</p>
 
@@ -1316,21 +1318,30 @@ button { font-family: inherit; }
       <p>The "chat with an astrologer" feature is simulated: replies are selected from pre-written, rule-based responses. They are not generated by a real person or by an AI system, and are not written specifically for you.</p>
 
       <h3>5. Purchases and gifting</h3>
-      <p>Where a report tier requires payment, pricing and refund terms will be presented to you at checkout before you pay. Gift codes you send can be redeemed once by their recipient, and cannot be redeemed by the account that sent them.</p>
+      <p>Report tiers are one-time payments processed by Razorpay — the price is shown clearly before you pay, and there is no recurring or subscription billing on any tier. See our Refund Policy below for what happens if something goes wrong. Gift codes you send can be redeemed once by their recipient, and cannot be redeemed by the account that sent them.</p>
 
-      <h3>6. Community content</h3>
+      <h3>6. Refund policy</h3>
+      <p>Nakshatra reports are digital content that unlocks immediately after payment, so once your report or tier has been successfully unlocked, we generally don't offer a refund — you've already received what you paid for. We will refund you in full if:</p>
+      <ul>
+        <li>Razorpay deducted payment from you but your report or tier never unlocked, because of a technical error on our end.</li>
+        <li>You were charged more than once for the same purchase.</li>
+        <li>Your account was compromised and someone else made the purchase without your permission.</li>
+      </ul>
+      <p>To request a refund, email <a href="mailto:support@nakshatra.ind.in">support@nakshatra.ind.in</a> within 7 days of the charge, with the email address on your account and your Razorpay payment ID (shown in your payment confirmation). We aim to respond within 3 business days; approved refunds are returned to your original payment method within 5–7 business days, matching Razorpay's standard processing time. This policy doesn't limit any refund right you have under Indian consumer protection law.</p>
+
+      <h3>7. Community content</h3>
       <p>Posts and captions you share to the community feed are visible to other signed-in users. Don't share anything there you wouldn't want other users to see, and don't post anyone else's personal information without their consent.</p>
 
-      <h3>7. Intellectual property</h3>
+      <h3>8. Intellectual property</h3>
       <p>The app's design, calculations, and content rules belong to us. You keep ownership of what you personally write, such as chat messages or captions — but by posting to the community feed, you allow other users to view it within the app.</p>
 
-      <h3>8. Disclaimer &amp; limitation of liability</h3>
+      <h3>9. Disclaimer &amp; limitation of liability</h3>
       <p>The app is provided "as is." We don't guarantee the accuracy, completeness, or usefulness of any astrology or palmistry content, and we are not liable for decisions you make based on it. To the extent permitted by law, our liability for any claim relating to the app is limited to the amount you paid us in the past 12 months.</p>
 
-      <h3>9. Ending your account</h3>
+      <h3>10. Ending your account</h3>
       <p>You can delete your account at any time from Settings. We may suspend or terminate accounts that violate these terms.</p>
 
-      <h3>10. Changes to these terms</h3>
+      <h3>11. Changes to these terms</h3>
       <p>We may update these terms as the app evolves. Continuing to use the app after an update means you accept the revised terms.</p>
 
       <h3>11. Governing law</h3>
@@ -3472,7 +3483,7 @@ const I18N = {
     "auth.label.email": "Email",
     "auth.label.password": "Password",
     "auth.ph.password": "At least 6 characters",
-    "auth.demo-note": "Demo prototype — accounts are stored only in this browser session, no data leaves your device.",
+    "auth.demo-note": "Your account is real — saved securely with our authentication provider, so you can sign back in from any device.",
     "auth.demo-note.live": "Your account is real — signing in again brings your chart and reports back, on any device.",
     "auth.submit.signup": "Create Account",
     "auth.submit.login": "Log In",
@@ -3589,9 +3600,10 @@ const I18N = {
     "tier.onetime.desc.gift": "Unlock everything for them, once.",
     "tier.bundle.badge": "Most Popular",
     "tier.bundle.title": "Premium Bundle",
-    "tier.bundle.desc": "Full report + Future Partner Report + unlimited Love Energy for 30 days.",
-    "tier.sub.title": "Monthly Subscription",
-    "tier.sub.desc": "New weekly horoscope + unlimited unlocks every month.",
+    "tier.bundle.desc": "Full report + Future Partner Report + unlimited Love Energy, unlocked permanently.",
+    "tier.sub.title": "Horoscope Access Pass",
+    "tier.sub.desc": "Fresh weekly horoscope updates + unlimited unlocks. One-time payment, unlocked permanently.",
+    "report.refund-line": "Refunds: see our <span data-nav=\"screen-terms\" style=\"text-decoration:underline;cursor:pointer;color:var(--gold-bright)\">Refund Policy</span> before you pay.",
     "report.btn.continue": "Continue to Payment",
     "report.redeem-line": 'Have a gift code? <span id="open-redeem-sheet" style="text-decoration:underline;cursor:pointer;color:var(--gold-bright)">Redeem it</span>',
     "report.disclaimer": "For entertainment & self-reflection purposes only. Not a substitute for professional advice.",
@@ -3754,7 +3766,7 @@ const I18N = {
     "auth.label.email": "ईमेल",
     "auth.label.password": "पासवर्ड",
     "auth.ph.password": "कम से कम 6 अक्षर",
-    "auth.demo-note": "डेमो प्रोटोटाइप — खाते केवल इस ब्राउज़र सत्र में संग्रहीत हैं, कोई डेटा आपके डिवाइस से बाहर नहीं जाता।",
+    "auth.demo-note": "आपका खाता असली है — हमारे प्रमाणीकरण प्रदाता के साथ सुरक्षित रूप से सहेजा गया है, ताकि आप किसी भी डिवाइस से वापस साइन इन कर सकें।",
     "auth.demo-note.live": "आपका खाता वास्तविक है — फिर से लॉग इन करने पर आपकी कुंडली और रिपोर्ट किसी भी डिवाइस पर वापस मिल जाएँगी।",
     "auth.submit.signup": "खाता बनाएं",
     "auth.submit.login": "लॉग इन करें",
@@ -3871,9 +3883,10 @@ const I18N = {
     "tier.onetime.desc.gift": "उनके लिए सब कुछ एक बार अनलॉक करें।",
     "tier.bundle.badge": "सबसे लोकप्रिय",
     "tier.bundle.title": "प्रीमियम बंडल",
-    "tier.bundle.desc": "पूर्ण रिपोर्ट + भविष्य के साथी की रिपोर्ट + 30 दिनों के लिए असीमित प्रेम ऊर्जा।",
-    "tier.sub.title": "मासिक सदस्यता",
-    "tier.sub.desc": "नया साप्ताहिक राशिफल + हर महीने असीमित अनलॉक।",
+    "tier.bundle.desc": "पूर्ण रिपोर्ट + भविष्य के साथी की रिपोर्ट + असीमित प्रेम ऊर्जा, स्थायी रूप से अनलॉक।",
+    "tier.sub.title": "होरोस्कोप एक्सेस पास",
+    "tier.sub.desc": "नया साप्ताहिक राशिफल + असीमित अनलॉक। एक बार का भुगतान, स्थायी रूप से अनलॉक।",
+    "report.refund-line": "रिफंड: भुगतान से पहले हमारी <span data-nav=\"screen-terms\" style=\"text-decoration:underline;cursor:pointer;color:var(--gold-bright)\">रिफंड नीति</span> देखें।",
     "report.btn.continue": "भुगतान जारी रखें",
     "report.redeem-line": 'क्या आपके पास उपहार कोड है? <span id="open-redeem-sheet" style="text-decoration:underline;cursor:pointer;color:var(--gold-bright)">इसे भुनाएं</span>',
     "report.disclaimer": "केवल मनोरंजन और आत्म-चिंतन के उद्देश्य से। पेशेवर सलाह का विकल्प नहीं।",
@@ -4260,7 +4273,7 @@ const state = {
 const TIER_INFO = {
   onetime: { name: "One-Time Report", price: 399, label: "₹399" },
   bundle: { name: "Premium Bundle", price: 599, label: "₹599" },
-  subscription: { name: "Monthly Subscription", price: 299, label: "₹299/mo" },
+  subscription: { name: "Horoscope Access Pass", price: 299, label: "₹299" },
 };
 
 // ================= BACKEND (Supabase) =================
