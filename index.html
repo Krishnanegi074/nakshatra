@@ -722,9 +722,40 @@ button { font-family: inherit; }
       <div class="field">
         <label data-i18n="auth.label.password">Password</label>
         <input type="password" id="input-password" placeholder="At least 6 characters" data-i18n-ph="auth.ph.password">
+        <p class="muted" id="link-forgot-password" data-i18n="auth.forgot-link" style="display:none;margin:6px 0 0;text-align:right;font-size:0.8rem;cursor:pointer;text-decoration:underline">Forgot password?</p>
       </div>
       <button class="btn btn-primary btn-block" id="btn-auth-submit">Create Account</button>
       <p class="muted center" id="auth-demo-note" data-i18n="auth.demo-note">Your account is real — saved securely with our authentication provider, so you can sign back in from any device.</p>
+    </div>
+  </section>
+
+  <!-- ============ FORGOT PASSWORD ============ -->
+  <section id="screen-forgot-password" class="screen no-nav">
+    <div class="topbar"><button class="icon-btn" data-back="screen-auth">←</button><h2 data-i18n="forgot.title">Reset Your Password</h2></div>
+    <div class="card stack">
+      <p class="muted" data-i18n="forgot.desc">Enter the email on your account and we'll send you a link to set a new password.</p>
+      <div class="field">
+        <label data-i18n="auth.label.email">Email</label>
+        <input type="email" id="input-forgot-email" placeholder="you@example.com">
+      </div>
+      <button class="btn btn-primary btn-block" id="btn-forgot-submit" data-i18n="forgot.btn.send">Send Reset Link</button>
+    </div>
+  </section>
+
+  <!-- ============ SET NEW PASSWORD (landed here from the emailed reset link) ============ -->
+  <section id="screen-reset-password" class="screen no-nav">
+    <div class="topbar"><h2 data-i18n="reset.title">Set a New Password</h2></div>
+    <div class="card stack">
+      <p class="muted" data-i18n="reset.desc">You're verified — choose a new password for your account below.</p>
+      <div class="field">
+        <label data-i18n="reset.label.new">New password</label>
+        <input type="password" id="input-reset-password" placeholder="At least 6 characters" data-i18n-ph="auth.ph.password">
+      </div>
+      <div class="field">
+        <label data-i18n="reset.label.confirm">Confirm new password</label>
+        <input type="password" id="input-reset-password-confirm" placeholder="At least 6 characters" data-i18n-ph="auth.ph.password">
+      </div>
+      <button class="btn btn-primary btn-block" id="btn-reset-submit" data-i18n="reset.btn.update">Update Password</button>
     </div>
   </section>
 
@@ -3488,6 +3519,20 @@ const I18N = {
     "auth.submit.signup": "Create Account",
     "auth.submit.login": "Log In",
     "auth.submitting": "Please wait…",
+    "auth.forgot-link": "Forgot password?",
+
+    "forgot.title": "Reset Your Password",
+    "forgot.desc": "Enter the email on your account and we'll send you a link to set a new password.",
+    "forgot.btn.send": "Send Reset Link",
+    "forgot.sent": "Check your email for a reset link — it's valid for a short time, so use it soon.",
+
+    "reset.title": "Set a New Password",
+    "reset.desc": "You're verified — choose a new password for your account below.",
+    "reset.label.new": "New password",
+    "reset.label.confirm": "Confirm new password",
+    "reset.btn.update": "Update Password",
+    "reset.mismatch": "Passwords don't match — please re-enter.",
+    "reset.success": "Password updated — you're signed in.",
 
     "onb.title": "Your Birth Details",
     "onb.step0": "Step 1 of 4", "onb.step1": "Step 2 of 4", "onb.step2": "Step 3 of 4", "onb.step3": "Step 4 of 4",
@@ -3771,6 +3816,20 @@ const I18N = {
     "auth.submit.signup": "खाता बनाएं",
     "auth.submit.login": "लॉग इन करें",
     "auth.submitting": "कृपया प्रतीक्षा करें…",
+    "auth.forgot-link": "पासवर्ड भूल गए?",
+
+    "forgot.title": "अपना पासवर्ड रीसेट करें",
+    "forgot.desc": "अपने खाते वाला ईमेल दर्ज करें, हम आपको नया पासवर्ड सेट करने के लिए एक लिंक भेजेंगे।",
+    "forgot.btn.send": "रीसेट लिंक भेजें",
+    "forgot.sent": "रीसेट लिंक के लिए अपना ईमेल जांचें — यह थोड़े समय के लिए ही मान्य है, इसलिए जल्द उपयोग करें।",
+
+    "reset.title": "नया पासवर्ड सेट करें",
+    "reset.desc": "आप सत्यापित हैं — नीचे अपने खाते के लिए एक नया पासवर्ड चुनें।",
+    "reset.label.new": "नया पासवर्ड",
+    "reset.label.confirm": "नए पासवर्ड की पुष्टि करें",
+    "reset.btn.update": "पासवर्ड अपडेट करें",
+    "reset.mismatch": "पासवर्ड मेल नहीं खाते — कृपया फिर से दर्ज करें।",
+    "reset.success": "पासवर्ड अपडेट हो गया — आप साइन इन हैं।",
 
     "onb.title": "आपका जन्म विवरण",
     "onb.step0": "चरण 1/4", "onb.step1": "चरण 2/4", "onb.step2": "चरण 3/4", "onb.step3": "चरण 4/4",
@@ -4057,6 +4116,23 @@ if (typeof module !== "undefined") {
 
       async signOut() {
         return supabase.auth.signOut();
+      },
+
+      // Sends a password-reset email. `redirectTo` must be an exact URL
+      // already allow-listed in Supabase Dashboard -> Authentication ->
+      // URL Configuration -> Redirect URLs, or Supabase silently falls back
+      // to the project's Site URL instead (which is how a stale localhost
+      // Site URL setting can break this even when this code is correct).
+      async sendPasswordReset(email, redirectTo) {
+        return supabase.auth.resetPasswordForEmail(email, { redirectTo });
+      },
+
+      // Only succeeds while the user has an active "recovery" session —
+      // i.e. right after landing here from a password-reset email link,
+      // which supabase-js detects automatically from the URL and fires a
+      // PASSWORD_RECOVERY event for (see initPasswordRecoveryListener()).
+      async updatePassword(newPassword) {
+        return supabase.auth.updateUser({ password: newPassword });
       },
 
       // Returns the persisted session (if any) — call on page load to
@@ -4376,6 +4452,9 @@ function authErrorMessage(error) {
   if (/already registered|already exists/i.test(msg)) return "That email is already registered — try logging in instead.";
   if (/invalid login credentials/i.test(msg)) return "Incorrect email or password.";
   if (/password/i.test(msg) && /short|least|character/i.test(msg)) return "Password must be at least 6 characters.";
+  if (/different from the old password/i.test(msg)) return "Your new password must be different from your old one.";
+  if (/rate limit|too many/i.test(msg)) return "Too many attempts — please wait a few minutes and try again.";
+  if (/expired|invalid.*(link|token|otp)/i.test(msg)) return "That reset link has expired — request a new one.";
   return msg || "Something went wrong — please try again.";
 }
 
@@ -4552,8 +4631,11 @@ function initAuth() {
     $("#tab-signup").classList.toggle("active", state.authMode === "signup");
     $("#tab-login").classList.toggle("active", state.authMode === "login");
     $("#field-name").style.display = state.authMode === "signup" ? "block" : "none";
+    $("#link-forgot-password").style.display = state.authMode === "login" ? "block" : "none";
     $("#btn-auth-submit").textContent = tr(state.authMode === "signup" ? "auth.submit.signup" : "auth.submit.login");
   }
+
+  $("#link-forgot-password").addEventListener("click", () => showScreen("screen-forgot-password"));
 
   $("#btn-auth-submit").addEventListener("click", async () => {
     const email = $("#input-email").value.trim();
@@ -4613,6 +4695,80 @@ function initAuth() {
       submitBtn.disabled = false;
       submitBtn.textContent = originalLabel;
     }
+  });
+}
+
+// Request-a-reset-link screen (reachable via "Forgot password?" on login).
+function initForgotPassword() {
+  $("#btn-forgot-submit").addEventListener("click", async () => {
+    const email = $("#input-forgot-email").value.trim();
+    if (!email || !email.includes("@")) return toast("Enter a valid email");
+    const dbInstance = backendDb();
+    if (!dbInstance) return toast("Password reset isn't available right now — please check your connection.");
+
+    const btn = $("#btn-forgot-submit");
+    const originalLabel = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = tr("auth.submitting");
+    try {
+      // Sending the app's own current URL means this keeps working correctly
+      // wherever it's actually deployed, as long as that exact URL is also
+      // added under Authentication -> URL Configuration -> Redirect URLs in
+      // the Supabase dashboard — otherwise Supabase falls back to the
+      // project's Site URL setting instead of this value.
+      const redirectTo = window.location.origin + window.location.pathname;
+      const { error } = await backendCall(dbInstance.sendPasswordReset(email, redirectTo), "sendPasswordReset");
+      if (error) return toast(authErrorMessage(error));
+      toast(tr("forgot.sent"));
+      showScreen("screen-auth");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalLabel;
+    }
+  });
+}
+
+// Set-a-new-password screen. Only reachable by landing here from a real
+// password-reset email link — see initPasswordRecoveryListener() below,
+// which is what actually navigates here.
+function initResetPassword() {
+  $("#btn-reset-submit").addEventListener("click", async () => {
+    const pw = $("#input-reset-password").value;
+    const pw2 = $("#input-reset-password-confirm").value;
+    if (!pw || pw.length < 6) return toast("Password must be at least 6 characters");
+    if (pw !== pw2) return toast(tr("reset.mismatch"));
+    const dbInstance = backendDb();
+    if (!dbInstance) return toast("Password reset isn't available right now — please check your connection.");
+
+    const btn = $("#btn-reset-submit");
+    const originalLabel = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = tr("auth.submitting");
+    try {
+      const { error } = await backendCall(dbInstance.updatePassword(pw), "updatePassword");
+      if (error) return toast(authErrorMessage(error));
+      toast(tr("reset.success"));
+      // The recovery session is now a normal signed-in session — reuse the
+      // same bootstrap path a page-load resume uses, so state.user/birth
+      // data/dashboard-vs-onboarding routing all come out consistent with
+      // every other sign-in path instead of being special-cased here.
+      await bootstrapSession();
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalLabel;
+    }
+  });
+}
+
+// supabase-js parses a #access_token=...&type=recovery fragment left in the
+// URL by the emailed reset link automatically, and fires this event once it
+// has — that's the (only) signal that a visitor arrived here to set a new
+// password, so it's what actually navigates to screen-reset-password.
+function initPasswordRecoveryListener() {
+  const dbInstance = backendDb();
+  if (!dbInstance) return;
+  dbInstance.onAuthStateChange((event) => {
+    if (event === "PASSWORD_RECOVERY") showScreen("screen-reset-password");
   });
 }
 
@@ -6099,6 +6255,9 @@ document.addEventListener("DOMContentLoaded", () => {
   initLangSwitch();
   initStars();
   initAuth();
+  initForgotPassword();
+  initResetPassword();
+  initPasswordRecoveryListener();
   initOnboarding();
   initDashNav();
   initPalmUpload();
