@@ -4356,6 +4356,57 @@ const TIER_INFO = {
   subscription: { name: "Horoscope Access Pass", price: 299, label: "₹299" },
 };
 
+// ================= ANALYTICS (GA4) =================
+// index.template.html already loads gtag.js with a real Measurement ID, which
+// gives you page-view tracking for free. Everything below adds specific
+// PRODUCT events on top of that — the moments that actually tell you whether
+// people are getting stuck or converting — so a real activation/conversion
+// picture is possible later without guessing. No names, birth details, palm
+// photos, emails, or payment IDs are ever sent — only event names, tier keys,
+// and counts.
+//
+// Safe by construction even if GA hasn't loaded yet (ad blocker, offline,
+// slow network): the gtag() stub in index.template.html is defined
+// synchronously before the async script tag, so calling it just queues the
+// event; if the real script never loads, the queue is silently dropped.
+function trackEvent(name, params) {
+  try {
+    if (typeof gtag === "function") gtag("event", name, params || {});
+  } catch (e) {
+    // Analytics must never be able to break the app — swallow and move on.
+  }
+}
+
+// Return-visit tracking (D1/D7/D30), the one place this file intentionally
+// uses localStorage. That's different from the "no localStorage" note on
+// state.lang above — this file ships as a real page on nakshatra.ind.in with
+// its own domain, not inside a sandboxed preview, so normal browser storage
+// works exactly as it would on any other website. All that's stored is a
+// single timestamp of the last visit, on this device only — no account data,
+// nothing that identifies who it is.
+function trackReturnVisit() {
+  try {
+    const key = "nakshatra_last_visit";
+    const nowMs = Date.now();
+    const lastStr = localStorage.getItem(key);
+    if (lastStr) {
+      const gapDays = (nowMs - Number(lastStr)) / 86400000;
+      // Loose bands rather than exact day counts, since visits don't land at
+      // exactly 24h/168h/720h — this still tells you the shape of return
+      // behavior (do people come back the next day? a week later? a month?).
+      let bucket = null;
+      if (gapDays >= 0.75 && gapDays <= 1.5) bucket = "d1";
+      else if (gapDays >= 6 && gapDays <= 8) bucket = "d7";
+      else if (gapDays >= 25 && gapDays <= 35) bucket = "d30";
+      if (bucket) trackEvent("return_visit", { bucket });
+    }
+    localStorage.setItem(key, String(nowMs));
+  } catch (e) {
+    // localStorage can throw (private browsing, storage disabled) — never
+    // let analytics affect the actual app.
+  }
+}
+
 // ================= BACKEND (Supabase) =================
 // Everything below talks to NakshatraDB.db (see supabase-client.js), which
 // wraps a real Supabase project — see that file's header for setup steps.
@@ -4925,6 +4976,8 @@ function runChartCalculation() {
     state.computed.moonPhase = getMoonPhase(new Date());
     state.computed.birthUtc = utc;
 
+    trackEvent("chart_generated", { has_birth_time: !b.unknownTime });
+
     const dbInstance = backendDb();
     if (dbInstance) {
       const { error } = await backendCall(dbInstance.saveBirthData({
@@ -4992,6 +5045,7 @@ function initDashNav() {
 
 // ================= HOROSCOPE =================
 function renderHoroscope() {
+  trackEvent("feature_viewed", { feature: "horoscope" });
   const c = state.computed;
   const h = generateWeeklyHoroscope(c.sunIdx, c.moonIdx, c.ascIdx, new Date(), c.moonPhase.name);
   $("#horo-headline").textContent = h.headline;
@@ -5007,6 +5061,7 @@ function renderHoroscope() {
 
 // ================= PALM READING =================
 function renderPalmScreen() {
+  trackEvent("feature_viewed", { feature: "palm" });
   $("#palm-intro").style.display = state.palmReport ? "none" : "block";
   $("#palm-result").style.display = state.palmReport ? "block" : "none";
   if (state.palmReport) { renderPalmResult(); return; }
@@ -5289,6 +5344,7 @@ function renderPalmResult() {
 
 // ================= LOVE ENERGY =================
 function renderLoveEnergy() {
+  trackEvent("feature_viewed", { feature: "love" });
   const c = state.computed;
   const res = generateLoveEnergy(c.sunIdx, new Date(), c.moonPhase.angle);
   $("#love-score").textContent = res.score;
@@ -5314,6 +5370,7 @@ function getUserAge() {
 }
 
 function renderCompatScreen() {
+  trackEvent("feature_viewed", { feature: "compat" });
   $("#compat-form").style.display = state.compatResult ? "none" : "block";
   $("#compat-result").style.display = state.compatResult ? "block" : "none";
   if (state.compatResult) renderCompatResult();
@@ -5378,6 +5435,7 @@ function renderCompatResult() {
 
 // ================= YEAR AHEAD =================
 function renderYearAheadScreen() {
+  trackEvent("feature_viewed", { feature: "yearahead" });
   const c = state.computed;
   const now = new Date();
   const jupSign = getTransitingSign(Astronomy.Body.Jupiter, now);
@@ -5511,11 +5569,19 @@ function initCheckout() {
       ? { recipientName: state.giftInProgress.recipientName, message: state.giftInProgress.message }
       : undefined;
 
+    trackEvent("begin_checkout", {
+      currency: "INR",
+      value: tier.price,
+      items: [{ item_id: tierKey, item_name: tier.name, price: tier.price }],
+      gifting,
+    });
+
     const submitBtn = $("#btn-pay-submit");
     submitBtn.disabled = true;
     const { data: orderData, error: orderErr } = await backendCall(dbInstance.createRazorpayOrder(tierKey, giftArg), "createRazorpayOrder");
     submitBtn.disabled = false;
     if (orderErr || !orderData || orderData.error) {
+      trackEvent("payment_failed", { tier: tierKey, reason: "order_creation_failed" });
       return toast("Couldn't start the payment — please try again.");
     }
 
@@ -5532,10 +5598,18 @@ function initCheckout() {
         showScreen("screen-processing", { silent: true });
         const { data: verifyData, error: verifyErr } = await backendCall(dbInstance.verifyRazorpayPayment(response), "verifyRazorpayPayment");
         if (verifyErr || !verifyData || verifyData.error) {
+          trackEvent("payment_failed", { tier: tierKey, reason: "verification_failed" });
           toast("Payment succeeded but couldn't be confirmed — please contact support with your payment ID: " + (response.razorpay_payment_id || ""));
           showScreen("screen-checkout", { silent: true });
           return;
         }
+        trackEvent("purchase", {
+          transaction_id: orderData.order_id,
+          currency: "INR",
+          value: tier.price,
+          items: [{ item_id: tierKey, item_name: tier.name, price: tier.price }],
+          gifting,
+        });
         if (gifting) {
           const g = state.giftInProgress;
           const code = verifyData.gift_code;
@@ -5554,6 +5628,7 @@ function initCheckout() {
       },
     });
     rzp.on("payment.failed", function () {
+      trackEvent("payment_failed", { tier: tierKey, reason: "razorpay_declined" });
       toast("Payment failed — please try again.");
     });
     rzp.open();
@@ -6012,6 +6087,7 @@ function computeFuturePartner() {
 }
 
 function renderFullReport() {
+  trackEvent("feature_viewed", { feature: "fullreport", unlocked: state.unlocked });
   const c = state.computed;
   $("#fr-badge-sun").textContent = SIGN_SYMBOLS[c.sunIdx];
   $("#fr-sun").textContent = tr("dash.label.sun") + " · " + signName(c.sunIdx);
@@ -6164,6 +6240,7 @@ function initShare() {
   $("#btn-close-share").addEventListener("click", closeShare);
   $("#sheet-share-backdrop").addEventListener("click", (e) => { if (e.target.id === "sheet-share-backdrop") closeShare(); });
   $("#btn-download-card").addEventListener("click", () => {
+    trackEvent("share_card_download");
     const canvas = $("#shareCanvas");
     const link = document.createElement("a");
     link.download = "nakshatra-cosmic-snapshot.png";
@@ -6279,6 +6356,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // below means those calls attach their listeners to the final, stable DOM nodes
   // rather than to nodes that are about to be destroyed and rebuilt.
   applyLanguage(state.lang);
+  trackReturnVisit();
   initLangSwitch();
   initStars();
   initAuth();
