@@ -1,0 +1,66 @@
+/* ===================================================================
+   Pricing page
+   =================================================================== */
+
+.nk-h2 { font-size: 32px; margin-top: 14px; }
+
+.nk-pr-hero { padding: 96px 0 70px; text-align: center; }
+.nk-pr-title { font-size: 52px; line-height: 1.15; margin: 20px auto 22px; max-width: 680px; }
+.nk-pr-sub { color: var(--text-dim); font-size: 16.5px; line-height: 1.6; max-width: 520px; margin: 0 auto; }
+
+/* ---------- Comparison ---------- */
+
+.nk-pr-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: stretch; }
+.nk-pr-compare-card { padding: 40px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.nk-pr-compare-card--dim { opacity: 0.7; }
+.nk-pr-compare-card--gold { border-color: var(--gold); background: rgba(201, 161, 95, 0.08); }
+.nk-pr-compare-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.16em; color: var(--text-muted); font-weight: 700; margin-bottom: 26px; }
+.nk-pr-compare-label--gold { color: var(--gold-bright); }
+.nk-pr-compare-icon { margin-bottom: 22px; }
+.nk-pr-compare-title { font-size: 20px; margin-bottom: 12px; }
+.nk-pr-compare-title--dim { color: var(--text-dim); }
+.nk-pr-compare-desc { color: var(--text-muted); font-size: 14px; line-height: 1.7; max-width: 340px; margin: 0; }
+.nk-pr-compare-desc--bright { color: var(--text); }
+
+/* ---------- Tiers ---------- */
+
+.nk-pr-tiers-wrap { padding-top: 80px; }
+.nk-pr-tiers-head { text-align: center; max-width: 520px; margin: 0 auto 56px; }
+
+.nk-pr-tiers { display: grid; grid-template-columns: 0.85fr 1.2fr 0.85fr; gap: 0; align-items: center; }
+
+.nk-pr-tier { padding: 36px 30px; text-align: center; position: relative; z-index: 1; }
+.nk-pr-tiers .nk-pr-tier:first-child { border-radius: var(--radius) 0 0 var(--radius); border-right: none; }
+.nk-pr-tiers .nk-pr-tier:last-child { border-radius: 0 var(--radius) var(--radius) 0; border-left: none; }
+
+.nk-pr-tier-name { font-size: 16px; color: var(--text-dim); font-family: 'Poppins', sans-serif; font-weight: 600; margin-bottom: 16px; }
+.nk-pr-tier-price { font-family: 'Cinzel', serif; font-size: 34px; color: var(--gold-bright); margin-bottom: 20px; }
+.nk-pr-tier-desc { color: var(--text-faint); font-size: 13.5px; line-height: 1.65; margin-bottom: 26px; }
+.nk-pr-tier-btn { width: 100%; }
+
+.nk-pr-tier--featured {
+  padding: 48px 40px; border-color: var(--gold); background: rgba(201, 161, 95, 0.1);
+  z-index: 2; transform: scale(1.08); box-shadow: 0 30px 60px rgba(0, 0, 0, 0.35);
+}
+.nk-pr-tier-badge {
+  position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
+  background: var(--gold-bright); color: #2a1b0a; font-size: 11px; font-weight: 700;
+  letter-spacing: 0.4px; text-transform: uppercase; padding: 6px 16px; border-radius: 999px;
+}
+.nk-pr-tier-name--featured { font-size: 17px; color: var(--text); margin: 10px 0 18px; }
+.nk-pr-tier-price--featured { font-size: 42px; margin-bottom: 22px; }
+.nk-pr-tier-desc--bright { color: var(--text); font-size: 14px; margin-bottom: 28px; }
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 900px) {
+  .nk-pr-hero { padding: 56px 0 48px; }
+  .nk-pr-title { font-size: 36px; }
+  .nk-pr-compare { grid-template-columns: 1fr; gap: 24px; }
+
+  .nk-pr-tiers-wrap { padding-top: 40px; }
+  .nk-pr-tiers { grid-template-columns: 1fr; gap: 28px; }
+  .nk-pr-tiers .nk-pr-tier:first-child,
+  .nk-pr-tiers .nk-pr-tier:last-child { border-radius: var(--radius); border: 1px solid var(--border); }
+  .nk-pr-tier--featured { transform: none; }
+}
