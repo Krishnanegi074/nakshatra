@@ -3,89 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-
-<!-- ==================== SEO: title & description ====================
-     Title shows as the blue link text in Google results and the browser
-     tab. Keep it under ~60 characters so Google doesn't truncate it.
-     Description shows as the grey snippet under the title — keep it under
-     ~155 characters. Both are also reused by the Open Graph/Twitter tags
-     below for link previews on WhatsApp, Facebook, Instagram, Twitter/X. -->
-<title>Nakshatra — Vedic Astrology, Birth Chart &amp; Palm Reading App</title>
-<meta name="description" content="Get your real Vedic birth chart, weekly horoscope, and classical palm reading — powered by real astronomical calculations, not AI guesses. Free to start.">
-<meta name="robots" content="index, follow">
-<link rel="canonical" href="https://nakshatra.ind.in/">
-
-<!-- ==================== SEO: social share previews ==================== -->
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="Nakshatra">
-<meta property="og:locale" content="en_IN">
-<meta property="og:url" content="https://nakshatra.ind.in/">
-<meta property="og:title" content="Nakshatra — Vedic Astrology, Birth Chart &amp; Palm Reading App">
-<meta property="og:description" content="Real astronomical calculations, classical palmistry rules — no vague AI guesses, ever.">
-<meta property="og:image" content="https://nakshatra.ind.in/og-image.png">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Nakshatra — Vedic Astrology, Birth Chart &amp; Palm Reading App">
-<meta name="twitter:description" content="Real astronomical calculations, classical palmistry rules — no vague AI guesses, ever.">
-<meta name="twitter:image" content="https://nakshatra.ind.in/og-image.png">
-<meta name="theme-color" content="#0a0616">
-
-<!-- ==================== SEO: favicon / home-screen icons ==================== -->
-<link rel="icon" href="/favicon.ico" sizes="any">
-<link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32">
-<link rel="icon" href="/favicon-16.png" type="image/png" sizes="16x16">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
-<link rel="icon" href="/icon-512.png" type="image/png" sizes="512x512">
-
-<!-- ==================== Google Search Console verification ====================
-     Only needed if you use the "HTML tag" verification method instead of the
-     "HTML file upload" method. Leave commented out unless Search Console
-     gives you a meta tag to paste — if it gives you a file to upload
-     instead, ignore this and just upload that file next to index.html. -->
-<!-- <meta name="google-site-verification" content="PASTE_YOUR_CODE_HERE"> -->
-
-<!-- ==================== Google Analytics (GA4) ====================
-     Replace G-XXXXXXXXXX with your real Measurement ID from
-     analytics.google.com once you've created a property (see the setup
-     guide) — traffic won't be tracked until that's a real ID. -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-0HGGMYNJ75"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-0HGGMYNJ75');
-</script>
-
-<!-- ==================== Structured data (helps Google understand what this is) ==================== -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "WebApplication",
-  "name": "Nakshatra",
-  "url": "https://nakshatra.ind.in/",
-  "description": "Vedic (sidereal) astrology and classical palmistry web app — real astronomical calculations for birth charts, weekly horoscopes, love compatibility, and palm readings.",
-  "applicationCategory": "LifestyleApplication",
-  "operatingSystem": "Any (web browser)",
-  "inLanguage": ["en", "hi"],
-  "offers": {
-    "@type": "Offer",
-    "price": "399",
-    "priceCurrency": "INR"
-  }
-}
-</script>
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  "name": "Nakshatra",
-  "url": "https://nakshatra.ind.in/",
-  "logo": "https://nakshatra.ind.in/icon-512.png"
-}
-</script>
-
+<title>Nakshatra — Your Cosmic Guidance App</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -234,6 +152,15 @@ button { font-family: inherit; }
 }
 .card + .card { margin-top: 14px; }
 .stack { display: flex; flex-direction: column; gap: 14px; }
+/* .stack already spaces its children with flex `gap` — .card + .card's own
+   margin-top (above) was meant for .card elements stacked in normal block
+   flow outside a .stack. Left unguarded, the two add together inside a
+   .stack (gap 14px + margin-top 14px = 28px between cards), doubling the
+   spacing on every card-list screen (Dashboard Explore, tier pickers, the
+   astrologer picker, the community feed, palm questions) at *every* width,
+   not just the >=700px grid case handled below. Zero it out unconditionally
+   for direct .card children of a .stack so the two mechanisms never combine. */
+.stack > .card + .card { margin-top: 0; }
 /* Applied alongside .stack on a handful of homogeneous card-list containers
    (dashboard Explore tiles, tier pickers, the astrologer picker, the community
    feed, palm questions) — on mobile it's just a .stack; from 700px up it
@@ -700,8 +627,6 @@ button { font-family: inherit; }
       <button class="btn btn-primary btn-block" id="btn-landing-start-bottom" data-i18n="landing.cta.start">Begin Your Reading →</button>
 
       <p class="muted center" style="margin-top:16px;font-size:0.72rem" data-i18n-html="landing.legal-footer">By continuing, you agree to our <a href="javascript:void(0)" id="link-landing-terms">Terms of Service</a> and <a href="javascript:void(0)" id="link-landing-privacy">Privacy Policy</a>.</p>
-
-      <p class="muted center" style="margin-top:10px;font-size:0.7rem;line-height:1.9" data-i18n-html="landing.footer-nav"><a href="how-it-works.html">How It Works</a> · <a href="sample-report.html">Sample Report</a> · <a href="faq.html">FAQ</a> · <a href="about.html">About</a> · <a href="responsible-guidance.html">Responsible Use</a> · <a href="refund-policy.html">Refund Policy</a></p>
     </div>
   </section>
 
@@ -724,40 +649,9 @@ button { font-family: inherit; }
       <div class="field">
         <label data-i18n="auth.label.password">Password</label>
         <input type="password" id="input-password" placeholder="At least 6 characters" data-i18n-ph="auth.ph.password">
-        <p class="muted" id="link-forgot-password" data-i18n="auth.forgot-link" style="display:none;margin:6px 0 0;text-align:right;font-size:0.8rem;cursor:pointer;text-decoration:underline">Forgot password?</p>
       </div>
       <button class="btn btn-primary btn-block" id="btn-auth-submit">Create Account</button>
-      <p class="muted center" id="auth-demo-note" data-i18n="auth.demo-note">Your account is real — saved securely with our authentication provider, so you can sign back in from any device.</p>
-    </div>
-  </section>
-
-  <!-- ============ FORGOT PASSWORD ============ -->
-  <section id="screen-forgot-password" class="screen no-nav">
-    <div class="topbar"><button class="icon-btn" data-back="screen-auth">←</button><h2 data-i18n="forgot.title">Reset Your Password</h2></div>
-    <div class="card stack">
-      <p class="muted" data-i18n="forgot.desc">Enter the email on your account and we'll send you a link to set a new password.</p>
-      <div class="field">
-        <label data-i18n="auth.label.email">Email</label>
-        <input type="email" id="input-forgot-email" placeholder="you@example.com">
-      </div>
-      <button class="btn btn-primary btn-block" id="btn-forgot-submit" data-i18n="forgot.btn.send">Send Reset Link</button>
-    </div>
-  </section>
-
-  <!-- ============ SET NEW PASSWORD (landed here from the emailed reset link) ============ -->
-  <section id="screen-reset-password" class="screen no-nav">
-    <div class="topbar"><h2 data-i18n="reset.title">Set a New Password</h2></div>
-    <div class="card stack">
-      <p class="muted" data-i18n="reset.desc">You're verified — choose a new password for your account below.</p>
-      <div class="field">
-        <label data-i18n="reset.label.new">New password</label>
-        <input type="password" id="input-reset-password" placeholder="At least 6 characters" data-i18n-ph="auth.ph.password">
-      </div>
-      <div class="field">
-        <label data-i18n="reset.label.confirm">Confirm new password</label>
-        <input type="password" id="input-reset-password-confirm" placeholder="At least 6 characters" data-i18n-ph="auth.ph.password">
-      </div>
-      <button class="btn btn-primary btn-block" id="btn-reset-submit" data-i18n="reset.btn.update">Update Password</button>
+      <p class="muted center" id="auth-demo-note" data-i18n="auth.demo-note">Demo prototype — accounts are stored only in this browser session, no data leaves your device.</p>
     </div>
   </section>
 
@@ -1090,18 +984,17 @@ button { font-family: inherit; }
       <div class="tier-card" data-tier="bundle">
         <span class="badge" data-i18n="tier.bundle.badge">Most Popular</span>
         <div class="row between"><strong data-i18n="tier.bundle.title">Premium Bundle</strong><span class="tier-price"><span class="was">₹999</span>₹599</span></div>
-        <p class="muted" style="margin:6px 0 0" data-i18n="tier.bundle.desc">Full report + Future Partner Report + unlimited Love Energy, unlocked permanently.</p>
+        <p class="muted" style="margin:6px 0 0" data-i18n="tier.bundle.desc">Full report + Future Partner Report + unlimited Love Energy for 30 days.</p>
       </div>
       <div class="tier-card" data-tier="subscription">
-        <div class="row between"><strong data-i18n="tier.sub.title">Horoscope Access Pass</strong><span class="tier-price">₹299</span></div>
-        <p class="muted" style="margin:6px 0 0" data-i18n="tier.sub.desc">Fresh weekly horoscope updates + unlimited unlocks. One-time payment, unlocked permanently.</p>
+        <div class="row between"><strong data-i18n="tier.sub.title">Monthly Subscription</strong><span class="tier-price">₹299<span style="font-size:0.85rem;color:var(--text-faint)">/mo</span></span></div>
+        <p class="muted" style="margin:6px 0 0" data-i18n="tier.sub.desc">New weekly horoscope + unlimited unlocks every month.</p>
       </div>
     </div>
 
     <div style="flex:1"></div>
     <button class="btn btn-primary btn-block" id="btn-report-checkout" style="margin-top:18px" data-i18n="report.btn.continue">Continue to Payment</button>
     <p class="muted center" style="margin-top:10px" id="report-redeem-line" data-i18n-html="report.redeem-line">Have a gift code? <span id="open-redeem-sheet" style="text-decoration:underline;cursor:pointer;color:var(--gold-bright)">Redeem it</span></p>
-    <p class="muted center" style="margin-top:6px" data-i18n-html="report.refund-line">Refunds: see our <span data-nav="screen-terms" style="text-decoration:underline;cursor:pointer;color:var(--gold-bright)">Refund Policy</span> before you pay.</p>
     <p class="muted center" style="margin-top:10px" data-i18n="report.disclaimer">For entertainment &amp; self-reflection purposes only. Not a substitute for professional advice.</p>
   </section>
 
@@ -1125,14 +1018,13 @@ button { font-family: inherit; }
       <div class="tier-card selected" data-tier="bundle">
         <span class="badge" data-i18n="tier.bundle.badge">Most Popular</span>
         <div class="row between"><strong data-i18n="tier.bundle.title">Premium Bundle</strong><span class="tier-price"><span class="was">₹999</span>₹599</span></div>
-        <p class="muted" style="margin:6px 0 0" data-i18n="tier.bundle.desc">Full report + Future Partner Report + unlimited Love Energy, unlocked permanently.</p>
+        <p class="muted" style="margin:6px 0 0" data-i18n="tier.bundle.desc">Full report + Future Partner Report + unlimited Love Energy for 30 days.</p>
       </div>
     </div>
 
     <div style="flex:1"></div>
     <button class="btn btn-primary btn-block" id="btn-gift-continue" style="margin-top:18px" disabled data-i18n="gift.btn.continue">Continue to Payment</button>
-    <p class="muted center" style="margin-top:6px" data-i18n-html="report.refund-line">Refunds: see our <span data-nav="screen-terms" style="text-decoration:underline;cursor:pointer;color:var(--gold-bright)">Refund Policy</span> before you pay.</p>
-    <p class="muted center" style="margin-top:10px" data-i18n="gift.demo-note">Gift codes are real — the person you send one to can redeem it from any device of their own. There's no automatic email delivery yet, so copy the code or download the gift card and send it to them yourself.</p>
+    <p class="muted center" style="margin-top:10px" data-i18n="gift.demo-note">Demo note: in this prototype, gift codes are redeemable only within this same browser tab/session (there's no backend to email them) — a live version would deliver &amp; redeem codes automatically.</p>
   </section>
 
   <!-- ============ GIFT SENT (code display) ============ -->
@@ -1182,7 +1074,7 @@ button { font-family: inherit; }
   <!-- ============ COMMUNITY FEED (demo) ============ -->
   <section id="screen-community" class="screen">
     <div class="topbar"><button class="icon-btn" data-back="screen-dashboard">←</button><h2 data-i18n="community.title">Community</h2></div>
-    <p class="muted center" style="margin-top:-4px" data-i18n="community.demo-note">This is a shared community feed — a few posts are seeded examples, but your own posts and likes are real and visible to other users of the app.</p>
+    <p class="muted center" style="margin-top:-4px" data-i18n="community.demo-note">Demo feed — seeded example posts. Sharing here stays local to this browser tab and doesn't reach real people in this prototype.</p>
     <div class="stack grid-list" style="margin-top:10px" id="community-feed-list"></div>
   </section>
 
@@ -1284,7 +1176,7 @@ button { font-family: inherit; }
   <section id="screen-privacy" class="screen no-nav">
     <div class="topbar"><button class="icon-btn" id="btn-privacy-back" data-back="screen-landing">←</button><h2 data-i18n="privacy.title">Privacy Policy</h2></div>
     <div class="card legal-text">
-      <p class="muted" style="margin-bottom:18px">Last updated: 7 September 2026 · <span data-i18n="legal.language-note">Provided in English only.</span></p>
+      <p class="muted" style="margin-bottom:18px">Last updated: 18 August 2026 · <span data-i18n="legal.language-note">Provided in English only.</span></p>
 
       <h3>Who we are</h3>
       <p>Nakshatra ("we", "us", "the app") provides astrology and palmistry content for entertainment and self-reflection. This policy explains what information we collect when you use the app, how we use it, and the choices you have.</p>
@@ -1310,7 +1202,7 @@ button { font-family: inherit; }
       <p>Your data is stored with our database provider, Supabase, behind access controls (Row Level Security) that stop any other app account from reading or writing your rows in the database. Your login session is kept in your browser's local storage so you stay signed in between visits.</p>
 
       <h3>Third parties</h3>
-      <p>We currently share data with two third parties: Supabase, which runs the app's backend and database, and Razorpay, our live payment gateway, which processes the payment details needed to complete a real purchase. We do not handle or store your card, UPI, or bank details ourselves — Razorpay handles that directly.</p>
+      <p>We currently share data with Supabase as part of running the app's backend. If and when real payments are enabled, a payment gateway will process the payment details needed to complete a purchase — we do not handle or store your card or bank details ourselves.</p>
 
       <h3>Your choices</h3>
       <ul>
@@ -1334,7 +1226,7 @@ button { font-family: inherit; }
   <section id="screen-terms" class="screen no-nav">
     <div class="topbar"><button class="icon-btn" id="btn-terms-back" data-back="screen-landing">←</button><h2 data-i18n="terms.title">Terms of Service</h2></div>
     <div class="card legal-text">
-      <p class="muted" style="margin-bottom:18px">Last updated: 7 September 2026 · <span data-i18n="legal.language-note">Provided in English only.</span></p>
+      <p class="muted" style="margin-bottom:18px">Last updated: 18 August 2026 · <span data-i18n="legal.language-note">Provided in English only.</span></p>
 
       <p>By creating an account or using Nakshatra, you agree to these terms.</p>
 
@@ -1351,30 +1243,21 @@ button { font-family: inherit; }
       <p>The "chat with an astrologer" feature is simulated: replies are selected from pre-written, rule-based responses. They are not generated by a real person or by an AI system, and are not written specifically for you.</p>
 
       <h3>5. Purchases and gifting</h3>
-      <p>Report tiers are one-time payments processed by Razorpay — the price is shown clearly before you pay, and there is no recurring or subscription billing on any tier. See our Refund Policy below for what happens if something goes wrong. Gift codes you send can be redeemed once by their recipient, and cannot be redeemed by the account that sent them.</p>
+      <p>Where a report tier requires payment, pricing and refund terms will be presented to you at checkout before you pay. Gift codes you send can be redeemed once by their recipient, and cannot be redeemed by the account that sent them.</p>
 
-      <h3>6. Refund policy</h3>
-      <p>Nakshatra reports are digital content that unlocks immediately after payment, so once your report or tier has been successfully unlocked, we generally don't offer a refund — you've already received what you paid for. We will refund you in full if:</p>
-      <ul>
-        <li>Razorpay deducted payment from you but your report or tier never unlocked, because of a technical error on our end.</li>
-        <li>You were charged more than once for the same purchase.</li>
-        <li>Your account was compromised and someone else made the purchase without your permission.</li>
-      </ul>
-      <p>To request a refund, email <a href="mailto:support@nakshatra.ind.in">support@nakshatra.ind.in</a> within 7 days of the charge, with the email address on your account and your Razorpay payment ID (shown in your payment confirmation). We aim to respond within 3 business days; approved refunds are returned to your original payment method within 5–7 business days, matching Razorpay's standard processing time. This policy doesn't limit any refund right you have under Indian consumer protection law.</p>
-
-      <h3>7. Community content</h3>
+      <h3>6. Community content</h3>
       <p>Posts and captions you share to the community feed are visible to other signed-in users. Don't share anything there you wouldn't want other users to see, and don't post anyone else's personal information without their consent.</p>
 
-      <h3>8. Intellectual property</h3>
+      <h3>7. Intellectual property</h3>
       <p>The app's design, calculations, and content rules belong to us. You keep ownership of what you personally write, such as chat messages or captions — but by posting to the community feed, you allow other users to view it within the app.</p>
 
-      <h3>9. Disclaimer &amp; limitation of liability</h3>
+      <h3>8. Disclaimer &amp; limitation of liability</h3>
       <p>The app is provided "as is." We don't guarantee the accuracy, completeness, or usefulness of any astrology or palmistry content, and we are not liable for decisions you make based on it. To the extent permitted by law, our liability for any claim relating to the app is limited to the amount you paid us in the past 12 months.</p>
 
-      <h3>10. Ending your account</h3>
+      <h3>9. Ending your account</h3>
       <p>You can delete your account at any time from Settings. We may suspend or terminate accounts that violate these terms.</p>
 
-      <h3>11. Changes to these terms</h3>
+      <h3>10. Changes to these terms</h3>
       <p>We may update these terms as the app evolves. Continuing to use the app after an update means you accept the revised terms.</p>
 
       <h3>11. Governing law</h3>
@@ -3489,7 +3372,6 @@ const I18N = {
     "landing.step3.desc": "Like what you see? Unlock your complete detailed report for a one-time ₹399 — no subscription unless you choose one.",
     "landing.pricing-note": "Free to preview. <strong>Pay once, only if you want your full report.</strong>",
     "landing.legal-footer": "By continuing, you agree to our <a href=\"javascript:void(0)\" id=\"link-landing-terms\">Terms of Service</a> and <a href=\"javascript:void(0)\" id=\"link-landing-privacy\">Privacy Policy</a>.",
-    "landing.footer-nav": "<a href=\"how-it-works.html\">How It Works</a> · <a href=\"sample-report.html\">Sample Report</a> · <a href=\"faq.html\">FAQ</a> · <a href=\"about.html\">About</a> · <a href=\"responsible-guidance.html\">Responsible Use</a> · <a href=\"refund-policy.html\">Refund Policy</a>",
 
     "settings.title": "Settings",
     "settings.legal.heading": "Legal",
@@ -3517,25 +3399,11 @@ const I18N = {
     "auth.label.email": "Email",
     "auth.label.password": "Password",
     "auth.ph.password": "At least 6 characters",
-    "auth.demo-note": "Your account is real — saved securely with our authentication provider, so you can sign back in from any device.",
+    "auth.demo-note": "Demo prototype — accounts are stored only in this browser session, no data leaves your device.",
     "auth.demo-note.live": "Your account is real — signing in again brings your chart and reports back, on any device.",
     "auth.submit.signup": "Create Account",
     "auth.submit.login": "Log In",
     "auth.submitting": "Please wait…",
-    "auth.forgot-link": "Forgot password?",
-
-    "forgot.title": "Reset Your Password",
-    "forgot.desc": "Enter the email on your account and we'll send you a link to set a new password.",
-    "forgot.btn.send": "Send Reset Link",
-    "forgot.sent": "Check your email for a reset link — it's valid for a short time, so use it soon.",
-
-    "reset.title": "Set a New Password",
-    "reset.desc": "You're verified — choose a new password for your account below.",
-    "reset.label.new": "New password",
-    "reset.label.confirm": "Confirm new password",
-    "reset.btn.update": "Update Password",
-    "reset.mismatch": "Passwords don't match — please re-enter.",
-    "reset.success": "Password updated — you're signed in.",
 
     "onb.title": "Your Birth Details",
     "onb.step0": "Step 1 of 4", "onb.step1": "Step 2 of 4", "onb.step2": "Step 3 of 4", "onb.step3": "Step 4 of 4",
@@ -3648,10 +3516,9 @@ const I18N = {
     "tier.onetime.desc.gift": "Unlock everything for them, once.",
     "tier.bundle.badge": "Most Popular",
     "tier.bundle.title": "Premium Bundle",
-    "tier.bundle.desc": "Full report + Future Partner Report + unlimited Love Energy, unlocked permanently.",
-    "tier.sub.title": "Horoscope Access Pass",
-    "tier.sub.desc": "Fresh weekly horoscope updates + unlimited unlocks. One-time payment, unlocked permanently.",
-    "report.refund-line": "Refunds: see our <span data-nav=\"screen-terms\" style=\"text-decoration:underline;cursor:pointer;color:var(--gold-bright)\">Refund Policy</span> before you pay.",
+    "tier.bundle.desc": "Full report + Future Partner Report + unlimited Love Energy for 30 days.",
+    "tier.sub.title": "Monthly Subscription",
+    "tier.sub.desc": "New weekly horoscope + unlimited unlocks every month.",
     "report.btn.continue": "Continue to Payment",
     "report.redeem-line": 'Have a gift code? <span id="open-redeem-sheet" style="text-decoration:underline;cursor:pointer;color:var(--gold-bright)">Redeem it</span>',
     "report.disclaimer": "For entertainment & self-reflection purposes only. Not a substitute for professional advice.",
@@ -3787,7 +3654,6 @@ const I18N = {
     "landing.step3.desc": "जो देखा वह पसंद आया? अपनी पूरी विस्तृत रिपोर्ट को एक बार के ₹399 में अनलॉक करें — जब तक आप खुद न चुनें, कोई सदस्यता नहीं।",
     "landing.pricing-note": "झलक देखना मुफ़्त है। <strong>केवल तभी भुगतान करें जब आपको अपनी पूरी रिपोर्ट चाहिए।</strong>",
     "landing.legal-footer": "जारी रखकर, आप हमारी <a href=\"javascript:void(0)\" id=\"link-landing-terms\">सेवा शर्तों</a> और <a href=\"javascript:void(0)\" id=\"link-landing-privacy\">गोपनीयता नीति</a> से सहमत होते हैं।",
-    "landing.footer-nav": "<a href=\"how-it-works.html\">यह कैसे काम करता है</a> · <a href=\"sample-report.html\">नमूना रिपोर्ट</a> · <a href=\"faq.html\">सामान्य प्रश्न</a> · <a href=\"about.html\">हमारे बारे में</a> · <a href=\"responsible-guidance.html\">जिम्मेदार उपयोग</a> · <a href=\"refund-policy.html\">रिफंड नीति</a>",
 
     "settings.title": "सेटिंग्स",
     "settings.legal.heading": "कानूनी",
@@ -3815,25 +3681,11 @@ const I18N = {
     "auth.label.email": "ईमेल",
     "auth.label.password": "पासवर्ड",
     "auth.ph.password": "कम से कम 6 अक्षर",
-    "auth.demo-note": "आपका खाता असली है — हमारे प्रमाणीकरण प्रदाता के साथ सुरक्षित रूप से सहेजा गया है, ताकि आप किसी भी डिवाइस से वापस साइन इन कर सकें।",
+    "auth.demo-note": "डेमो प्रोटोटाइप — खाते केवल इस ब्राउज़र सत्र में संग्रहीत हैं, कोई डेटा आपके डिवाइस से बाहर नहीं जाता।",
     "auth.demo-note.live": "आपका खाता वास्तविक है — फिर से लॉग इन करने पर आपकी कुंडली और रिपोर्ट किसी भी डिवाइस पर वापस मिल जाएँगी।",
     "auth.submit.signup": "खाता बनाएं",
     "auth.submit.login": "लॉग इन करें",
     "auth.submitting": "कृपया प्रतीक्षा करें…",
-    "auth.forgot-link": "पासवर्ड भूल गए?",
-
-    "forgot.title": "अपना पासवर्ड रीसेट करें",
-    "forgot.desc": "अपने खाते वाला ईमेल दर्ज करें, हम आपको नया पासवर्ड सेट करने के लिए एक लिंक भेजेंगे।",
-    "forgot.btn.send": "रीसेट लिंक भेजें",
-    "forgot.sent": "रीसेट लिंक के लिए अपना ईमेल जांचें — यह थोड़े समय के लिए ही मान्य है, इसलिए जल्द उपयोग करें।",
-
-    "reset.title": "नया पासवर्ड सेट करें",
-    "reset.desc": "आप सत्यापित हैं — नीचे अपने खाते के लिए एक नया पासवर्ड चुनें।",
-    "reset.label.new": "नया पासवर्ड",
-    "reset.label.confirm": "नए पासवर्ड की पुष्टि करें",
-    "reset.btn.update": "पासवर्ड अपडेट करें",
-    "reset.mismatch": "पासवर्ड मेल नहीं खाते — कृपया फिर से दर्ज करें।",
-    "reset.success": "पासवर्ड अपडेट हो गया — आप साइन इन हैं।",
 
     "onb.title": "आपका जन्म विवरण",
     "onb.step0": "चरण 1/4", "onb.step1": "चरण 2/4", "onb.step2": "चरण 3/4", "onb.step3": "चरण 4/4",
@@ -3946,10 +3798,9 @@ const I18N = {
     "tier.onetime.desc.gift": "उनके लिए सब कुछ एक बार अनलॉक करें।",
     "tier.bundle.badge": "सबसे लोकप्रिय",
     "tier.bundle.title": "प्रीमियम बंडल",
-    "tier.bundle.desc": "पूर्ण रिपोर्ट + भविष्य के साथी की रिपोर्ट + असीमित प्रेम ऊर्जा, स्थायी रूप से अनलॉक।",
-    "tier.sub.title": "होरोस्कोप एक्सेस पास",
-    "tier.sub.desc": "नया साप्ताहिक राशिफल + असीमित अनलॉक। एक बार का भुगतान, स्थायी रूप से अनलॉक।",
-    "report.refund-line": "रिफंड: भुगतान से पहले हमारी <span data-nav=\"screen-terms\" style=\"text-decoration:underline;cursor:pointer;color:var(--gold-bright)\">रिफंड नीति</span> देखें।",
+    "tier.bundle.desc": "पूर्ण रिपोर्ट + भविष्य के साथी की रिपोर्ट + 30 दिनों के लिए असीमित प्रेम ऊर्जा।",
+    "tier.sub.title": "मासिक सदस्यता",
+    "tier.sub.desc": "नया साप्ताहिक राशिफल + हर महीने असीमित अनलॉक।",
     "report.btn.continue": "भुगतान जारी रखें",
     "report.redeem-line": 'क्या आपके पास उपहार कोड है? <span id="open-redeem-sheet" style="text-decoration:underline;cursor:pointer;color:var(--gold-bright)">इसे भुनाएं</span>',
     "report.disclaimer": "केवल मनोरंजन और आत्म-चिंतन के उद्देश्य से। पेशेवर सलाह का विकल्प नहीं।",
@@ -4120,23 +3971,6 @@ if (typeof module !== "undefined") {
 
       async signOut() {
         return supabase.auth.signOut();
-      },
-
-      // Sends a password-reset email. `redirectTo` must be an exact URL
-      // already allow-listed in Supabase Dashboard -> Authentication ->
-      // URL Configuration -> Redirect URLs, or Supabase silently falls back
-      // to the project's Site URL instead (which is how a stale localhost
-      // Site URL setting can break this even when this code is correct).
-      async sendPasswordReset(email, redirectTo) {
-        return supabase.auth.resetPasswordForEmail(email, { redirectTo });
-      },
-
-      // Only succeeds while the user has an active "recovery" session —
-      // i.e. right after landing here from a password-reset email link,
-      // which supabase-js detects automatically from the URL and fires a
-      // PASSWORD_RECOVERY event for (see initPasswordRecoveryListener()).
-      async updatePassword(newPassword) {
-        return supabase.auth.updateUser({ password: newPassword });
       },
 
       // Returns the persisted session (if any) — call on page load to
@@ -4353,59 +4187,8 @@ const state = {
 const TIER_INFO = {
   onetime: { name: "One-Time Report", price: 399, label: "₹399" },
   bundle: { name: "Premium Bundle", price: 599, label: "₹599" },
-  subscription: { name: "Horoscope Access Pass", price: 299, label: "₹299" },
+  subscription: { name: "Monthly Subscription", price: 299, label: "₹299/mo" },
 };
-
-// ================= ANALYTICS (GA4) =================
-// index.template.html already loads gtag.js with a real Measurement ID, which
-// gives you page-view tracking for free. Everything below adds specific
-// PRODUCT events on top of that — the moments that actually tell you whether
-// people are getting stuck or converting — so a real activation/conversion
-// picture is possible later without guessing. No names, birth details, palm
-// photos, emails, or payment IDs are ever sent — only event names, tier keys,
-// and counts.
-//
-// Safe by construction even if GA hasn't loaded yet (ad blocker, offline,
-// slow network): the gtag() stub in index.template.html is defined
-// synchronously before the async script tag, so calling it just queues the
-// event; if the real script never loads, the queue is silently dropped.
-function trackEvent(name, params) {
-  try {
-    if (typeof gtag === "function") gtag("event", name, params || {});
-  } catch (e) {
-    // Analytics must never be able to break the app — swallow and move on.
-  }
-}
-
-// Return-visit tracking (D1/D7/D30), the one place this file intentionally
-// uses localStorage. That's different from the "no localStorage" note on
-// state.lang above — this file ships as a real page on nakshatra.ind.in with
-// its own domain, not inside a sandboxed preview, so normal browser storage
-// works exactly as it would on any other website. All that's stored is a
-// single timestamp of the last visit, on this device only — no account data,
-// nothing that identifies who it is.
-function trackReturnVisit() {
-  try {
-    const key = "nakshatra_last_visit";
-    const nowMs = Date.now();
-    const lastStr = localStorage.getItem(key);
-    if (lastStr) {
-      const gapDays = (nowMs - Number(lastStr)) / 86400000;
-      // Loose bands rather than exact day counts, since visits don't land at
-      // exactly 24h/168h/720h — this still tells you the shape of return
-      // behavior (do people come back the next day? a week later? a month?).
-      let bucket = null;
-      if (gapDays >= 0.75 && gapDays <= 1.5) bucket = "d1";
-      else if (gapDays >= 6 && gapDays <= 8) bucket = "d7";
-      else if (gapDays >= 25 && gapDays <= 35) bucket = "d30";
-      if (bucket) trackEvent("return_visit", { bucket });
-    }
-    localStorage.setItem(key, String(nowMs));
-  } catch (e) {
-    // localStorage can throw (private browsing, storage disabled) — never
-    // let analytics affect the actual app.
-  }
-}
 
 // ================= BACKEND (Supabase) =================
 // Everything below talks to NakshatraDB.db (see supabase-client.js), which
@@ -4507,9 +4290,6 @@ function authErrorMessage(error) {
   if (/already registered|already exists/i.test(msg)) return "That email is already registered — try logging in instead.";
   if (/invalid login credentials/i.test(msg)) return "Incorrect email or password.";
   if (/password/i.test(msg) && /short|least|character/i.test(msg)) return "Password must be at least 6 characters.";
-  if (/different from the old password/i.test(msg)) return "Your new password must be different from your old one.";
-  if (/rate limit|too many/i.test(msg)) return "Too many attempts — please wait a few minutes and try again.";
-  if (/expired|invalid.*(link|token|otp)/i.test(msg)) return "That reset link has expired — request a new one.";
   return msg || "Something went wrong — please try again.";
 }
 
@@ -4686,11 +4466,8 @@ function initAuth() {
     $("#tab-signup").classList.toggle("active", state.authMode === "signup");
     $("#tab-login").classList.toggle("active", state.authMode === "login");
     $("#field-name").style.display = state.authMode === "signup" ? "block" : "none";
-    $("#link-forgot-password").style.display = state.authMode === "login" ? "block" : "none";
     $("#btn-auth-submit").textContent = tr(state.authMode === "signup" ? "auth.submit.signup" : "auth.submit.login");
   }
-
-  $("#link-forgot-password").addEventListener("click", () => showScreen("screen-forgot-password"));
 
   $("#btn-auth-submit").addEventListener("click", async () => {
     const email = $("#input-email").value.trim();
@@ -4750,80 +4527,6 @@ function initAuth() {
       submitBtn.disabled = false;
       submitBtn.textContent = originalLabel;
     }
-  });
-}
-
-// Request-a-reset-link screen (reachable via "Forgot password?" on login).
-function initForgotPassword() {
-  $("#btn-forgot-submit").addEventListener("click", async () => {
-    const email = $("#input-forgot-email").value.trim();
-    if (!email || !email.includes("@")) return toast("Enter a valid email");
-    const dbInstance = backendDb();
-    if (!dbInstance) return toast("Password reset isn't available right now — please check your connection.");
-
-    const btn = $("#btn-forgot-submit");
-    const originalLabel = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = tr("auth.submitting");
-    try {
-      // Sending the app's own current URL means this keeps working correctly
-      // wherever it's actually deployed, as long as that exact URL is also
-      // added under Authentication -> URL Configuration -> Redirect URLs in
-      // the Supabase dashboard — otherwise Supabase falls back to the
-      // project's Site URL setting instead of this value.
-      const redirectTo = window.location.origin + window.location.pathname;
-      const { error } = await backendCall(dbInstance.sendPasswordReset(email, redirectTo), "sendPasswordReset");
-      if (error) return toast(authErrorMessage(error));
-      toast(tr("forgot.sent"));
-      showScreen("screen-auth");
-    } finally {
-      btn.disabled = false;
-      btn.textContent = originalLabel;
-    }
-  });
-}
-
-// Set-a-new-password screen. Only reachable by landing here from a real
-// password-reset email link — see initPasswordRecoveryListener() below,
-// which is what actually navigates here.
-function initResetPassword() {
-  $("#btn-reset-submit").addEventListener("click", async () => {
-    const pw = $("#input-reset-password").value;
-    const pw2 = $("#input-reset-password-confirm").value;
-    if (!pw || pw.length < 6) return toast("Password must be at least 6 characters");
-    if (pw !== pw2) return toast(tr("reset.mismatch"));
-    const dbInstance = backendDb();
-    if (!dbInstance) return toast("Password reset isn't available right now — please check your connection.");
-
-    const btn = $("#btn-reset-submit");
-    const originalLabel = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = tr("auth.submitting");
-    try {
-      const { error } = await backendCall(dbInstance.updatePassword(pw), "updatePassword");
-      if (error) return toast(authErrorMessage(error));
-      toast(tr("reset.success"));
-      // The recovery session is now a normal signed-in session — reuse the
-      // same bootstrap path a page-load resume uses, so state.user/birth
-      // data/dashboard-vs-onboarding routing all come out consistent with
-      // every other sign-in path instead of being special-cased here.
-      await bootstrapSession();
-    } finally {
-      btn.disabled = false;
-      btn.textContent = originalLabel;
-    }
-  });
-}
-
-// supabase-js parses a #access_token=...&type=recovery fragment left in the
-// URL by the emailed reset link automatically, and fires this event once it
-// has — that's the (only) signal that a visitor arrived here to set a new
-// password, so it's what actually navigates to screen-reset-password.
-function initPasswordRecoveryListener() {
-  const dbInstance = backendDb();
-  if (!dbInstance) return;
-  dbInstance.onAuthStateChange((event) => {
-    if (event === "PASSWORD_RECOVERY") showScreen("screen-reset-password");
   });
 }
 
@@ -4976,8 +4679,6 @@ function runChartCalculation() {
     state.computed.moonPhase = getMoonPhase(new Date());
     state.computed.birthUtc = utc;
 
-    trackEvent("chart_generated", { has_birth_time: !b.unknownTime });
-
     const dbInstance = backendDb();
     if (dbInstance) {
       const { error } = await backendCall(dbInstance.saveBirthData({
@@ -5045,7 +4746,6 @@ function initDashNav() {
 
 // ================= HOROSCOPE =================
 function renderHoroscope() {
-  trackEvent("feature_viewed", { feature: "horoscope" });
   const c = state.computed;
   const h = generateWeeklyHoroscope(c.sunIdx, c.moonIdx, c.ascIdx, new Date(), c.moonPhase.name);
   $("#horo-headline").textContent = h.headline;
@@ -5061,7 +4761,6 @@ function renderHoroscope() {
 
 // ================= PALM READING =================
 function renderPalmScreen() {
-  trackEvent("feature_viewed", { feature: "palm" });
   $("#palm-intro").style.display = state.palmReport ? "none" : "block";
   $("#palm-result").style.display = state.palmReport ? "block" : "none";
   if (state.palmReport) { renderPalmResult(); return; }
@@ -5344,7 +5043,6 @@ function renderPalmResult() {
 
 // ================= LOVE ENERGY =================
 function renderLoveEnergy() {
-  trackEvent("feature_viewed", { feature: "love" });
   const c = state.computed;
   const res = generateLoveEnergy(c.sunIdx, new Date(), c.moonPhase.angle);
   $("#love-score").textContent = res.score;
@@ -5370,7 +5068,6 @@ function getUserAge() {
 }
 
 function renderCompatScreen() {
-  trackEvent("feature_viewed", { feature: "compat" });
   $("#compat-form").style.display = state.compatResult ? "none" : "block";
   $("#compat-result").style.display = state.compatResult ? "block" : "none";
   if (state.compatResult) renderCompatResult();
@@ -5435,7 +5132,6 @@ function renderCompatResult() {
 
 // ================= YEAR AHEAD =================
 function renderYearAheadScreen() {
-  trackEvent("feature_viewed", { feature: "yearahead" });
   const c = state.computed;
   const now = new Date();
   const jupSign = getTransitingSign(Astronomy.Body.Jupiter, now);
@@ -5569,19 +5265,11 @@ function initCheckout() {
       ? { recipientName: state.giftInProgress.recipientName, message: state.giftInProgress.message }
       : undefined;
 
-    trackEvent("begin_checkout", {
-      currency: "INR",
-      value: tier.price,
-      items: [{ item_id: tierKey, item_name: tier.name, price: tier.price }],
-      gifting,
-    });
-
     const submitBtn = $("#btn-pay-submit");
     submitBtn.disabled = true;
     const { data: orderData, error: orderErr } = await backendCall(dbInstance.createRazorpayOrder(tierKey, giftArg), "createRazorpayOrder");
     submitBtn.disabled = false;
     if (orderErr || !orderData || orderData.error) {
-      trackEvent("payment_failed", { tier: tierKey, reason: "order_creation_failed" });
       return toast("Couldn't start the payment — please try again.");
     }
 
@@ -5598,18 +5286,10 @@ function initCheckout() {
         showScreen("screen-processing", { silent: true });
         const { data: verifyData, error: verifyErr } = await backendCall(dbInstance.verifyRazorpayPayment(response), "verifyRazorpayPayment");
         if (verifyErr || !verifyData || verifyData.error) {
-          trackEvent("payment_failed", { tier: tierKey, reason: "verification_failed" });
           toast("Payment succeeded but couldn't be confirmed — please contact support with your payment ID: " + (response.razorpay_payment_id || ""));
           showScreen("screen-checkout", { silent: true });
           return;
         }
-        trackEvent("purchase", {
-          transaction_id: orderData.order_id,
-          currency: "INR",
-          value: tier.price,
-          items: [{ item_id: tierKey, item_name: tier.name, price: tier.price }],
-          gifting,
-        });
         if (gifting) {
           const g = state.giftInProgress;
           const code = verifyData.gift_code;
@@ -5628,7 +5308,6 @@ function initCheckout() {
       },
     });
     rzp.on("payment.failed", function () {
-      trackEvent("payment_failed", { tier: tierKey, reason: "razorpay_declined" });
       toast("Payment failed — please try again.");
     });
     rzp.open();
@@ -6087,7 +5766,6 @@ function computeFuturePartner() {
 }
 
 function renderFullReport() {
-  trackEvent("feature_viewed", { feature: "fullreport", unlocked: state.unlocked });
   const c = state.computed;
   $("#fr-badge-sun").textContent = SIGN_SYMBOLS[c.sunIdx];
   $("#fr-sun").textContent = tr("dash.label.sun") + " · " + signName(c.sunIdx);
@@ -6240,7 +5918,6 @@ function initShare() {
   $("#btn-close-share").addEventListener("click", closeShare);
   $("#sheet-share-backdrop").addEventListener("click", (e) => { if (e.target.id === "sheet-share-backdrop") closeShare(); });
   $("#btn-download-card").addEventListener("click", () => {
-    trackEvent("share_card_download");
     const canvas = $("#shareCanvas");
     const link = document.createElement("a");
     link.download = "nakshatra-cosmic-snapshot.png";
@@ -6318,29 +5995,6 @@ function initSettings() {
   });
 }
 
-// Deep-link support: nakshatra.ind.in/#terms or /#privacy jumps straight to
-// that legal screen. This app has no client-side router, so on its own a URL
-// hash does nothing — this is what makes links like "/#terms" work from the
-// standalone static pages (refund-policy.html, faq.html, etc.), which live
-// outside the SPA and can't call showScreen() directly. Returns true if it
-// handled the hash, so the caller can skip the normal session-resume flow —
-// someone following a legal link wants to read the policy, not get bounced
-// to their dashboard.
-function initHashDeepLink() {
-  const hash = (window.location.hash || "").slice(1);
-  if (hash === "terms") {
-    $("#btn-terms-back").setAttribute("data-back", "screen-landing");
-    showScreen("screen-terms");
-    return true;
-  }
-  if (hash === "privacy") {
-    $("#btn-privacy-back").setAttribute("data-back", "screen-landing");
-    showScreen("screen-privacy");
-    return true;
-  }
-  return false;
-}
-
 // ================= METHODOLOGY SHEET =================
 function initMethodology() {
   $("#horo-methodology-toggle").addEventListener("click", () => $("#sheet-method-backdrop").classList.add("visible"));
@@ -6356,13 +6010,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // below means those calls attach their listeners to the final, stable DOM nodes
   // rather than to nodes that are about to be destroyed and rebuilt.
   applyLanguage(state.lang);
-  trackReturnVisit();
   initLangSwitch();
   initStars();
   initAuth();
-  initForgotPassword();
-  initResetPassword();
-  initPasswordRecoveryListener();
   initOnboarding();
   initDashNav();
   initPalmUpload();
@@ -6382,11 +6032,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // If a backend is configured and this browser already has a valid,
   // persisted Supabase session, silently resume straight to the dashboard
   // (or onboarding, if they never finished it) instead of the landing screen.
-  // Skip that when the URL is a direct link to a legal page (e.g. "/#terms"
-  // from the standalone static pages) — showing that page takes priority.
-  if (!initHashDeepLink()) {
-    bootstrapSession();
-  }
+  bootstrapSession();
 });
 
 })();
