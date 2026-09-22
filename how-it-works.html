@@ -62,8 +62,8 @@ main { padding: 96px 0 32px; }
   main { padding: 56px 0 24px; }
 }
 
-.eyebrow { color: var(--gold-bright); letter-spacing: 2.5px; font-size: 11.5px; text-transform: uppercase; font-weight: 600; }
-h1.page-title { font-size: clamp(26px, 5vw, 38px); margin: 12px 0 16px; text-wrap: balance; }
+.eyebrow { color: var(--gold-bright); letter-spacing: 0.22em; font-size: 12px; text-transform: uppercase; font-weight: 600; }
+h1.page-title { font-size: clamp(26px, 5vw, 36px); margin: 12px 0 16px; text-wrap: balance; }
 p.lead { color: var(--text-dim); font-size: 16px; max-width: 640px; }
 
 .card {
@@ -146,8 +146,8 @@ footer.site a:hover { color: var(--gold-bright); }
       <a href="about.html" class="nk-nav-link">About</a>
     </div>
     <div class="nk-nav-actions">
-      <a href="index.html" class="nk-btn-ghost">Log In</a>
-      <a href="index.html" class="nk-btn nk-btn-primary">Start Free</a>
+      <a href="index.html?auth=login" class="nk-btn-ghost">Log In</a>
+      <a href="index.html?auth=signup" class="nk-btn nk-btn-primary">Start Free</a>
       <button class="nk-nav-toggle" type="button" aria-label="Open menu" aria-expanded="false">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
@@ -158,7 +158,7 @@ footer.site a:hover { color: var(--gold-bright); }
     <a href="kundli-matching.html">Kundli Matching</a>
     <a href="pricing.html">Pricing</a>
     <a href="about.html">About</a>
-    <a href="index.html" class="nk-btn nk-btn-primary">Start Free</a>
+    <a href="index.html?auth=signup" class="nk-btn nk-btn-primary">Start Free</a>
   </div>
 </header>
 

@@ -4,8 +4,8 @@
 
 .nk-ab-hero { padding: 96px 0 68px; text-align: center; }
 .nk-ab-hero-inner { max-width: 700px; margin: 0 auto; }
-.nk-ab-title { font-size: 42px; line-height: 1.3; font-weight: 700; }
-.nk-ab-sub { color: var(--text-dim); font-size: 16.5px; line-height: 1.7; max-width: 540px; margin: 22px auto 0; }
+.nk-ab-title { font-size: 48px; line-height: 1.25; font-weight: 700; }
+.nk-ab-sub { color: var(--text-dim); font-size: 17px; line-height: 1.7; max-width: 540px; margin: 22px auto 0; }
 .nk-ab-credit { color: var(--text-quiet); font-size: 13px; margin-top: 26px; letter-spacing: 0.02em; }
 
 /* ---------- Narrative ---------- */

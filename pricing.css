@@ -5,8 +5,8 @@
 .nk-h2 { font-size: 32px; margin-top: 14px; }
 
 .nk-pr-hero { padding: 96px 0 70px; text-align: center; }
-.nk-pr-title { font-size: 52px; line-height: 1.15; margin: 20px auto 22px; max-width: 680px; }
-.nk-pr-sub { color: var(--text-dim); font-size: 16.5px; line-height: 1.6; max-width: 520px; margin: 0 auto; }
+.nk-pr-title { font-size: 48px; line-height: 1.18; margin: 20px auto 22px; max-width: 680px; }
+.nk-pr-sub { color: var(--text-dim); font-size: 17px; line-height: 1.6; max-width: 520px; margin: 0 auto; }
 
 /* ---------- Comparison ---------- */
 
@@ -58,7 +58,7 @@
 
 @media (max-width: 900px) {
   .nk-pr-hero { padding: 56px 0 48px; }
-  .nk-pr-title { font-size: 36px; }
+  .nk-pr-title { font-size: 30px; }
   .nk-pr-compare { grid-template-columns: 1fr; gap: 24px; }
 
   .nk-pr-tiers-wrap { padding-top: 40px; }

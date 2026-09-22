@@ -331,6 +331,18 @@ function initAuth() {
     $("#btn-auth-submit").textContent = tr(state.authMode === "signup" ? "auth.submit.signup" : "auth.submit.login");
   }
 
+  // The marketing pages' "Log In" / "Start Free" nav links point here with
+  // ?auth=login or ?auth=signup (index.html?auth=login) — this SPA has no
+  // hash routing, so that query param is how an external page hands off
+  // "the visitor wants to log in" instead of every such link just dropping
+  // them on the generic hero screen and making them find Log In again.
+  const authIntent = new URLSearchParams(location.search).get("auth");
+  if (authIntent === "login" || authIntent === "signup") {
+    state.authMode = authIntent;
+    syncAuthTabs();
+    showScreen("screen-auth");
+  }
+
   $("#btn-auth-submit").addEventListener("click", async () => {
     const email = $("#input-email").value.trim();
     const pw = $("#input-password").value;

@@ -111,7 +111,7 @@ button { font-family: inherit; }
 .icon-btn:hover { background: var(--surface-2); }
 
 /* ---------- Typography helpers ---------- */
-.eyebrow { text-transform: uppercase; letter-spacing: 0.18em; font-size: 0.7rem; color: var(--gold-bright); font-weight: 600; margin-bottom: 6px; }
+.eyebrow { text-transform: uppercase; letter-spacing: 0.22em; font-size: 0.75rem; color: var(--gold-bright); font-weight: 600; margin-bottom: 6px; }
 .muted { color: var(--text-faint); font-size: 0.85rem; }
 .center { text-align: center; }
 
@@ -479,7 +479,7 @@ button { font-family: inherit; }
      and force-wraps again mid-phrase (stranding "your" alone) — so here we
      drop the manual break and let the browser balance the wrap itself
      across the extra width instead. */
-  .landing-hero h1 { font-size: 2.75rem; line-height: 1.18; text-wrap: balance; }
+  .landing-hero h1 { font-size: 3rem; line-height: 1.18; text-wrap: balance; }
   .landing-hero h1 br.h1-break { display: none; }
   .landing-hero .sub { margin: 0 0 32px; max-width: 460px; }
   .landing-cta-group { flex-direction: row; margin-bottom: 36px; }
@@ -4677,6 +4677,18 @@ function initAuth() {
     $("#tab-login").classList.toggle("active", state.authMode === "login");
     $("#field-name").style.display = state.authMode === "signup" ? "block" : "none";
     $("#btn-auth-submit").textContent = tr(state.authMode === "signup" ? "auth.submit.signup" : "auth.submit.login");
+  }
+
+  // The marketing pages' "Log In" / "Start Free" nav links point here with
+  // ?auth=login or ?auth=signup (index.html?auth=login) — this SPA has no
+  // hash routing, so that query param is how an external page hands off
+  // "the visitor wants to log in" instead of every such link just dropping
+  // them on the generic hero screen and making them find Log In again.
+  const authIntent = new URLSearchParams(location.search).get("auth");
+  if (authIntent === "login" || authIntent === "signup") {
+    state.authMode = authIntent;
+    syncAuthTabs();
+    showScreen("screen-auth");
   }
 
   $("#btn-auth-submit").addEventListener("click", async () => {

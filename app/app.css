@@ -102,7 +102,7 @@ button { font-family: inherit; }
 .icon-btn:hover { background: var(--surface-2); }
 
 /* ---------- Typography helpers ---------- */
-.eyebrow { text-transform: uppercase; letter-spacing: 0.18em; font-size: 0.7rem; color: var(--gold-bright); font-weight: 600; margin-bottom: 6px; }
+.eyebrow { text-transform: uppercase; letter-spacing: 0.22em; font-size: 0.75rem; color: var(--gold-bright); font-weight: 600; margin-bottom: 6px; }
 .muted { color: var(--text-faint); font-size: 0.85rem; }
 .center { text-align: center; }
 
@@ -470,7 +470,7 @@ button { font-family: inherit; }
      and force-wraps again mid-phrase (stranding "your" alone) — so here we
      drop the manual break and let the browser balance the wrap itself
      across the extra width instead. */
-  .landing-hero h1 { font-size: 2.75rem; line-height: 1.18; text-wrap: balance; }
+  .landing-hero h1 { font-size: 3rem; line-height: 1.18; text-wrap: balance; }
   .landing-hero h1 br.h1-break { display: none; }
   .landing-hero .sub { margin: 0 0 32px; max-width: 460px; }
   .landing-cta-group { flex-direction: row; margin-bottom: 36px; }
