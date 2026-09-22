@@ -192,6 +192,81 @@ button { font-family: inherit; }
 .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--gold); }
 .field input::placeholder, .field textarea::placeholder { color: var(--text-faint); }
 .field-hint { font-size: 0.76rem; color: var(--text-faint); margin-top: 5px; }
+
+/* ---------- Auth form extras: password-field forgot link, or-divider, Google button ---------- */
+.field-label-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+.field-label-row label { margin-bottom: 0; }
+.auth-forgot-link { font-size: 0.78rem; color: var(--gold-bright); text-decoration: none; white-space: nowrap; }
+.auth-forgot-link:hover { text-decoration: underline; }
+
+.auth-divider { display: flex; align-items: center; gap: 12px; margin: 2px 0; color: var(--text-faint); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; }
+.auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+
+.btn-google { background: rgba(255,255,255,0.95); color: #3c3c3c; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 6px 16px rgba(0,0,0,0.18); }
+.btn-google:hover { background: #fff; }
+.btn-google svg { flex-shrink: 0; }
+
+/* ---------- Auth flow (Login / Sign Up / Forgot / Reset password) ----------
+   Mobile & tablet (<1024px): unchanged from before this redesign — the auth
+   screens sit in the app's usual boxed card shell, single column, just the
+   form (.auth-visual is hidden entirely; .auth-panel fills the card).
+   Desktop (>=1024px): showScreen() toggles .auth-active on #app-root for
+   these three screens (mirroring .landing-active below), unboxing it into a
+   full-bleed split layout — a branding panel on the left and the form
+   centered in a panel on the right, instead of a form eking out ~800px of
+   a boxed card's width. */
+.auth-split { display: flex; flex-direction: column; }
+.auth-visual { display: none; }
+.auth-panel-inner { width: 100%; }
+
+@media (min-width: 1024px) {
+  #app-root.auth-active {
+    max-width: none; width: 100%; margin: 0; min-height: 100vh;
+    border-radius: 0; border: none; box-shadow: none; overflow: visible;
+  }
+  .auth-flow-screen { padding: 0; }
+  .auth-split { flex-direction: row; min-height: 100vh; }
+
+  .auth-visual {
+    display: flex; align-items: center; flex: 1 1 46%; position: relative;
+    padding: 60px; overflow: hidden;
+    background:
+      radial-gradient(ellipse at 15% 15%, rgba(155,126,192,0.35) 0%, transparent 55%),
+      radial-gradient(ellipse at 90% 85%, rgba(201,161,95,0.18) 0%, transparent 50%),
+      linear-gradient(160deg, var(--navy-2) 0%, var(--navy-0) 100%);
+    border-right: 1px solid var(--border);
+  }
+  /* Decorative starfield dots behind the auth-visual copy, echoing the
+     landing hero's own constellation motif so this screen still feels like
+     part of the same site rather than a bolted-on form page. */
+  .auth-visual::before {
+    content: ""; position: absolute; inset: 0; z-index: 0; opacity: 0.6; pointer-events: none;
+    background-image:
+      radial-gradient(1.5px 1.5px at 20% 30%, rgba(255,255,255,0.7), transparent),
+      radial-gradient(1.5px 1.5px at 75% 20%, rgba(255,255,255,0.6), transparent),
+      radial-gradient(1.5px 1.5px at 60% 72%, rgba(255,255,255,0.5), transparent),
+      radial-gradient(1.5px 1.5px at 85% 60%, rgba(255,255,255,0.6), transparent),
+      radial-gradient(1.5px 1.5px at 35% 82%, rgba(255,255,255,0.4), transparent),
+      radial-gradient(1.5px 1.5px at 10% 65%, rgba(255,255,255,0.5), transparent),
+      radial-gradient(1.5px 1.5px at 50% 12%, rgba(255,255,255,0.45), transparent);
+  }
+  .auth-visual-inner { position: relative; z-index: 1; max-width: 420px; }
+  .auth-visual-brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; margin-bottom: 56px; }
+  .auth-visual-brand .landing-navbar-mark { font-size: 1.3rem; }
+  .auth-visual-brand span:last-child { font-family: 'Cinzel', serif; font-size: 1.15rem; letter-spacing: 0.12em; color: var(--text); }
+  .auth-visual-title { font-size: 2rem; line-height: 1.28; margin-bottom: 16px; }
+  .auth-visual-sub { color: var(--text-dim); font-size: 1rem; line-height: 1.7; max-width: 360px; margin-bottom: 40px; }
+  .auth-visual-stats { display: flex; gap: 28px; }
+  .auth-visual-stats > div { display: flex; flex-direction: column; gap: 4px; }
+  .auth-visual-stats strong { font-family: 'Cinzel', serif; color: var(--gold-bright); font-size: 1.3rem; }
+  .auth-visual-stats span { font-size: 0.7rem; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.08em; }
+
+  .auth-panel { flex: 1 1 54%; display: flex; align-items: center; justify-content: center; padding: 60px; }
+  .auth-panel-inner { max-width: 420px; }
+  .auth-topbar { position: static; background: none; padding: 0 0 24px; }
+  .auth-topbar h2 { font-size: 1.7rem; }
+}
+
 .toggle-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; cursor: pointer; }
 .checkbox {
   width: 20px; height: 20px; border-radius: 6px; border: 1px solid var(--border);
@@ -843,28 +918,146 @@ button { font-family: inherit; }
     </div>
   </section>
 
-  <!-- ============ AUTH ============ -->
-  <section id="screen-auth" class="screen no-nav">
-    <div class="topbar"><button class="icon-btn" data-back="screen-landing">←</button><h2 data-i18n="auth.title">Welcome</h2></div>
-    <div class="paytab-row" style="margin-top:6px">
-      <div class="paytab active" id="tab-signup" data-i18n="auth.tab.signup">Sign Up</div>
-      <div class="paytab" id="tab-login" data-i18n="auth.tab.login">Log In</div>
+  <!-- ============ AUTH ============
+       Structured as .auth-split > (.auth-visual, .auth-panel) so desktop
+       (>=1024px, #app-root.auth-active set by showScreen()) can unbox into
+       a full-bleed two-panel layout — brand/tagline on the left, the actual
+       form on the right — while mobile/tablet just show .auth-panel's
+       content stacked in the app's usual boxed card (see .auth-split in
+       app.css). The form itself (tabs, fields, submit) keeps the exact same
+       ids/behavior as before; only the surrounding chrome changed. -->
+  <section id="screen-auth" class="screen no-nav auth-flow-screen">
+    <div class="auth-split">
+      <div class="auth-visual">
+        <div class="auth-visual-inner">
+          <a href="javascript:void(0)" class="auth-visual-brand" data-back="screen-landing">
+            <span class="landing-navbar-mark">🌙</span>
+            <span>NAKSHATRA</span>
+          </a>
+          <h3 class="auth-visual-title" data-i18n="auth.visual.title">Your palm and your birth chart, decoded.</h3>
+          <p class="auth-visual-sub" data-i18n="auth.visual.sub">Real astronomical calculations, classical rule-based readings — no vague AI guesses, ever.</p>
+          <div class="auth-visual-stats">
+            <div><strong>100%</strong><span data-i18n="auth.visual.stat1">Rule-based</span></div>
+            <div><strong data-i18n="auth.visual.stat2num">Real</strong><span data-i18n="auth.visual.stat2">Ephemeris data</span></div>
+            <div><strong>0</strong><span data-i18n="auth.visual.stat3">AI guesswork</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="auth-panel">
+        <div class="auth-panel-inner">
+          <div class="topbar auth-topbar"><button class="icon-btn" data-back="screen-landing">←</button><h2 data-i18n="auth.title">Welcome</h2></div>
+          <div class="paytab-row" style="margin-top:6px">
+            <div class="paytab active" id="tab-signup" data-i18n="auth.tab.signup">Sign Up</div>
+            <div class="paytab" id="tab-login" data-i18n="auth.tab.login">Log In</div>
+          </div>
+          <div class="card stack">
+            <div class="field" id="field-name">
+              <label data-i18n="auth.label.name">Your name</label>
+              <input type="text" id="input-name" placeholder="e.g. Ananya Sharma" data-i18n-ph="auth.ph.name">
+            </div>
+            <div class="field">
+              <label data-i18n="auth.label.email">Email</label>
+              <input type="email" id="input-email" placeholder="you@example.com">
+            </div>
+            <div class="field">
+              <div class="field-label-row">
+                <label data-i18n="auth.label.password">Password</label>
+                <a href="javascript:void(0)" class="auth-forgot-link" id="btn-forgot-password" data-i18n="auth.forgot">Forgot password?</a>
+              </div>
+              <input type="password" id="input-password" placeholder="At least 6 characters" data-i18n-ph="auth.ph.password">
+            </div>
+            <button class="btn btn-primary btn-block" id="btn-auth-submit">Create Account</button>
+            <div class="auth-divider"><span data-i18n="auth.divider">or</span></div>
+            <button class="btn btn-google btn-block" id="btn-auth-google" type="button">
+              <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+                <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.68-3.87 2.68-6.62z"/>
+                <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.83.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.98v2.33A9 9 0 0 0 9 18z"/>
+                <path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.98A9 9 0 0 0 0 9c0 1.45.35 2.83.98 4.03l2.97-2.33z"/>
+                <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.46 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .98 4.97L3.95 7.3C4.66 5.17 6.65 3.58 9 3.58z"/>
+              </svg>
+              <span data-i18n="auth.google">Continue with Google</span>
+            </button>
+            <p class="muted center" id="auth-demo-note" data-i18n="auth.demo-note">Demo prototype — accounts are stored only in this browser session, no data leaves your device.</p>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="card stack">
-      <div class="field" id="field-name">
-        <label data-i18n="auth.label.name">Your name</label>
-        <input type="text" id="input-name" placeholder="e.g. Ananya Sharma" data-i18n-ph="auth.ph.name">
+  </section>
+
+  <!-- ============ FORGOT PASSWORD ============ -->
+  <section id="screen-forgot-password" class="screen no-nav auth-flow-screen">
+    <div class="auth-split">
+      <div class="auth-visual">
+        <div class="auth-visual-inner">
+          <a href="javascript:void(0)" class="auth-visual-brand" data-back="screen-landing">
+            <span class="landing-navbar-mark">🌙</span>
+            <span>NAKSHATRA</span>
+          </a>
+          <h3 class="auth-visual-title" data-i18n="auth.visual.title">Your palm and your birth chart, decoded.</h3>
+          <p class="auth-visual-sub" data-i18n="auth.visual.sub">Real astronomical calculations, classical rule-based readings — no vague AI guesses, ever.</p>
+        </div>
       </div>
-      <div class="field">
-        <label data-i18n="auth.label.email">Email</label>
-        <input type="email" id="input-email" placeholder="you@example.com">
+      <div class="auth-panel">
+        <div class="auth-panel-inner">
+          <div class="topbar auth-topbar"><button class="icon-btn" data-back="screen-auth">←</button><h2 data-i18n="forgot.title">Reset your password</h2></div>
+
+          <div id="forgot-form-state">
+            <p class="muted" data-i18n="forgot.subtitle">Enter the email on your account and we'll send you a link to reset your password.</p>
+            <div class="card stack">
+              <div class="field">
+                <label data-i18n="auth.label.email">Email</label>
+                <input type="email" id="input-forgot-email" placeholder="you@example.com">
+              </div>
+              <button class="btn btn-primary btn-block" id="btn-forgot-submit" data-i18n="forgot.submit">Send Reset Link</button>
+            </div>
+          </div>
+
+          <div id="forgot-sent-state" style="display:none">
+            <div class="success-tick">✉️</div>
+            <h2 class="center" data-i18n="forgot.sent.title">Check your email</h2>
+            <p class="muted center" id="forgot-sent-desc">We've sent a password reset link to <strong id="forgot-sent-email"></strong>.</p>
+            <button class="btn btn-secondary btn-block" id="btn-forgot-resend" data-i18n="forgot.sent.resend">Resend link</button>
+            <p class="muted center" style="margin-top:14px"><a href="javascript:void(0)" data-back="screen-auth" data-i18n="forgot.back-to-login">Back to Log In</a></p>
+          </div>
+        </div>
       </div>
-      <div class="field">
-        <label data-i18n="auth.label.password">Password</label>
-        <input type="password" id="input-password" placeholder="At least 6 characters" data-i18n-ph="auth.ph.password">
+    </div>
+  </section>
+
+  <!-- ============ RESET PASSWORD ============
+       Reached only via a Supabase password-recovery link (never linked to
+       directly from anywhere in the app) — app.js detects the recovery
+       token in the URL and routes here automatically. No back button: the
+       visitor arrived from an emailed link, not from browsing the app. -->
+  <section id="screen-reset-password" class="screen no-nav auth-flow-screen">
+    <div class="auth-split">
+      <div class="auth-visual">
+        <div class="auth-visual-inner">
+          <a href="javascript:void(0)" class="auth-visual-brand" data-back="screen-landing">
+            <span class="landing-navbar-mark">🌙</span>
+            <span>NAKSHATRA</span>
+          </a>
+          <h3 class="auth-visual-title" data-i18n="auth.visual.title">Your palm and your birth chart, decoded.</h3>
+          <p class="auth-visual-sub" data-i18n="auth.visual.sub">Real astronomical calculations, classical rule-based readings — no vague AI guesses, ever.</p>
+        </div>
       </div>
-      <button class="btn btn-primary btn-block" id="btn-auth-submit">Create Account</button>
-      <p class="muted center" id="auth-demo-note" data-i18n="auth.demo-note">Demo prototype — accounts are stored only in this browser session, no data leaves your device.</p>
+      <div class="auth-panel">
+        <div class="auth-panel-inner">
+          <div class="topbar auth-topbar"><h2 data-i18n="reset.title">Set a new password</h2></div>
+          <p class="muted" data-i18n="reset.subtitle">Choose a new password for your account.</p>
+          <div class="card stack">
+            <div class="field">
+              <label data-i18n="reset.label.password">New password</label>
+              <input type="password" id="input-reset-password" placeholder="At least 6 characters" data-i18n-ph="auth.ph.password">
+            </div>
+            <div class="field">
+              <label data-i18n="reset.label.confirm">Confirm password</label>
+              <input type="password" id="input-reset-confirm" placeholder="At least 6 characters" data-i18n-ph="auth.ph.password">
+            </div>
+            <button class="btn btn-primary btn-block" id="btn-reset-submit" data-i18n="reset.submit">Update Password</button>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -3621,6 +3814,31 @@ const I18N = {
     "auth.submit.signup": "Create Account",
     "auth.submit.login": "Log In",
     "auth.submitting": "Please wait…",
+    "auth.forgot": "Forgot password?",
+    "auth.divider": "or",
+    "auth.google": "Continue with Google",
+    "auth.visual.title": "Your palm and your birth chart, decoded.",
+    "auth.visual.sub": "Real astronomical calculations, classical rule-based readings — no vague AI guesses, ever.",
+    "auth.visual.stat1": "Rule-based",
+    "auth.visual.stat2num": "Real",
+    "auth.visual.stat2": "Ephemeris data",
+    "auth.visual.stat3": "AI guesswork",
+
+    "forgot.title": "Reset your password",
+    "forgot.subtitle": "Enter the email on your account and we'll send you a link to reset your password.",
+    "forgot.submit": "Send Reset Link",
+    "forgot.sent.title": "Check your email",
+    "forgot.sent.desc": "We've sent a password reset link to {email}. Follow the link to choose a new password.",
+    "forgot.sent.resend": "Resend link",
+    "forgot.resend-toast": "Reset link sent again",
+    "forgot.back-to-login": "Back to Log In",
+
+    "reset.title": "Set a new password",
+    "reset.subtitle": "Choose a new password for your account.",
+    "reset.label.password": "New password",
+    "reset.label.confirm": "Confirm password",
+    "reset.submit": "Update Password",
+    "reset.success": "Password updated!",
 
     "onb.title": "Your Birth Details",
     "onb.step0": "Step 1 of 4", "onb.step1": "Step 2 of 4", "onb.step2": "Step 3 of 4", "onb.step3": "Step 4 of 4",
@@ -3899,6 +4117,31 @@ const I18N = {
     "auth.submit.signup": "खाता बनाएं",
     "auth.submit.login": "लॉग इन करें",
     "auth.submitting": "कृपया प्रतीक्षा करें…",
+    "auth.forgot": "पासवर्ड भूल गए?",
+    "auth.divider": "या",
+    "auth.google": "Google से जारी रखें",
+    "auth.visual.title": "आपकी हथेली और आपकी जन्म कुंडली, समझाई गई।",
+    "auth.visual.sub": "वास्तविक खगोलीय गणना, शास्त्रीय नियम-आधारित रीडिंग — कोई अस्पष्ट AI अनुमान नहीं, कभी नहीं।",
+    "auth.visual.stat1": "नियम-आधारित",
+    "auth.visual.stat2num": "वास्तविक",
+    "auth.visual.stat2": "एफेमेरिस डेटा",
+    "auth.visual.stat3": "AI अनुमान",
+
+    "forgot.title": "अपना पासवर्ड रीसेट करें",
+    "forgot.subtitle": "अपने खाते का ईमेल दर्ज करें और हम आपको पासवर्ड रीसेट करने के लिए एक लिंक भेजेंगे।",
+    "forgot.submit": "रीसेट लिंक भेजें",
+    "forgot.sent.title": "अपना ईमेल जांचें",
+    "forgot.sent.desc": "हमने {email} पर एक पासवर्ड रीसेट लिंक भेजा है। नया पासवर्ड चुनने के लिए उस लिंक का उपयोग करें।",
+    "forgot.sent.resend": "लिंक फिर से भेजें",
+    "forgot.resend-toast": "रीसेट लिंक फिर से भेजा गया",
+    "forgot.back-to-login": "लॉग इन पर वापस जाएं",
+
+    "reset.title": "नया पासवर्ड सेट करें",
+    "reset.subtitle": "अपने खाते के लिए एक नया पासवर्ड चुनें।",
+    "reset.label.password": "नया पासवर्ड",
+    "reset.label.confirm": "पासवर्ड की पुष्टि करें",
+    "reset.submit": "पासवर्ड अपडेट करें",
+    "reset.success": "पासवर्ड अपडेट हो गया!",
 
     "onb.title": "आपका जन्म विवरण",
     "onb.step0": "चरण 1/4", "onb.step1": "चरण 2/4", "onb.step2": "चरण 3/4", "onb.step3": "चरण 4/4",
@@ -4178,6 +4421,32 @@ if (typeof module !== "undefined") {
         return supabase.auth.signOut();
       },
 
+      // Sends a "reset your password" email via Supabase's own mailer — the
+      // link inside it lands back on this same page with a recovery token,
+      // which app.js's initAuth() detects and routes to screen-reset-password.
+      async resetPasswordForEmail(email) {
+        return supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: window.location.origin + window.location.pathname,
+        });
+      },
+
+      // Only valid while signed into a password-recovery session (i.e. right
+      // after following the emailed reset link) — see resetPasswordForEmail above.
+      async updatePassword(newPassword) {
+        return supabase.auth.updateUser({ password: newPassword });
+      },
+
+      // Redirects the browser to Google and back — resolves with an error
+      // only on a synchronous failure (e.g. Google isn't enabled as a
+      // provider in this Supabase project yet); on success there's no
+      // meaningful return value because the page navigates away.
+      async signInWithGoogle() {
+        return supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: { redirectTo: window.location.origin + window.location.pathname },
+        });
+      },
+
       // Returns the persisted session (if any) — call on page load to
       // silently resume a signed-in user instead of showing the login screen.
       async getSession() {
@@ -4394,6 +4663,11 @@ const TIER_INFO = {
   bundle: { name: "Premium Bundle", price: 599, label: "₹599" },
   subscription: { name: "Monthly Subscription", price: 299, label: "₹299/mo" },
 };
+
+// The login/signup/forgot-password/reset-password screens all share the
+// desktop split-panel treatment (see .auth-active in app.css) — showScreen()
+// below toggles that class on #app-root whenever one of these is active.
+const AUTH_FLOW_SCREENS = ["screen-auth", "screen-forgot-password", "screen-reset-password"];
 
 // ================= BACKEND (Supabase) =================
 // Everything below talks to NakshatraDB.db (see supabase-client.js), which
@@ -4615,7 +4889,13 @@ function showScreen(id, opts) {
   // app's usual boxed "card" shell (see .landing-active in app.css) — every
   // other screen keeps the normal bounded card, on phone and desktop alike.
   const appRoot = document.getElementById("app-root");
-  if (appRoot) appRoot.classList.toggle("landing-active", id === "screen-landing");
+  if (appRoot) {
+    appRoot.classList.toggle("landing-active", id === "screen-landing");
+    // Same unboxing trick for the login/signup/forgot/reset-password screens
+    // (see .auth-active in app.css) — they get a full-bleed split-panel
+    // layout on desktop instead of the boxed card every other screen uses.
+    appRoot.classList.toggle("auth-active", AUTH_FLOW_SCREENS.includes(id));
+  }
   const navScreens = ["screen-dashboard", "screen-horoscope", "screen-palm", "screen-love", "screen-fullreport", "screen-compat", "screen-yearahead"];
   $("#bottom-nav").classList.toggle("visible", navScreens.includes(id));
   $all(".nav-item").forEach(n => n.classList.toggle("active", n.dataset.nav === id));
@@ -4677,6 +4957,10 @@ function initAuth() {
     $("#tab-login").classList.toggle("active", state.authMode === "login");
     $("#field-name").style.display = state.authMode === "signup" ? "block" : "none";
     $("#btn-auth-submit").textContent = tr(state.authMode === "signup" ? "auth.submit.signup" : "auth.submit.login");
+    // "Forgot password?" only makes sense once there's a password to have
+    // forgotten — hide it while the Sign Up tab is active.
+    const forgotLink = $("#btn-forgot-password");
+    if (forgotLink) forgotLink.style.display = state.authMode === "login" ? "inline" : "none";
   }
 
   // The marketing pages' "Log In" / "Start Free" nav links point here with
@@ -4750,6 +5034,123 @@ function initAuth() {
       submitBtn.textContent = originalLabel;
     }
   });
+
+  // ---------------- Forgot password ----------------
+  function resetForgotUI() {
+    $("#forgot-form-state").style.display = "block";
+    $("#forgot-sent-state").style.display = "none";
+  }
+
+  $("#btn-forgot-password").addEventListener("click", () => {
+    // Carry over whatever email they'd already typed on the login form, if any.
+    $("#input-forgot-email").value = $("#input-email").value.trim();
+    resetForgotUI();
+    showScreen("screen-forgot-password");
+  });
+
+  // Returns true/false so the resend button (below) can decide whether to
+  // toast a confirmation — the "sent" screen swap itself is identical either way.
+  async function sendResetLink() {
+    const email = $("#input-forgot-email").value.trim();
+    if (!email || !email.includes("@")) { toast("Enter a valid email"); return false; }
+    const dbInstance = backendDb();
+    if (!dbInstance || !dbInstance.resetPasswordForEmail) { toast("Something went wrong — please try again."); return false; }
+    const { error } = await dbInstance.resetPasswordForEmail(email);
+    if (error) { toast(authErrorMessage(error)); return false; }
+    $("#forgot-sent-email").textContent = email;
+    $("#forgot-sent-desc").textContent = tr("forgot.sent.desc", { email });
+    $("#forgot-form-state").style.display = "none";
+    $("#forgot-sent-state").style.display = "block";
+    return true;
+  }
+
+  $("#btn-forgot-submit").addEventListener("click", async () => {
+    const btn = $("#btn-forgot-submit");
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = tr("auth.submitting");
+    try { await sendResetLink(); } finally { btn.disabled = false; btn.textContent = original; }
+  });
+
+  $("#btn-forgot-resend").addEventListener("click", async () => {
+    const ok = await sendResetLink();
+    if (ok) toast(tr("forgot.resend-toast"));
+  });
+
+  // ---------------- Reset password ----------------
+  // Reached only via screen-reset-password's own routing below (a Supabase
+  // password-recovery link) — never linked to directly.
+  $("#btn-reset-submit").addEventListener("click", async () => {
+    const pw = $("#input-reset-password").value;
+    const confirmPw = $("#input-reset-confirm").value;
+    if (!pw || pw.length < 6) return toast("Password must be at least 6 characters");
+    if (pw !== confirmPw) return toast("Passwords don't match");
+
+    const dbInstance = backendDb();
+    if (!dbInstance || !dbInstance.updatePassword) return toast("Something went wrong — please try again.");
+
+    const submitBtn = $("#btn-reset-submit");
+    const originalLabel = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = tr("auth.submitting");
+    try {
+      const { data, error } = await dbInstance.updatePassword(pw);
+      if (error) return toast(authErrorMessage(error));
+      const recoveredUser = data && data.user;
+      if (recoveredUser) {
+        state.user = {
+          name: (recoveredUser.user_metadata && recoveredUser.user_metadata.name) || recoveredUser.email.split("@")[0],
+          email: recoveredUser.email,
+        };
+      }
+      toast(tr("reset.success"));
+      await loadUserDataFromBackend();
+      if (state.birth.year) {
+        showScreen("screen-dashboard");
+        renderDashboard();
+      } else {
+        resetOnboarding();
+        showScreen("screen-onboarding");
+      }
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalLabel;
+    }
+  });
+
+  // ---------------- Google sign-in ----------------
+  $("#btn-auth-google").addEventListener("click", async () => {
+    const dbInstance = backendDb();
+    if (!dbInstance || !dbInstance.signInWithGoogle) return toast("Google sign-in isn't available right now.");
+    const { error } = await dbInstance.signInWithGoogle();
+    // On success the browser navigates away to Google and back — there's
+    // nothing further to do here. Only a synchronous failure (e.g. Google
+    // isn't enabled as a provider yet in the Supabase project) reaches this.
+    if (error) toast(authErrorMessage(error));
+  });
+
+  // ---------------- Password-recovery link detection ----------------
+  // A Supabase reset-password email links back to this same page with either
+  // #access_token=...&type=recovery (implicit flow) or ?code=...&type=recovery
+  // (PKCE flow) appended. Check synchronously on load so screen-reset-password
+  // shows immediately, rather than momentarily flashing the landing screen
+  // while supabase-js finishes exchanging that token in the background — by
+  // the time the visitor actually submits a new password, the exchange has
+  // long since completed.
+  const hashParams = new URLSearchParams(location.hash.replace(/^#/, ""));
+  if (hashParams.get("type") === "recovery" || new URLSearchParams(location.search).get("type") === "recovery") {
+    showScreen("screen-reset-password");
+  }
+
+  // Belt-and-suspenders: also route here if supabase-js's own auth listener
+  // fires the PASSWORD_RECOVERY event (covers any recovery-link shape the
+  // check above doesn't recognize).
+  const dbInstance = backendDb();
+  if (dbInstance && dbInstance.onAuthStateChange) {
+    dbInstance.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") showScreen("screen-reset-password");
+    });
+  }
 }
 
 // ================= ONBOARDING =================

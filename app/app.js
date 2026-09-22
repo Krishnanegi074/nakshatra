@@ -47,6 +47,11 @@ const TIER_INFO = {
   subscription: { name: "Monthly Subscription", price: 299, label: "₹299/mo" },
 };
 
+// The login/signup/forgot-password/reset-password screens all share the
+// desktop split-panel treatment (see .auth-active in app.css) — showScreen()
+// below toggles that class on #app-root whenever one of these is active.
+const AUTH_FLOW_SCREENS = ["screen-auth", "screen-forgot-password", "screen-reset-password"];
+
 // ================= BACKEND (Supabase) =================
 // Everything below talks to NakshatraDB.db (see supabase-client.js), which
 // wraps a real Supabase project — see that file's header for setup steps.
@@ -267,7 +272,13 @@ function showScreen(id, opts) {
   // app's usual boxed "card" shell (see .landing-active in app.css) — every
   // other screen keeps the normal bounded card, on phone and desktop alike.
   const appRoot = document.getElementById("app-root");
-  if (appRoot) appRoot.classList.toggle("landing-active", id === "screen-landing");
+  if (appRoot) {
+    appRoot.classList.toggle("landing-active", id === "screen-landing");
+    // Same unboxing trick for the login/signup/forgot/reset-password screens
+    // (see .auth-active in app.css) — they get a full-bleed split-panel
+    // layout on desktop instead of the boxed card every other screen uses.
+    appRoot.classList.toggle("auth-active", AUTH_FLOW_SCREENS.includes(id));
+  }
   const navScreens = ["screen-dashboard", "screen-horoscope", "screen-palm", "screen-love", "screen-fullreport", "screen-compat", "screen-yearahead"];
   $("#bottom-nav").classList.toggle("visible", navScreens.includes(id));
   $all(".nav-item").forEach(n => n.classList.toggle("active", n.dataset.nav === id));
@@ -329,6 +340,10 @@ function initAuth() {
     $("#tab-login").classList.toggle("active", state.authMode === "login");
     $("#field-name").style.display = state.authMode === "signup" ? "block" : "none";
     $("#btn-auth-submit").textContent = tr(state.authMode === "signup" ? "auth.submit.signup" : "auth.submit.login");
+    // "Forgot password?" only makes sense once there's a password to have
+    // forgotten — hide it while the Sign Up tab is active.
+    const forgotLink = $("#btn-forgot-password");
+    if (forgotLink) forgotLink.style.display = state.authMode === "login" ? "inline" : "none";
   }
 
   // The marketing pages' "Log In" / "Start Free" nav links point here with
@@ -402,6 +417,123 @@ function initAuth() {
       submitBtn.textContent = originalLabel;
     }
   });
+
+  // ---------------- Forgot password ----------------
+  function resetForgotUI() {
+    $("#forgot-form-state").style.display = "block";
+    $("#forgot-sent-state").style.display = "none";
+  }
+
+  $("#btn-forgot-password").addEventListener("click", () => {
+    // Carry over whatever email they'd already typed on the login form, if any.
+    $("#input-forgot-email").value = $("#input-email").value.trim();
+    resetForgotUI();
+    showScreen("screen-forgot-password");
+  });
+
+  // Returns true/false so the resend button (below) can decide whether to
+  // toast a confirmation — the "sent" screen swap itself is identical either way.
+  async function sendResetLink() {
+    const email = $("#input-forgot-email").value.trim();
+    if (!email || !email.includes("@")) { toast("Enter a valid email"); return false; }
+    const dbInstance = backendDb();
+    if (!dbInstance || !dbInstance.resetPasswordForEmail) { toast("Something went wrong — please try again."); return false; }
+    const { error } = await dbInstance.resetPasswordForEmail(email);
+    if (error) { toast(authErrorMessage(error)); return false; }
+    $("#forgot-sent-email").textContent = email;
+    $("#forgot-sent-desc").textContent = tr("forgot.sent.desc", { email });
+    $("#forgot-form-state").style.display = "none";
+    $("#forgot-sent-state").style.display = "block";
+    return true;
+  }
+
+  $("#btn-forgot-submit").addEventListener("click", async () => {
+    const btn = $("#btn-forgot-submit");
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = tr("auth.submitting");
+    try { await sendResetLink(); } finally { btn.disabled = false; btn.textContent = original; }
+  });
+
+  $("#btn-forgot-resend").addEventListener("click", async () => {
+    const ok = await sendResetLink();
+    if (ok) toast(tr("forgot.resend-toast"));
+  });
+
+  // ---------------- Reset password ----------------
+  // Reached only via screen-reset-password's own routing below (a Supabase
+  // password-recovery link) — never linked to directly.
+  $("#btn-reset-submit").addEventListener("click", async () => {
+    const pw = $("#input-reset-password").value;
+    const confirmPw = $("#input-reset-confirm").value;
+    if (!pw || pw.length < 6) return toast("Password must be at least 6 characters");
+    if (pw !== confirmPw) return toast("Passwords don't match");
+
+    const dbInstance = backendDb();
+    if (!dbInstance || !dbInstance.updatePassword) return toast("Something went wrong — please try again.");
+
+    const submitBtn = $("#btn-reset-submit");
+    const originalLabel = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = tr("auth.submitting");
+    try {
+      const { data, error } = await dbInstance.updatePassword(pw);
+      if (error) return toast(authErrorMessage(error));
+      const recoveredUser = data && data.user;
+      if (recoveredUser) {
+        state.user = {
+          name: (recoveredUser.user_metadata && recoveredUser.user_metadata.name) || recoveredUser.email.split("@")[0],
+          email: recoveredUser.email,
+        };
+      }
+      toast(tr("reset.success"));
+      await loadUserDataFromBackend();
+      if (state.birth.year) {
+        showScreen("screen-dashboard");
+        renderDashboard();
+      } else {
+        resetOnboarding();
+        showScreen("screen-onboarding");
+      }
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalLabel;
+    }
+  });
+
+  // ---------------- Google sign-in ----------------
+  $("#btn-auth-google").addEventListener("click", async () => {
+    const dbInstance = backendDb();
+    if (!dbInstance || !dbInstance.signInWithGoogle) return toast("Google sign-in isn't available right now.");
+    const { error } = await dbInstance.signInWithGoogle();
+    // On success the browser navigates away to Google and back — there's
+    // nothing further to do here. Only a synchronous failure (e.g. Google
+    // isn't enabled as a provider yet in the Supabase project) reaches this.
+    if (error) toast(authErrorMessage(error));
+  });
+
+  // ---------------- Password-recovery link detection ----------------
+  // A Supabase reset-password email links back to this same page with either
+  // #access_token=...&type=recovery (implicit flow) or ?code=...&type=recovery
+  // (PKCE flow) appended. Check synchronously on load so screen-reset-password
+  // shows immediately, rather than momentarily flashing the landing screen
+  // while supabase-js finishes exchanging that token in the background — by
+  // the time the visitor actually submits a new password, the exchange has
+  // long since completed.
+  const hashParams = new URLSearchParams(location.hash.replace(/^#/, ""));
+  if (hashParams.get("type") === "recovery" || new URLSearchParams(location.search).get("type") === "recovery") {
+    showScreen("screen-reset-password");
+  }
+
+  // Belt-and-suspenders: also route here if supabase-js's own auth listener
+  // fires the PASSWORD_RECOVERY event (covers any recovery-link shape the
+  // check above doesn't recognize).
+  const dbInstance = backendDb();
+  if (dbInstance && dbInstance.onAuthStateChange) {
+    dbInstance.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") showScreen("screen-reset-password");
+    });
+  }
 }
 
 // ================= ONBOARDING =================

@@ -183,6 +183,81 @@ button { font-family: inherit; }
 .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--gold); }
 .field input::placeholder, .field textarea::placeholder { color: var(--text-faint); }
 .field-hint { font-size: 0.76rem; color: var(--text-faint); margin-top: 5px; }
+
+/* ---------- Auth form extras: password-field forgot link, or-divider, Google button ---------- */
+.field-label-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+.field-label-row label { margin-bottom: 0; }
+.auth-forgot-link { font-size: 0.78rem; color: var(--gold-bright); text-decoration: none; white-space: nowrap; }
+.auth-forgot-link:hover { text-decoration: underline; }
+
+.auth-divider { display: flex; align-items: center; gap: 12px; margin: 2px 0; color: var(--text-faint); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; }
+.auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+
+.btn-google { background: rgba(255,255,255,0.95); color: #3c3c3c; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 6px 16px rgba(0,0,0,0.18); }
+.btn-google:hover { background: #fff; }
+.btn-google svg { flex-shrink: 0; }
+
+/* ---------- Auth flow (Login / Sign Up / Forgot / Reset password) ----------
+   Mobile & tablet (<1024px): unchanged from before this redesign — the auth
+   screens sit in the app's usual boxed card shell, single column, just the
+   form (.auth-visual is hidden entirely; .auth-panel fills the card).
+   Desktop (>=1024px): showScreen() toggles .auth-active on #app-root for
+   these three screens (mirroring .landing-active below), unboxing it into a
+   full-bleed split layout — a branding panel on the left and the form
+   centered in a panel on the right, instead of a form eking out ~800px of
+   a boxed card's width. */
+.auth-split { display: flex; flex-direction: column; }
+.auth-visual { display: none; }
+.auth-panel-inner { width: 100%; }
+
+@media (min-width: 1024px) {
+  #app-root.auth-active {
+    max-width: none; width: 100%; margin: 0; min-height: 100vh;
+    border-radius: 0; border: none; box-shadow: none; overflow: visible;
+  }
+  .auth-flow-screen { padding: 0; }
+  .auth-split { flex-direction: row; min-height: 100vh; }
+
+  .auth-visual {
+    display: flex; align-items: center; flex: 1 1 46%; position: relative;
+    padding: 60px; overflow: hidden;
+    background:
+      radial-gradient(ellipse at 15% 15%, rgba(155,126,192,0.35) 0%, transparent 55%),
+      radial-gradient(ellipse at 90% 85%, rgba(201,161,95,0.18) 0%, transparent 50%),
+      linear-gradient(160deg, var(--navy-2) 0%, var(--navy-0) 100%);
+    border-right: 1px solid var(--border);
+  }
+  /* Decorative starfield dots behind the auth-visual copy, echoing the
+     landing hero's own constellation motif so this screen still feels like
+     part of the same site rather than a bolted-on form page. */
+  .auth-visual::before {
+    content: ""; position: absolute; inset: 0; z-index: 0; opacity: 0.6; pointer-events: none;
+    background-image:
+      radial-gradient(1.5px 1.5px at 20% 30%, rgba(255,255,255,0.7), transparent),
+      radial-gradient(1.5px 1.5px at 75% 20%, rgba(255,255,255,0.6), transparent),
+      radial-gradient(1.5px 1.5px at 60% 72%, rgba(255,255,255,0.5), transparent),
+      radial-gradient(1.5px 1.5px at 85% 60%, rgba(255,255,255,0.6), transparent),
+      radial-gradient(1.5px 1.5px at 35% 82%, rgba(255,255,255,0.4), transparent),
+      radial-gradient(1.5px 1.5px at 10% 65%, rgba(255,255,255,0.5), transparent),
+      radial-gradient(1.5px 1.5px at 50% 12%, rgba(255,255,255,0.45), transparent);
+  }
+  .auth-visual-inner { position: relative; z-index: 1; max-width: 420px; }
+  .auth-visual-brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; margin-bottom: 56px; }
+  .auth-visual-brand .landing-navbar-mark { font-size: 1.3rem; }
+  .auth-visual-brand span:last-child { font-family: 'Cinzel', serif; font-size: 1.15rem; letter-spacing: 0.12em; color: var(--text); }
+  .auth-visual-title { font-size: 2rem; line-height: 1.28; margin-bottom: 16px; }
+  .auth-visual-sub { color: var(--text-dim); font-size: 1rem; line-height: 1.7; max-width: 360px; margin-bottom: 40px; }
+  .auth-visual-stats { display: flex; gap: 28px; }
+  .auth-visual-stats > div { display: flex; flex-direction: column; gap: 4px; }
+  .auth-visual-stats strong { font-family: 'Cinzel', serif; color: var(--gold-bright); font-size: 1.3rem; }
+  .auth-visual-stats span { font-size: 0.7rem; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.08em; }
+
+  .auth-panel { flex: 1 1 54%; display: flex; align-items: center; justify-content: center; padding: 60px; }
+  .auth-panel-inner { max-width: 420px; }
+  .auth-topbar { position: static; background: none; padding: 0 0 24px; }
+  .auth-topbar h2 { font-size: 1.7rem; }
+}
+
 .toggle-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; cursor: pointer; }
 .checkbox {
   width: 20px; height: 20px; border-radius: 6px; border: 1px solid var(--border);

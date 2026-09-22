@@ -174,28 +174,146 @@
     </div>
   </section>
 
-  <!-- ============ AUTH ============ -->
-  <section id="screen-auth" class="screen no-nav">
-    <div class="topbar"><button class="icon-btn" data-back="screen-landing">←</button><h2 data-i18n="auth.title">Welcome</h2></div>
-    <div class="paytab-row" style="margin-top:6px">
-      <div class="paytab active" id="tab-signup" data-i18n="auth.tab.signup">Sign Up</div>
-      <div class="paytab" id="tab-login" data-i18n="auth.tab.login">Log In</div>
+  <!-- ============ AUTH ============
+       Structured as .auth-split > (.auth-visual, .auth-panel) so desktop
+       (>=1024px, #app-root.auth-active set by showScreen()) can unbox into
+       a full-bleed two-panel layout — brand/tagline on the left, the actual
+       form on the right — while mobile/tablet just show .auth-panel's
+       content stacked in the app's usual boxed card (see .auth-split in
+       app.css). The form itself (tabs, fields, submit) keeps the exact same
+       ids/behavior as before; only the surrounding chrome changed. -->
+  <section id="screen-auth" class="screen no-nav auth-flow-screen">
+    <div class="auth-split">
+      <div class="auth-visual">
+        <div class="auth-visual-inner">
+          <a href="javascript:void(0)" class="auth-visual-brand" data-back="screen-landing">
+            <span class="landing-navbar-mark">🌙</span>
+            <span>NAKSHATRA</span>
+          </a>
+          <h3 class="auth-visual-title" data-i18n="auth.visual.title">Your palm and your birth chart, decoded.</h3>
+          <p class="auth-visual-sub" data-i18n="auth.visual.sub">Real astronomical calculations, classical rule-based readings — no vague AI guesses, ever.</p>
+          <div class="auth-visual-stats">
+            <div><strong>100%</strong><span data-i18n="auth.visual.stat1">Rule-based</span></div>
+            <div><strong data-i18n="auth.visual.stat2num">Real</strong><span data-i18n="auth.visual.stat2">Ephemeris data</span></div>
+            <div><strong>0</strong><span data-i18n="auth.visual.stat3">AI guesswork</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="auth-panel">
+        <div class="auth-panel-inner">
+          <div class="topbar auth-topbar"><button class="icon-btn" data-back="screen-landing">←</button><h2 data-i18n="auth.title">Welcome</h2></div>
+          <div class="paytab-row" style="margin-top:6px">
+            <div class="paytab active" id="tab-signup" data-i18n="auth.tab.signup">Sign Up</div>
+            <div class="paytab" id="tab-login" data-i18n="auth.tab.login">Log In</div>
+          </div>
+          <div class="card stack">
+            <div class="field" id="field-name">
+              <label data-i18n="auth.label.name">Your name</label>
+              <input type="text" id="input-name" placeholder="e.g. Ananya Sharma" data-i18n-ph="auth.ph.name">
+            </div>
+            <div class="field">
+              <label data-i18n="auth.label.email">Email</label>
+              <input type="email" id="input-email" placeholder="you@example.com">
+            </div>
+            <div class="field">
+              <div class="field-label-row">
+                <label data-i18n="auth.label.password">Password</label>
+                <a href="javascript:void(0)" class="auth-forgot-link" id="btn-forgot-password" data-i18n="auth.forgot">Forgot password?</a>
+              </div>
+              <input type="password" id="input-password" placeholder="At least 6 characters" data-i18n-ph="auth.ph.password">
+            </div>
+            <button class="btn btn-primary btn-block" id="btn-auth-submit">Create Account</button>
+            <div class="auth-divider"><span data-i18n="auth.divider">or</span></div>
+            <button class="btn btn-google btn-block" id="btn-auth-google" type="button">
+              <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+                <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.68-3.87 2.68-6.62z"/>
+                <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.83.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.98v2.33A9 9 0 0 0 9 18z"/>
+                <path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.98A9 9 0 0 0 0 9c0 1.45.35 2.83.98 4.03l2.97-2.33z"/>
+                <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.46 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .98 4.97L3.95 7.3C4.66 5.17 6.65 3.58 9 3.58z"/>
+              </svg>
+              <span data-i18n="auth.google">Continue with Google</span>
+            </button>
+            <p class="muted center" id="auth-demo-note" data-i18n="auth.demo-note">Demo prototype — accounts are stored only in this browser session, no data leaves your device.</p>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="card stack">
-      <div class="field" id="field-name">
-        <label data-i18n="auth.label.name">Your name</label>
-        <input type="text" id="input-name" placeholder="e.g. Ananya Sharma" data-i18n-ph="auth.ph.name">
+  </section>
+
+  <!-- ============ FORGOT PASSWORD ============ -->
+  <section id="screen-forgot-password" class="screen no-nav auth-flow-screen">
+    <div class="auth-split">
+      <div class="auth-visual">
+        <div class="auth-visual-inner">
+          <a href="javascript:void(0)" class="auth-visual-brand" data-back="screen-landing">
+            <span class="landing-navbar-mark">🌙</span>
+            <span>NAKSHATRA</span>
+          </a>
+          <h3 class="auth-visual-title" data-i18n="auth.visual.title">Your palm and your birth chart, decoded.</h3>
+          <p class="auth-visual-sub" data-i18n="auth.visual.sub">Real astronomical calculations, classical rule-based readings — no vague AI guesses, ever.</p>
+        </div>
       </div>
-      <div class="field">
-        <label data-i18n="auth.label.email">Email</label>
-        <input type="email" id="input-email" placeholder="you@example.com">
+      <div class="auth-panel">
+        <div class="auth-panel-inner">
+          <div class="topbar auth-topbar"><button class="icon-btn" data-back="screen-auth">←</button><h2 data-i18n="forgot.title">Reset your password</h2></div>
+
+          <div id="forgot-form-state">
+            <p class="muted" data-i18n="forgot.subtitle">Enter the email on your account and we'll send you a link to reset your password.</p>
+            <div class="card stack">
+              <div class="field">
+                <label data-i18n="auth.label.email">Email</label>
+                <input type="email" id="input-forgot-email" placeholder="you@example.com">
+              </div>
+              <button class="btn btn-primary btn-block" id="btn-forgot-submit" data-i18n="forgot.submit">Send Reset Link</button>
+            </div>
+          </div>
+
+          <div id="forgot-sent-state" style="display:none">
+            <div class="success-tick">✉️</div>
+            <h2 class="center" data-i18n="forgot.sent.title">Check your email</h2>
+            <p class="muted center" id="forgot-sent-desc">We've sent a password reset link to <strong id="forgot-sent-email"></strong>.</p>
+            <button class="btn btn-secondary btn-block" id="btn-forgot-resend" data-i18n="forgot.sent.resend">Resend link</button>
+            <p class="muted center" style="margin-top:14px"><a href="javascript:void(0)" data-back="screen-auth" data-i18n="forgot.back-to-login">Back to Log In</a></p>
+          </div>
+        </div>
       </div>
-      <div class="field">
-        <label data-i18n="auth.label.password">Password</label>
-        <input type="password" id="input-password" placeholder="At least 6 characters" data-i18n-ph="auth.ph.password">
+    </div>
+  </section>
+
+  <!-- ============ RESET PASSWORD ============
+       Reached only via a Supabase password-recovery link (never linked to
+       directly from anywhere in the app) — app.js detects the recovery
+       token in the URL and routes here automatically. No back button: the
+       visitor arrived from an emailed link, not from browsing the app. -->
+  <section id="screen-reset-password" class="screen no-nav auth-flow-screen">
+    <div class="auth-split">
+      <div class="auth-visual">
+        <div class="auth-visual-inner">
+          <a href="javascript:void(0)" class="auth-visual-brand" data-back="screen-landing">
+            <span class="landing-navbar-mark">🌙</span>
+            <span>NAKSHATRA</span>
+          </a>
+          <h3 class="auth-visual-title" data-i18n="auth.visual.title">Your palm and your birth chart, decoded.</h3>
+          <p class="auth-visual-sub" data-i18n="auth.visual.sub">Real astronomical calculations, classical rule-based readings — no vague AI guesses, ever.</p>
+        </div>
       </div>
-      <button class="btn btn-primary btn-block" id="btn-auth-submit">Create Account</button>
-      <p class="muted center" id="auth-demo-note" data-i18n="auth.demo-note">Demo prototype — accounts are stored only in this browser session, no data leaves your device.</p>
+      <div class="auth-panel">
+        <div class="auth-panel-inner">
+          <div class="topbar auth-topbar"><h2 data-i18n="reset.title">Set a new password</h2></div>
+          <p class="muted" data-i18n="reset.subtitle">Choose a new password for your account.</p>
+          <div class="card stack">
+            <div class="field">
+              <label data-i18n="reset.label.password">New password</label>
+              <input type="password" id="input-reset-password" placeholder="At least 6 characters" data-i18n-ph="auth.ph.password">
+            </div>
+            <div class="field">
+              <label data-i18n="reset.label.confirm">Confirm password</label>
+              <input type="password" id="input-reset-confirm" placeholder="At least 6 characters" data-i18n-ph="auth.ph.password">
+            </div>
+            <button class="btn btn-primary btn-block" id="btn-reset-submit" data-i18n="reset.submit">Update Password</button>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 

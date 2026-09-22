@@ -53,6 +53,32 @@
         return supabase.auth.signOut();
       },
 
+      // Sends a "reset your password" email via Supabase's own mailer — the
+      // link inside it lands back on this same page with a recovery token,
+      // which app.js's initAuth() detects and routes to screen-reset-password.
+      async resetPasswordForEmail(email) {
+        return supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: window.location.origin + window.location.pathname,
+        });
+      },
+
+      // Only valid while signed into a password-recovery session (i.e. right
+      // after following the emailed reset link) — see resetPasswordForEmail above.
+      async updatePassword(newPassword) {
+        return supabase.auth.updateUser({ password: newPassword });
+      },
+
+      // Redirects the browser to Google and back — resolves with an error
+      // only on a synchronous failure (e.g. Google isn't enabled as a
+      // provider in this Supabase project yet); on success there's no
+      // meaningful return value because the page navigates away.
+      async signInWithGoogle() {
+        return supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: { redirectTo: window.location.origin + window.location.pathname },
+        });
+      },
+
       // Returns the persisted session (if any) — call on page load to
       // silently resume a signed-in user instead of showing the login screen.
       async getSession() {
