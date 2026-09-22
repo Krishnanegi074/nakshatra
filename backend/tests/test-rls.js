@@ -147,11 +147,20 @@ async function expectError(promise, label) {
     check("Bob cannot see Alice's unlock row", bobSeesAliceUnlock.rows.length === 0);
   }
 
-  console.log("\n== Group 5: gift_codes — no browsing, sender-only visibility, redeem via function only ==");
+  console.log("\n== Group 5: gift_codes — no direct insert, sender-only visibility, redeem via function only ==");
   {
-    await asUser(c, ALICE, () => c.query(
-      `insert into public.gift_codes (code, sender_id, tier, recipient_name) values ('NKSH-TEST-0001', $1, 'onetime', 'A Friend')`, [ALICE]
-    ));
+    // sql/004_razorpay_payments.sql removed gift_codes_insert_own — a gift
+    // code must now always come from a verified Razorpay payment via
+    // complete_razorpay_order(), never a direct client insert. The fixture
+    // row this group uses (NKSH-TEST-0001) is seeded by run-rls-tests.sh AS
+    // the postgres superuser (bypassing RLS, standing in for what
+    // complete_razorpay_order() would have inserted for a real gift).
+    await expectError(
+      asUser(c, ALICE, () => c.query(
+        `insert into public.gift_codes (code, sender_id, tier, recipient_name) values ('NKSH-TEST-0002', $1, 'onetime', 'Someone Else')`, [ALICE]
+      )),
+      "Direct INSERT into gift_codes is blocked now that a gift must be a verified payment (gift_codes_insert_own was removed)"
+    );
 
     const bobBrowsesCodes = await asUser(c, BOB, () => c.query("select * from public.gift_codes"));
     check("Bob's plain SELECT on gift_codes returns 0 rows (cannot browse/enumerate codes he didn't send)", bobBrowsesCodes.rows.length === 0);
@@ -242,6 +251,23 @@ async function expectError(promise, label) {
 
     const aliceOwnChat = await asUser(c, ALICE, () => c.query("select * from public.chat_messages where user_id = $1 order by created_at", [ALICE]));
     check("Alice sees her own full 2-message conversation", aliceOwnChat.rows.length === 2);
+  }
+
+  console.log("\n== Group 8: complete_razorpay_order() — not reachable by a logged-in client ==");
+  {
+    // The whole point of sql/004_razorpay_payments.sql's design is that
+    // this function is the ONLY place a Razorpay-backed purchase gets
+    // credited, and it must be unreachable except from
+    // supabase/functions/verify-razorpay-payment/index.ts (using the
+    // service_role key, after independently verifying Razorpay's
+    // signature). If `authenticated` could call it directly, any logged-in
+    // user could unlock any tier for free just by guessing an order_id —
+    // see tests/run-rls-tests.sh for the functional (as-service-role) test
+    // of what this function actually does when called correctly.
+    await expectError(
+      asUser(c, ALICE, () => c.query("select public.complete_razorpay_order('does-not-matter', 'does-not-matter', 'upi')")),
+      "A logged-in user (authenticated role) cannot call complete_razorpay_order() directly — PUBLIC's execute was explicitly revoked"
+    );
   }
 
   await c.end();

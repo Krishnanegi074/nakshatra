@@ -29,6 +29,7 @@
     chat_messages: [], // {id, user_id, astrologer_id, sender, text, created_at}
     community_posts: [], // {id, user_id, name, avatar, sign_idx, caption, image_url, created_at}
     community_likes: [], // {user_id, post_id}
+    razorpay_orders: [], // {order_id, user_id, tier, amount_paise, gift_recipient_name, gift_message, status} — mirrors sql/004_razorpay_payments.sql; never touched via .from(), only through the two fake Edge Functions below
   };
   let session = null; // {user: {id, email, user_metadata}}
 
@@ -203,6 +204,68 @@
     return { data: { tier: g.tier, recipient_name: g.recipient_name }, error: null };
   }
 
+  // Fake Supabase Edge Functions, mirroring supabase/functions/*.ts +
+  // complete_razorpay_order() in sql/004_razorpay_payments.sql closely
+  // enough to exercise app.js's real-payment UI wiring end to end. What
+  // this deliberately does NOT do: compute or check a real HMAC signature —
+  // there's no secret key on the frontend to check it with in real life
+  // either, which is exactly why that verification only happens inside the
+  // real verify-razorpay-payment Edge Function, not here. This suite proves
+  // the UI calls the right functions with the right data and handles their
+  // responses correctly; it complements, not replaces, the real signature
+  // logic's own type-check and the schema-level tests in
+  // nakshatra-backend/tests/.
+  const TIER_PRICES_PAISE = { onetime: 39900, bundle: 59900, subscription: 29900 };
+
+  // Same shape as generateGiftCode() in app.js (NKSH-XXXX-XXXX, no
+  // ambiguous 0/O/1/I) — tests assert against that exact format, so the
+  // fake needs to actually produce it rather than reusing the generic
+  // uid() counter helper.
+  const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  function fakeCodeGroup() {
+    let s = "";
+    for (let i = 0; i < 4; i++) s += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
+    return s;
+  }
+
+  function fakeCreateRazorpayOrder(body) {
+    const userId = currentUserId();
+    if (!userId) return { data: null, error: { message: "not authenticated" } };
+    const tier = body && body.tier;
+    if (!TIER_PRICES_PAISE[tier]) return { data: null, error: { message: "unknown tier" } };
+    const gift = body.gift;
+    const orderId = uid("order");
+    const amount = TIER_PRICES_PAISE[tier];
+    store.razorpay_orders.push({
+      order_id: orderId,
+      user_id: userId,
+      tier,
+      amount_paise: amount,
+      gift_recipient_name: gift ? gift.recipientName : null,
+      gift_message: gift ? (gift.message || null) : null,
+      status: "created",
+    });
+    return { data: { key_id: "rzp_test_fake", order_id: orderId, amount, currency: "INR" }, error: null };
+  }
+
+  function fakeVerifyRazorpayPayment(body) {
+    if (forceNextRpcError) { forceNextRpcError = false; return { data: null, error: { message: "simulated failure" } }; }
+    const order = store.razorpay_orders.find((o) => o.order_id === body.razorpay_order_id);
+    if (!order) return { data: null, error: { message: "order not found" } };
+    if (order.status === "verified") return { data: { tier: order.tier, gift_code: null }, error: null }; // idempotency (simplified vs. the real function's stored-code lookup)
+    order.status = "verified";
+    store.purchases.push({ id: uid("purchase"), user_id: order.user_id, tier: order.tier, amount_paise: order.amount_paise, payment_method: "card", status: "razorpay_success" });
+    if (order.gift_recipient_name) {
+      const code = "NKSH-" + fakeCodeGroup() + "-" + fakeCodeGroup();
+      store.gift_codes.push({ code, sender_id: order.user_id, tier: order.tier, recipient_name: order.gift_recipient_name, message: order.gift_message, redeemed: false, redeemed_by: null });
+      return { data: { tier: order.tier, gift_code: code }, error: null };
+    }
+    const idx = store.unlocks.findIndex((u) => u.user_id === order.user_id);
+    const row = { user_id: order.user_id, unlocked: true, tier: order.tier, source: "purchase" };
+    if (idx >= 0) store.unlocks[idx] = row; else store.unlocks.push(row);
+    return { data: { tier: order.tier, gift_code: null }, error: null };
+  }
+
   // Mirrors sql/003_account_deletion.sql's delete_own_account(): releases
   // gift codes this user redeemed (sent by someone else) so the fake data
   // doesn't leave a dangling reference, then removes the user and every row
@@ -253,6 +316,14 @@
       onAuthStateChange() { return { data: { subscription: { unsubscribe() {} } } }; },
     },
     from(table) { return new FakeBuilder(table); },
+    functions: {
+      async invoke(name, opts) {
+        const body = (opts && opts.body) || {};
+        if (name === "create-razorpay-order") return fakeCreateRazorpayOrder(body);
+        if (name === "verify-razorpay-payment") return fakeVerifyRazorpayPayment(body);
+        return { data: null, error: { message: "unknown function " + name } };
+      },
+    },
     rpc(name, params) {
       const fn = name === "record_test_purchase" ? rpcRecordTestPurchase
         : name === "redeem_gift_code" ? rpcRedeemGiftCode

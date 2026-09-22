@@ -143,6 +143,15 @@ button { font-family: inherit; }
 }
 .card + .card { margin-top: 14px; }
 .stack { display: flex; flex-direction: column; gap: 14px; }
+/* .stack already spaces its children with flex `gap` — .card + .card's own
+   margin-top (above) was meant for .card elements stacked in normal block
+   flow outside a .stack. Left unguarded, the two add together inside a
+   .stack (gap 14px + margin-top 14px = 28px between cards), doubling the
+   spacing on every card-list screen (Dashboard Explore, tier pickers, the
+   astrologer picker, the community feed, palm questions) at *every* width,
+   not just the >=700px grid case handled below. Zero it out unconditionally
+   for direct .card children of a .stack so the two mechanisms never combine. */
+.stack > .card + .card { margin-top: 0; }
 /* Applied alongside .stack on a handful of homogeneous card-list containers
    (dashboard Explore tiles, tier pickers, the astrologer picker, the community
    feed, palm questions) — on mobile it's just a .stack; from 700px up it
@@ -332,6 +341,10 @@ button { font-family: inherit; }
 .paytab.active { background: rgba(201,161,95,0.15); border-color: var(--gold); color: var(--text); font-weight: 600; }
 .test-mode-banner {
   background: rgba(239,127,127,0.14); border: 1px solid rgba(239,127,127,0.4); color: #f3b9b9;
+  padding: 10px 14px; border-radius: var(--radius-sm); font-size: 0.78rem; margin-bottom: 16px; text-align: center;
+}
+.secure-banner {
+  background: rgba(120,200,150,0.12); border: 1px solid rgba(120,200,150,0.35); color: #a9e0bb;
   padding: 10px 14px; border-radius: var(--radius-sm); font-size: 0.78rem; margin-bottom: 16px; text-align: center;
 }
 .spinner {

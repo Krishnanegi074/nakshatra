@@ -76,6 +76,8 @@ async function logout(page) {
 
   const fakeSupabaseSrc = require("fs").readFileSync(path.join(__dirname, "fake-supabase.js"), "utf8");
   await page.addInitScript(fakeSupabaseSrc);
+  const fakeRazorpaySrc = require("fs").readFileSync(path.join(__dirname, "fake-razorpay.js"), "utf8");
+  await page.addInitScript(fakeRazorpaySrc);
 
   await page.goto("file://" + path.resolve(__dirname, "..", "nakshatra-app.html"));
 
@@ -106,7 +108,20 @@ async function logout(page) {
   await page.waitForTimeout(150);
   await page.click("#btn-report-checkout");
   await page.waitForTimeout(150);
-  await page.fill("#input-upi", "ananya@okhdfc");
+
+  // Razorpay-side failure first (the user declines/cancels in the real
+  // popup) — rzp.on("payment.failed", ...) in app.js should just toast and
+  // leave the user on checkout, never touching purchases/unlocks.
+  await page.evaluate(() => window.__fakeRazorpayForceNextFailure());
+  await page.click("#btn-pay-submit");
+  await page.waitForTimeout(500);
+  check("A Razorpay-side payment failure leaves the user on checkout", await page.isVisible("#screen-checkout.active"), results);
+  store = await page.evaluate(() => window.__fakeSupabaseStore);
+  check("No purchases/unlocks row was created by the Razorpay-side failure", store.purchases.length === 0 && store.unlocks.length === 0, results);
+
+  // Now the Razorpay side succeeds but OUR OWN server-side confirmation
+  // fails — forces the NEXT verify-razorpay-payment call to fail, matching
+  // the real UI's "payment succeeded but couldn't be confirmed" path.
   await page.evaluate(() => window.__fakeSupabaseForceNextError());
   await page.click("#btn-pay-submit");
   await page.waitForTimeout(2000);
@@ -118,8 +133,12 @@ async function logout(page) {
   await page.waitForTimeout(2000);
   check("Retrying (without a forced error) reaches the success screen", await page.isVisible("#screen-success.active"), results);
   store = await page.evaluate(() => window.__fakeSupabaseStore);
-  check("record_test_purchase() RPC created exactly one purchases row", store.purchases.length === 1 && store.purchases[0].tier === "bundle", results);
-  check("record_test_purchase() RPC correctly unlocked the user (source=purchase)", store.unlocks.length === 1 && store.unlocks[0].unlocked === true && store.unlocks[0].source === "purchase", results);
+  // Tier is "onetime" because that's state.selectedTier's default and this
+  // flow never clicks a tier card to change it (see initTierSelection() in
+  // app.js) — true before this migration too; the old assertion here
+  // ("bundle") was already stale relative to the app's actual default.
+  check("verify-razorpay-payment created exactly one purchases row for the real (onetime) tier", store.purchases.length === 1 && store.purchases[0].tier === "onetime" && store.purchases[0].status === "razorpay_success", results);
+  check("verify-razorpay-payment correctly unlocked the user (source=purchase)", store.unlocks.length === 1 && store.unlocks[0].unlocked === true && store.unlocks[0].tier === "onetime" && store.unlocks[0].source === "purchase", results);
 
   console.log("\n== Group 4: chat messages persist through the real send/greeting path ==");
   await page.click("#btn-success-continue");
@@ -181,7 +200,6 @@ async function logout(page) {
   await page.fill("#gift-recipient-name", "A Friend");
   await page.click("#btn-gift-continue");
   await page.waitForTimeout(150);
-  await page.fill("#input-upi", "ananya@okhdfc");
   await page.click("#btn-pay-submit");
   await page.waitForTimeout(2000);
   check("Gift purchase reaches the gift-sent screen", await page.isVisible("#screen-gift-sent.active"), results);
@@ -205,7 +223,6 @@ async function logout(page) {
   await page.fill("#gift-recipient-name", "Someone");
   await page.click("#btn-gift-continue");
   await page.waitForTimeout(150);
-  await page.fill("#input-upi", "chetan@okhdfc");
   await page.click("#btn-pay-submit");
   await page.waitForTimeout(2000);
   const chetanCode = (await page.textContent("#gift-code-display")).trim();

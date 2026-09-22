@@ -10,6 +10,15 @@ const path = require("path");
   const results = [];
   const check = (label, cond) => { results.push({ label, pass: !!cond }); console.log((cond ? "PASS" : "FAIL") + " - " + label); };
 
+  // Real checkout (step 10 below) needs a Supabase+Razorpay backend to
+  // complete at all now — see tests-backend/fake-supabase.js and
+  // fake-razorpay.js for why (real payments can't be faked purely
+  // client-side the way the old test-mode checkout could).
+  const fakeSupabaseSrc = require("fs").readFileSync(path.join(__dirname, "tests-backend", "fake-supabase.js"), "utf8");
+  await page.addInitScript(fakeSupabaseSrc);
+  const fakeRazorpaySrc = require("fs").readFileSync(path.join(__dirname, "tests-backend", "fake-razorpay.js"), "utf8");
+  await page.addInitScript(fakeRazorpaySrc);
+
   await page.goto("file://" + path.resolve(__dirname, "nakshatra-app.html"));
 
   // 1. Signup
@@ -61,7 +70,13 @@ const path = require("path");
   await page.waitForTimeout(150);
   check("Compat result score shows a percentage", (await page.textContent("#compat-score")).includes("%"));
 
-  // 8. Login tab (never fully exercised before) - open a second tab's worth of flow via logout/login
+  // 8. Login tab (never fully exercised before) - check its UI, then confirm
+  // a real backend correctly REJECTS a login for an email that was never
+  // signed up. (The old demo-mode fallback — see the "No backend
+  // configured" branch in app.js's auth submit handler — treated ANY login
+  // attempt as a fresh returning session and sent it straight to
+  // onboarding; with a real backend now wired up for checkout too, that
+  // shortcut no longer applies here.)
   await page.click(".screen.active [data-back=\"screen-dashboard\"]"); await page.waitForTimeout(100);
   await page.click("#btn-dash-logout"); await page.waitForTimeout(150);
   await page.click("#btn-landing-login");
@@ -71,7 +86,17 @@ const path = require("path");
   await page.fill("#input-password", "abcdef");
   await page.click("#btn-auth-submit");
   await page.waitForTimeout(150);
-  check("Login submit routes to onboarding for a fresh session", await page.isVisible("#screen-onboarding"));
+  check("Logging in with an unregistered email is correctly rejected, not routed to onboarding", await page.isVisible("#screen-auth.active") && !(await page.isVisible("#screen-onboarding.active")));
+
+  // Sign up for real instead, to continue exercising the re-onboarding /
+  // unknown-time path below with a genuinely fresh second session.
+  await page.click("#tab-signup");
+  await page.waitForTimeout(100);
+  await page.fill("#input-name", "Returning User");
+  await page.fill("#input-email", "returning@example.com");
+  await page.fill("#input-password", "abcdef");
+  await page.click("#btn-auth-submit");
+  await page.waitForTimeout(150);
 
   // Re-onboard for this "returning" session
   await page.fill("#input-dob", "1990-02-10");
@@ -89,14 +114,13 @@ const path = require("path");
   await page.click("#btn-report-checkout");
   await page.waitForTimeout(100);
 
-  // 10. Netbanking payment path (never tested end-to-end before)
-  await page.click('[data-pay="netbanking"]');
-  await page.waitForTimeout(100);
-  check("Netbanking panel visible", await page.isVisible("#pay-netbanking"));
-  await page.selectOption("#input-bank", "HDFC Bank");
+  // 10. Real payment path — method selection (UPI/card/netbanking/wallet)
+  // now happens inside Razorpay's own external widget, not in our app, so
+  // there's no in-page panel to pick a method from any more (fake-razorpay.js
+  // stands in for that widget the same way it does in tests-backend/).
   await page.click("#btn-pay-submit");
   await page.waitForTimeout(2200);
-  check("Netbanking payment reaches success screen", await page.isVisible("#screen-success"));
+  check("Real payment (via Razorpay) reaches success screen", await page.isVisible("#screen-success"));
   await page.click("#btn-success-continue");
   await page.waitForTimeout(300);
 

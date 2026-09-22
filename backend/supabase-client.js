@@ -98,9 +98,9 @@
       },
 
       // ==================== PURCHASES / UNLOCKS ====================
-      // TEST MODE ONLY — see the note above record_test_purchase() in
-      // sql/002_schema.sql before this is ever wired to a real payment
-      // gateway. amountPaise is an integer (₹1 = 100 paise).
+      // TEST MODE ONLY — kept around in case it's ever useful again, but the
+      // app itself no longer calls this. Real purchases go through
+      // createRazorpayOrder + verifyRazorpayPayment below.
       async recordTestPurchase(tier, amountPaise, paymentMethod) {
         return supabase.rpc("record_test_purchase", {
           p_tier: tier,
@@ -115,7 +115,35 @@
         return supabase.from("unlocks").select("*").eq("user_id", uid).maybeSingle();
       },
 
+      // ==================== REAL PAYMENTS (Razorpay) ====================
+      // Both of these call Supabase Edge Functions (sql/004_razorpay_payments.sql
+      // + supabase/functions/*) rather than touching any table directly —
+      // the server looks up the real price and re-verifies everything with
+      // Razorpay itself, so nothing here can be spoofed from the browser.
+      //
+      // gift is optional: { recipientName, message } — pass it to buy the
+      // report as a gift for someone else instead of unlocking it for
+      // yourself; the server-side function returns the redeemable code.
+      async createRazorpayOrder(tier, gift) {
+        return supabase.functions.invoke("create-razorpay-order", {
+          body: gift ? { tier, gift } : { tier },
+        });
+      },
+
+      // razorpayResponse is the object Razorpay Checkout's handler callback
+      // hands you: { razorpay_order_id, razorpay_payment_id, razorpay_signature }.
+      async verifyRazorpayPayment(razorpayResponse) {
+        return supabase.functions.invoke("verify-razorpay-payment", {
+          body: razorpayResponse,
+        });
+      },
+
       // ==================== GIFTING ====================
+      // NOTE: sending a gift is a real purchase now — see createRazorpayOrder
+      // above with a `gift` argument. This direct insert is left here only
+      // for local/offline testing; sql/004_razorpay_payments.sql removes the
+      // RLS policy that let it succeed against the real database, since a
+      // gift code must now always be backed by a verified payment.
       async sendGift(code, tier, recipientName, message) {
         return supabase.from("gift_codes").insert({ code, tier, recipient_name: recipientName, message });
       },

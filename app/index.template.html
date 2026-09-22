@@ -577,35 +577,11 @@
   <!-- ============ CHECKOUT ============ -->
   <section id="screen-checkout" class="screen no-nav">
     <div class="topbar"><button class="icon-btn" data-back="screen-report" id="btn-checkout-back">←</button><h2 data-i18n="checkout.title">Checkout</h2></div>
-    <div class="test-mode-banner" data-i18n="checkout.test-banner">⚠️ TEST MODE — this is a prototype. No real payment will be processed and no card details are transmitted anywhere.</div>
+    <div class="secure-banner" data-i18n="checkout.secure-banner">🔒 Secure payment powered by Razorpay — pay by UPI, card, netbanking, or wallet on the next screen. We never see or store your card/UPI details.</div>
 
     <div class="card row between">
       <div><strong id="checkout-tier-name">Premium Bundle</strong><div class="muted" id="checkout-summary-label">Order summary</div></div>
       <div class="tier-price" id="checkout-tier-price">₹599</div>
-    </div>
-
-    <div style="margin-top:16px">
-      <div class="paytab-row">
-        <div class="paytab active" data-pay="upi">UPI</div>
-        <div class="paytab" data-pay="card" data-i18n="checkout.pay.card">Card</div>
-        <div class="paytab" data-pay="netbanking" data-i18n="checkout.pay.netbanking">Netbanking</div>
-      </div>
-
-      <div id="pay-upi">
-        <div class="field"><label data-i18n="checkout.label.upi">UPI ID</label><input type="text" id="input-upi" placeholder="yourname@upi"></div>
-      </div>
-      <div id="pay-card" style="display:none">
-        <div class="field"><label data-i18n="checkout.label.card">Card number</label><input type="text" id="input-card" placeholder="4242 4242 4242 4242" maxlength="19"></div>
-        <div class="row" style="gap:12px">
-          <div class="field" style="flex:1"><label data-i18n="checkout.label.expiry">Expiry</label><input type="text" id="input-expiry" placeholder="MM/YY" maxlength="5"></div>
-          <div class="field" style="flex:1"><label data-i18n="checkout.label.cvv">CVV</label><input type="text" id="input-cvv" placeholder="123" maxlength="3"></div>
-        </div>
-      </div>
-      <div id="pay-netbanking" style="display:none">
-        <div class="field"><label data-i18n="checkout.label.bank">Select bank</label>
-          <select id="input-bank"><option>State Bank of India</option><option>HDFC Bank</option><option>ICICI Bank</option><option>Axis Bank</option><option>Punjab National Bank</option></select>
-        </div>
-      </div>
     </div>
 
     <div style="flex:1"></div>
@@ -896,6 +872,13 @@
   behavior. So this file degrades gracefully rather than breaking outright.
 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<!--
+  Razorpay's own Checkout widget — this is what actually pops up the secure
+  payment sheet (UPI/card/netbanking/wallet) when the user pays. If this
+  CDN can't load, window.Razorpay stays undefined and app.js shows a toast
+  asking the user to check their connection rather than silently failing.
+-->
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
 /*__SUPABASE_CLIENT_JS__*/
 </script>

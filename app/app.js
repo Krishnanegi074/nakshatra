@@ -1102,65 +1102,72 @@ function renderCheckout() {
   $("#btn-checkout-back").setAttribute("data-back", gifting ? "screen-gift-send" : "screen-report");
 }
 
+// Opens the real Razorpay Checkout popup for the currently-selected tier
+// (or the gift-in-progress tier). The whole flow never trusts the browser
+// about price or "did it actually succeed" — createRazorpayOrder asks the
+// server to look the price up itself, and the handler callback below hands
+// Razorpay's response straight to verifyRazorpayPayment, which
+// independently re-checks everything with Razorpay before unlocking
+// anything. See supabase/functions/*.ts and sql/004_razorpay_payments.sql.
 function initCheckout() {
-  $all(".paytab[data-pay]").forEach(tab => tab.addEventListener("click", () => {
-    $all(".paytab[data-pay]").forEach(t => t.classList.remove("active"));
-    tab.classList.add("active");
-    state.payMethod = tab.dataset.pay;
-    ["upi", "card", "netbanking"].forEach(m => $("#pay-" + m).style.display = m === state.payMethod ? "block" : "none");
-  }));
+  $("#btn-pay-submit").addEventListener("click", async () => {
+    const dbInstance = backendDb();
+    if (!dbInstance) return toast("Payments aren't available right now — please check your connection.");
+    if (typeof Razorpay === "undefined") return toast("Payment couldn't load — please check your connection and try again.");
 
-  $("#input-card").addEventListener("input", (e) => {
-    let v = e.target.value.replace(/\D/g, "").slice(0, 16);
-    e.target.value = v.replace(/(.{4})/g, "$1 ").trim();
-  });
-  $("#input-expiry").addEventListener("input", (e) => {
-    let v = e.target.value.replace(/\D/g, "").slice(0, 4);
-    if (v.length > 2) v = v.slice(0, 2) + "/" + v.slice(2);
-    e.target.value = v;
-  });
-  $("#input-cvv").addEventListener("input", (e) => { e.target.value = e.target.value.replace(/\D/g, "").slice(0, 3); });
+    const gifting = !!state.giftInProgress;
+    const tierKey = gifting ? state.giftInProgress.tier : state.selectedTier;
+    const tier = TIER_INFO[tierKey];
+    const giftArg = gifting
+      ? { recipientName: state.giftInProgress.recipientName, message: state.giftInProgress.message }
+      : undefined;
 
-  $("#btn-pay-submit").addEventListener("click", () => {
-    if (state.payMethod === "upi" && !$("#input-upi").value.includes("@")) return toast("Enter a valid UPI ID (e.g. name@upi)");
-    if (state.payMethod === "card" && $("#input-card").value.replace(/\s/g, "").length < 12) return toast("Enter a valid card number");
-    showScreen("screen-processing", { silent: true });
-    setTimeout(async () => {
-      const dbInstance = backendDb();
-      if (state.giftInProgress) {
-        const g = state.giftInProgress;
-        const code = generateGiftCode();
-        const giftRow = {
-          code, tier: g.tier, recipientName: g.recipientName, message: g.message,
-          senderName: (state.user && state.user.name) || "A friend", redeemed: false, redeemedBy: null,
-        };
-        if (dbInstance) {
-          const { error } = await backendCall(dbInstance.sendGift(code, g.tier, g.recipientName, g.message), "sendGift");
-          if (error) {
-            toast("Couldn't create the gift code — please try again.");
-            showScreen("screen-gift-send", { silent: true });
-            return;
-          }
+    const submitBtn = $("#btn-pay-submit");
+    submitBtn.disabled = true;
+    const { data: orderData, error: orderErr } = await backendCall(dbInstance.createRazorpayOrder(tierKey, giftArg), "createRazorpayOrder");
+    submitBtn.disabled = false;
+    if (orderErr || !orderData || orderData.error) {
+      return toast("Couldn't start the payment — please try again.");
+    }
+
+    const rzp = new Razorpay({
+      key: orderData.key_id,
+      order_id: orderData.order_id,
+      amount: orderData.amount,
+      currency: orderData.currency,
+      name: "Nakshatra",
+      description: gifting ? `Gift: ${tier.name} for ${state.giftInProgress.recipientName}` : tier.name,
+      theme: { color: "#e8c687" },
+      prefill: state.user ? { name: state.user.name, email: state.user.email } : {},
+      handler: async function (response) {
+        showScreen("screen-processing", { silent: true });
+        const { data: verifyData, error: verifyErr } = await backendCall(dbInstance.verifyRazorpayPayment(response), "verifyRazorpayPayment");
+        if (verifyErr || !verifyData || verifyData.error) {
+          toast("Payment succeeded but couldn't be confirmed — please contact support with your payment ID: " + (response.razorpay_payment_id || ""));
+          showScreen("screen-checkout", { silent: true });
+          return;
         }
-        state.giftCodes[code] = giftRow;
-        state.lastGiftCode = code;
-        state.giftInProgress = null;
-        showScreen("screen-gift-sent", { silent: true });
-      } else {
-        if (dbInstance) {
-          const amountPaise = TIER_INFO[state.selectedTier].price * 100;
-          const { error } = await backendCall(dbInstance.recordTestPurchase(state.selectedTier, amountPaise, state.payMethod), "recordTestPurchase");
-          if (error) {
-            toast("Payment could not be recorded — please try again.");
-            showScreen("screen-checkout", { silent: true });
-            return;
-          }
+        if (gifting) {
+          const g = state.giftInProgress;
+          const code = verifyData.gift_code;
+          state.giftCodes[code] = {
+            code, tier: g.tier, recipientName: g.recipientName, message: g.message,
+            senderName: (state.user && state.user.name) || "A friend", redeemed: false, redeemedBy: null,
+          };
+          state.lastGiftCode = code;
+          state.giftInProgress = null;
+          showScreen("screen-gift-sent", { silent: true });
+        } else {
+          state.unlocked = true;
+          $("#success-sub").textContent = tr("success.sub-template", { tier: tierDisplayName(tierKey) });
+          showScreen("screen-success", { silent: true });
         }
-        state.unlocked = true;
-        $("#success-sub").textContent = tr("success.sub-template", { tier: tierDisplayName(state.selectedTier) });
-        showScreen("screen-success", { silent: true });
-      }
-    }, 1700);
+      },
+    });
+    rzp.on("payment.failed", function () {
+      toast("Payment failed — please try again.");
+    });
+    rzp.open();
   });
 
   $("#btn-success-continue").addEventListener("click", () => showScreen("screen-fullreport"));

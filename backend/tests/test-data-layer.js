@@ -38,12 +38,20 @@ class FakeQueryBuilder {
   then(resolve, reject) { return this._finish().then(resolve, reject); }
 }
 
-function makeFakeSupabase({ userId = "user-123", results = {}, rpcResults = {} } = {}) {
+function makeFakeSupabase({ userId = "user-123", results = {}, rpcResults = {}, functionResults = {} } = {}) {
   const log = [];
   const rpcLog = [];
+  const functionsLog = [];
   return {
     log,
     rpcLog,
+    functionsLog,
+    functions: {
+      invoke: async (name, opts) => {
+        functionsLog.push({ name, opts });
+        return functionResults[name] || { data: null, error: null };
+      },
+    },
     auth: {
       signUp: async (args) => { log.push({ auth: "signUp", args }); return { data: {}, error: null }; },
       signInWithPassword: async (args) => { log.push({ auth: "signInWithPassword", args }); return { data: {}, error: null }; },
@@ -141,6 +149,38 @@ const { createDb } = require("../supabase-client.js");
     const src = require("fs").readFileSync(require("path").join(__dirname, "../supabase-client.js"), "utf8");
     check("supabase-client.js never reads/writes the purchases table directly (only via the RPC)", !src.includes('.from("purchases")'));
     check("supabase-client.js never inserts/updates the unlocks table directly (only reads it — writes only via the RPCs)", !/\.from\("unlocks"\)\s*\.\s*(insert|update)\(/.test(src));
+  }
+
+  console.log("\n== Real payments (Razorpay) go through Edge Functions, never a raw table write ==");
+  {
+    const fake = makeFakeSupabase({
+      functionResults: {
+        "create-razorpay-order": { data: { key_id: "rzp_test_x", order_id: "order_abc", amount: 39900, currency: "INR" }, error: null },
+        "verify-razorpay-payment": { data: { tier: "onetime", gift_code: null }, error: null },
+      },
+    });
+    const db = createDb(fake);
+
+    await db.createRazorpayOrder("onetime");
+    const selfCall = fake.functionsLog.find(f => f.name === "create-razorpay-order");
+    check("createRazorpayOrder invokes the create-razorpay-order Edge Function", !!selfCall);
+    check("createRazorpayOrder sends { tier } only when there's no gift (no gift key at all)", selfCall.opts.body.tier === "onetime" && !("gift" in selfCall.opts.body));
+
+    await db.createRazorpayOrder("bundle", { recipientName: "Priya", message: "Happy birthday!" });
+    const giftCall = fake.functionsLog.filter(f => f.name === "create-razorpay-order")[1];
+    check("createRazorpayOrder sends { tier, gift } when buying as a gift, gift matching { recipientName, message } exactly", giftCall.opts.body.tier === "bundle" && giftCall.opts.body.gift.recipientName === "Priya" && giftCall.opts.body.gift.message === "Happy birthday!");
+
+    const razorpayResponse = { razorpay_order_id: "order_abc", razorpay_payment_id: "pay_xyz", razorpay_signature: "deadbeef" };
+    await db.verifyRazorpayPayment(razorpayResponse);
+    const verifyCall = fake.functionsLog.find(f => f.name === "verify-razorpay-payment");
+    check("verifyRazorpayPayment invokes the verify-razorpay-payment Edge Function", !!verifyCall);
+    check("verifyRazorpayPayment forwards Razorpay Checkout's handler response untouched as the body", JSON.stringify(verifyCall.opts.body) === JSON.stringify(razorpayResponse));
+
+    const src2 = require("fs").readFileSync(require("path").join(__dirname, "../supabase-client.js"), "utf8");
+    const startIdx = src2.indexOf("async createRazorpayOrder");
+    const endIdx = src2.indexOf("// ==================== GIFTING", startIdx);
+    const realPaymentsSection = src2.slice(startIdx, endIdx);
+    check("createRazorpayOrder/verifyRazorpayPayment never touch purchases/unlocks/gift_codes directly — only the Edge Functions do (via complete_razorpay_order)", startIdx !== -1 && endIdx !== -1 && !realPaymentsSection.includes(".from("));
   }
 
   console.log("\n== Gifting ==");

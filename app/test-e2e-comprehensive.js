@@ -37,6 +37,15 @@ async function signup(page, name, email, dob, city) {
   page.on("pageerror", (e) => errors.push("PAGEERROR: " + e.message));
   page.on("console", (msg) => { if (msg.type() === "error") errors.push("CONSOLE ERROR: " + msg.text()); });
 
+  // Group 6 below buys a gift, which is a real Razorpay purchase now and
+  // needs a backend to complete at all — see tests-backend/fake-supabase.js
+  // and fake-razorpay.js for why (a real payment can't be faked purely
+  // client-side the way the old test-mode checkout could).
+  const fakeSupabaseSrc = require("fs").readFileSync(path.join(__dirname, "tests-backend", "fake-supabase.js"), "utf8");
+  await page.addInitScript(fakeSupabaseSrc);
+  const fakeRazorpaySrc = require("fs").readFileSync(path.join(__dirname, "tests-backend", "fake-razorpay.js"), "utf8");
+  await page.addInitScript(fakeRazorpaySrc);
+
   await page.goto("file://" + path.resolve(__dirname, "nakshatra-app.html"));
   await signup(page, "Journey Tester", "journey@example.com", "1990-08-10", "Mumbai"); // Cancer (sidereal)
 
@@ -169,7 +178,6 @@ async function signup(page, name, email, dob, city) {
   await page.fill("#gift-recipient-name", "A Friend");
   await page.click("#btn-gift-continue");
   await page.waitForTimeout(150);
-  await page.fill("#input-upi", "journeytester@okhdfc");
   await page.click("#btn-pay-submit");
   await page.waitForTimeout(2000); // processing delay is 1700ms
   const giftSentShown = await page.isVisible("#screen-gift-sent.active");
