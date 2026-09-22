@@ -459,7 +459,14 @@ button { font-family: inherit; }
    on the left, a decorative orbit visual on the right, matching the rest of
    the "unboxed" desktop treatment #app-root.landing-active turns on. */
 @media (min-width: 1024px) {
-  .landing-hero { padding-top: 64px; padding-bottom: 40px; overflow: visible; }
+  /* The desktop nav (.landing-navbar) is position:fixed — it doesn't take
+     up document flow space, so this hero has to supply its own clearance
+     underneath it. The navbar itself is ~70px tall at this breakpoint
+     (18px vertical padding + the "Start" button's height + border), and
+     this padding-top used to be only 64px — 6px *less* than the navbar's
+     own height, so the hero content actually started partly hidden behind
+     the fixed bar. Bumped well past that, with room to breathe. */
+  .landing-hero { padding-top: 156px; padding-bottom: 56px; overflow: visible; }
   .constellation-svg { display: none; }
   .landing-hero-grid {
     display: grid; grid-template-columns: 1.25fr 0.75fr; align-items: center; gap: 40px;
@@ -480,13 +487,25 @@ button { font-family: inherit; }
   .trust-strip { justify-content: flex-start; }
 
   .landing-hero-visual { display: flex; align-items: center; justify-content: center; }
-  .orbit-svg { width: 100%; max-width: 440px; height: auto; }
+  /* Gentle continuous "floating in space" motion on the orbit graphic —
+     a slow vertical drift, not a one-time entrance. Kept to a small
+     amplitude (14px) and a slow, eased duration so it reads as ambient
+     rather than distracting; the star twinkle inside (.orbit-stars circle,
+     below) animates opacity, so the two layer without fighting each other. */
+  .orbit-svg { width: 100%; max-width: 440px; height: auto; animation: orbitFloat 7s ease-in-out infinite; }
   .orbit-ring { fill: none; stroke: var(--border); stroke-width: 1; }
   .orbit-path { fill: none; stroke: var(--gold); stroke-width: 1.5; opacity: 0.75; }
   .orbit-stars circle { fill: var(--gold-bright); animation: twinkle 3.4s ease-in-out infinite; filter: drop-shadow(0 0 5px rgba(232,198,135,0.7)); }
   .orbit-stars circle:nth-child(2) { animation-delay: 0.6s; }
   .orbit-stars circle:nth-child(3) { animation-delay: 1.2s; }
   .orbit-stars circle:nth-child(4) { animation-delay: 1.8s; }
+}
+@keyframes orbitFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-14px); }
+}
+@media (min-width: 1024px) and (prefers-reduced-motion: reduce) {
+  .orbit-svg { animation: none; }
 }
 
 /* ---------- Landing: feature chips ---------- */

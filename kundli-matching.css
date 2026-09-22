@@ -19,8 +19,19 @@
   pointer-events: none;
 }
 .nk-km-wheel { width: 300px; }
-.nk-km-wheel--a { margin-right: -75px; }
-.nk-km-wheel--b { margin-left: -75px; }
+/* Slow, gentle drift on the two overlapping chart wheels — different
+   durations/delays on each so they move independently rather than in
+   lockstep, reading as ambient background motion (two charts slowly
+   turning toward each other) rather than a mechanical loop. */
+.nk-km-wheel--a { margin-right: -75px; animation: kmWheelDrift 9s ease-in-out infinite; }
+.nk-km-wheel--b { margin-left: -75px; animation: kmWheelDrift 11s ease-in-out infinite -4s; }
+@keyframes kmWheelDrift {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-12px) rotate(1.2deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nk-km-wheel--a, .nk-km-wheel--b { animation: none; }
+}
 
 .nk-km-hero-inner { position: relative; padding-top: 220px; }
 .nk-km-title { font-size: 56px; line-height: 1.12; margin: 20px auto 22px; max-width: 760px; }

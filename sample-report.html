@@ -53,7 +53,14 @@ header.top .wrap { display: flex; align-items: center; justify-content: space-be
 .back-link { font-size: 0.85rem; color: var(--text-dim); text-decoration: none; display: flex; align-items: center; gap: 6px; }
 .back-link:hover { color: var(--gold-bright); }
 
-main { padding: 48px 0 24px; }
+/* Matches the ~96px/56px desktop/mobile hero clearance used on
+   about.html / pricing.html / kundli-matching.html, so every page
+   opens with the same breathing room below the nav instead of this
+   set feeling noticeably more cramped. */
+main { padding: 96px 0 32px; }
+@media (max-width: 900px) {
+  main { padding: 56px 0 24px; }
+}
 
 .eyebrow { color: var(--gold-bright); letter-spacing: 2.5px; font-size: 11.5px; text-transform: uppercase; font-weight: 600; }
 h1.page-title { font-size: clamp(26px, 5vw, 38px); margin: 12px 0 16px; text-wrap: balance; }
