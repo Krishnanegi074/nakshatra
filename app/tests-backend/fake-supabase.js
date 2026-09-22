@@ -23,7 +23,14 @@
     profiles: [], // {id, name, email}
     birth_data: [], // {user_id, ...}
     palm_reports: [], // {user_id, answers, report}
-    unlocks: [], // {user_id, unlocked, tier, source}
+    // {user_id, tier, source, granted_at} — one row per (user_id, tier) a
+    // user has actually purchased/been gifted (see
+    // backend/sql/005_tier_entitlements.sql). Replaces the old single-row
+    // `unlocks` table (kept below, empty, purely so a stray reference to it
+    // doesn't throw — nothing writes to it anymore, matching the real
+    // grant_entitlement()-based functions in that migration).
+    user_entitlements: [],
+    unlocks: [], // deliberately unused — see user_entitlements above
     purchases: [], // {id, user_id, tier, amount_paise, payment_method, status}
     gift_codes: [], // {code, sender_id, tier, recipient_name, message, redeemed, redeemed_by}
     chat_messages: [], // {id, user_id, astrologer_id, sender, text, created_at}
@@ -36,6 +43,7 @@
   window.__fakeSupabaseStore = store; // exposed so tests can assert directly on server-side state
   window.__fakeSupabaseSetSession = (s) => { session = s; };
   window.__fakeSupabaseGetSession = () => session;
+  window.__fakeSupabaseGetSeq = () => seq; // exposed so a reload-seed can carry the id counter forward too — see below
   // Used by tests to simulate "already logged in, reloading the page" without
   // real persistence: capture {store, session} via the getters above, then
   // register a SECOND addInitScript (after this one) that calls this with
@@ -49,6 +57,15 @@
       store[k].push.apply(store[k], seed.store[k]);
     });
     session = seed.session;
+    // IMPORTANT: this whole file is a fresh IIFE closure on every reload, so
+    // `seq` (and therefore uid()) restarts at 0 unless carried over here too
+    // — without this, any user/purchase/order/etc. created AFTER a
+    // page.reload() collides with an id already used by data restored above
+    // (e.g. a brand-new signup could be handed the same "user-1" id an
+    // earlier, still-present user already owns), corrupting whichever table
+    // happens to share that id. Take whichever is larger so a seed captured
+    // from an older/smaller run never moves the counter backwards.
+    if (typeof seed.seq === "number") seq = Math.max(seq, seed.seq);
   };
 
   function currentUserId() { return session && session.user.id; }
@@ -137,7 +154,7 @@
       } else {
         // Tables that are private-per-user in the real schema (per sql/002_schema.sql's
         // RLS) are scoped to the caller here too, mirroring that boundary.
-        const scoped = ["birth_data", "palm_reports", "unlocks", "purchases", "chat_messages", "profiles"];
+        const scoped = ["birth_data", "palm_reports", "user_entitlements", "unlocks", "purchases", "chat_messages", "profiles"];
         result = rows.filter((r) => (scoped.includes(this.table) ? r.user_id === uidNow || (this.table === "profiles" && r.id === uidNow) : true));
         if (this.table === "gift_codes") result = rows.filter((r) => r.sender_id === uidNow);
       }
@@ -180,13 +197,20 @@
   let forceNextRpcError = false;
   window.__fakeSupabaseForceNextError = () => { forceNextRpcError = true; };
 
+  // Mirrors grant_entitlement() in backend/sql/005_tier_entitlements.sql:
+  // idempotent per (user_id, tier) — the THING this migration fixes is that
+  // granting a second, DIFFERENT tier must add a row, never overwrite/erase
+  // the first (the old `unlocks` table's exact bug).
+  function grantEntitlement(userId, tier, source) {
+    const exists = store.user_entitlements.some((e) => e.user_id === userId && e.tier === tier);
+    if (!exists) store.user_entitlements.push({ user_id: userId, tier, source, granted_at: new Date().toISOString() });
+  }
+
   function rpcRecordTestPurchase(params) {
     if (forceNextRpcError) { forceNextRpcError = false; return { data: null, error: { message: "simulated failure" } }; }
     const userId = currentUserId();
     store.purchases.push({ id: uid("purchase"), user_id: userId, tier: params.p_tier, amount_paise: params.p_amount_paise, payment_method: params.p_payment_method, status: "test_mode_success" });
-    const idx = store.unlocks.findIndex((u) => u.user_id === userId);
-    const row = { user_id: userId, unlocked: true, tier: params.p_tier, source: "purchase" };
-    if (idx >= 0) store.unlocks[idx] = row; else store.unlocks.push(row);
+    grantEntitlement(userId, params.p_tier, "purchase");
     return { data: null, error: null };
   }
 
@@ -198,9 +222,7 @@
     if (g.sender_id === userId) return { data: null, error: { message: "GIFT_CODE_SELF_REDEEM" } };
     g.redeemed = true;
     g.redeemed_by = userId;
-    const idx = store.unlocks.findIndex((u) => u.user_id === userId);
-    const row = { user_id: userId, unlocked: true, tier: g.tier, source: "gift" };
-    if (idx >= 0) store.unlocks[idx] = row; else store.unlocks.push(row);
+    grantEntitlement(userId, g.tier, "gift");
     return { data: { tier: g.tier, recipient_name: g.recipient_name }, error: null };
   }
 
@@ -260,9 +282,7 @@
       store.gift_codes.push({ code, sender_id: order.user_id, tier: order.tier, recipient_name: order.gift_recipient_name, message: order.gift_message, redeemed: false, redeemed_by: null });
       return { data: { tier: order.tier, gift_code: code }, error: null };
     }
-    const idx = store.unlocks.findIndex((u) => u.user_id === order.user_id);
-    const row = { user_id: order.user_id, unlocked: true, tier: order.tier, source: "purchase" };
-    if (idx >= 0) store.unlocks[idx] = row; else store.unlocks.push(row);
+    grantEntitlement(order.user_id, order.tier, "purchase");
     return { data: { tier: order.tier, gift_code: null }, error: null };
   }
 
@@ -281,6 +301,7 @@
     store.birth_data = store.birth_data.filter((r) => r.user_id !== userId);
     store.palm_reports = store.palm_reports.filter((r) => r.user_id !== userId);
     store.purchases = store.purchases.filter((r) => r.user_id !== userId);
+    store.user_entitlements = store.user_entitlements.filter((r) => r.user_id !== userId);
     store.unlocks = store.unlocks.filter((r) => r.user_id !== userId);
     store.gift_codes = store.gift_codes.filter((r) => r.sender_id !== userId);
     store.chat_messages = store.chat_messages.filter((r) => r.user_id !== userId);

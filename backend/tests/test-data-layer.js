@@ -77,7 +77,13 @@ function check(label, cond) {
   console.log((cond ? "PASS" : "FAIL") + " - " + label);
 }
 
-const { createDb } = require("../supabase-client.js");
+// Points at the real, live app/supabase-client.js — NOT a local copy. A
+// duplicate used to live at backend/supabase-client.js and had silently
+// drifted out of sync (missing resetPasswordForEmail/updatePassword/
+// signInWithGoogle and the old loadUnlockStatus instead of loadEntitlements)
+// by the time this pass found it; it's been removed so there's exactly one
+// source of truth and this suite can never again test a stale copy.
+const { createDb } = require("../../app/supabase-client.js");
 
 (async () => {
   console.log("== Auth passthrough shape ==");
@@ -115,7 +121,7 @@ const { createDb } = require("../supabase-client.js");
     check("loadBirthData calls maybeSingle() (0 or 1 row, not an array)", !!loadEntry.calls.find(c => c[0] === "maybeSingle"));
   }
 
-  console.log("\n== Birth/palm/unlock loads short-circuit when logged out (no network call with a null user id) ==");
+  console.log("\n== Birth/palm/entitlement loads short-circuit when logged out (no network call with a null user id) ==");
   {
     const fake = makeFakeSupabase({ userId: null });
     const db = createDb(fake);
@@ -123,8 +129,11 @@ const { createDb } = require("../supabase-client.js");
     check("loadBirthData returns {data:null,error:null} without querying when there's no session", r1.data === null && r1.error === null && !fake.log.find(l => l.table === "birth_data"));
     const r2 = await db.loadPalmReport();
     check("loadPalmReport short-circuits the same way when logged out", r2.data === null && !fake.log.find(l => l.table === "palm_reports"));
-    const r3 = await db.loadUnlockStatus();
-    check("loadUnlockStatus short-circuits the same way when logged out", r3.data === null && !fake.log.find(l => l.table === "unlocks"));
+    const r3 = await db.loadEntitlements();
+    // loadEntitlements() returns an empty ARRAY (not null) when logged out —
+    // it's a multi-row result by design (see supabase-client.js), and app.js
+    // does `entitlementsRes.data.map(...)`, which would throw on null.
+    check("loadEntitlements short-circuits the same way when logged out, returning [] not null", Array.isArray(r3.data) && r3.data.length === 0 && !fake.log.find(l => l.table === "user_entitlements"));
   }
 
   console.log("\n== Palm reports ==");
@@ -138,17 +147,17 @@ const { createDb } = require("../supabase-client.js");
     check("savePalmReport sends both answers and report keys", "answers" in upsertCall[1] && "report" in upsertCall[1]);
   }
 
-  console.log("\n== Purchases/unlocks go through RPC, never a raw table write ==");
+  console.log("\n== Purchases/entitlements go through RPC, never a raw table write ==");
   {
     const fake = makeFakeSupabase({ rpcResults: { record_test_purchase: { data: null, error: null } } });
     const db = createDb(fake);
     await db.recordTestPurchase("bundle", 59900, "upi");
     const call = fake.rpcLog.find(r => r.name === "record_test_purchase");
-    check("recordTestPurchase calls the record_test_purchase RPC (not an insert into purchases/unlocks)", !!call);
+    check("recordTestPurchase calls the record_test_purchase RPC (not an insert into purchases/user_entitlements)", !!call);
     check("recordTestPurchase passes p_tier/p_amount_paise/p_payment_method matching the SQL function's parameter names", call.params.p_tier === "bundle" && call.params.p_amount_paise === 59900 && call.params.p_payment_method === "upi");
-    const src = require("fs").readFileSync(require("path").join(__dirname, "../supabase-client.js"), "utf8");
+    const src = require("fs").readFileSync(require("path").join(__dirname, "../../app/supabase-client.js"), "utf8");
     check("supabase-client.js never reads/writes the purchases table directly (only via the RPC)", !src.includes('.from("purchases")'));
-    check("supabase-client.js never inserts/updates the unlocks table directly (only reads it — writes only via the RPCs)", !/\.from\("unlocks"\)\s*\.\s*(insert|update)\(/.test(src));
+    check("supabase-client.js never inserts/updates the user_entitlements table directly (only reads it — writes only via grant_entitlement(), called from the RPCs)", !/\.from\("user_entitlements"\)\s*\.\s*(insert|update)\(/.test(src));
   }
 
   console.log("\n== Real payments (Razorpay) go through Edge Functions, never a raw table write ==");
@@ -176,11 +185,11 @@ const { createDb } = require("../supabase-client.js");
     check("verifyRazorpayPayment invokes the verify-razorpay-payment Edge Function", !!verifyCall);
     check("verifyRazorpayPayment forwards Razorpay Checkout's handler response untouched as the body", JSON.stringify(verifyCall.opts.body) === JSON.stringify(razorpayResponse));
 
-    const src2 = require("fs").readFileSync(require("path").join(__dirname, "../supabase-client.js"), "utf8");
+    const src2 = require("fs").readFileSync(require("path").join(__dirname, "../../app/supabase-client.js"), "utf8");
     const startIdx = src2.indexOf("async createRazorpayOrder");
     const endIdx = src2.indexOf("// ==================== GIFTING", startIdx);
     const realPaymentsSection = src2.slice(startIdx, endIdx);
-    check("createRazorpayOrder/verifyRazorpayPayment never touch purchases/unlocks/gift_codes directly — only the Edge Functions do (via complete_razorpay_order)", startIdx !== -1 && endIdx !== -1 && !realPaymentsSection.includes(".from("));
+    check("createRazorpayOrder/verifyRazorpayPayment never touch purchases/user_entitlements/gift_codes directly — only the Edge Functions do (via complete_razorpay_order)", startIdx !== -1 && endIdx !== -1 && !realPaymentsSection.includes(".from("));
   }
 
   console.log("\n== Gifting ==");

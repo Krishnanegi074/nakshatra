@@ -11,8 +11,9 @@
 // cross-user boundaries a live app depends on: nobody can read, write, or
 // forge ownership of someone else's private data; the community feed is
 // readable by any authenticated user but only writable as yourself; gift
-// codes and unlocks can only be granted through the SECURITY DEFINER
-// functions, never by a direct table write.
+// codes and tier entitlements (user_entitlements — see
+// sql/005_tier_entitlements.sql) can only be granted through the SECURITY
+// DEFINER functions, never by a direct table write.
 const { Client } = require("pg");
 
 const ALICE = "11111111-1111-1111-1111-111111111111";
@@ -79,17 +80,21 @@ async function expectError(promise, label) {
 
   console.log("\n== Group 2: birth_data — private per-user, no cross-user read/write ==");
   {
+    // city_tz (006_city_timezone.sql — the IANA-timezone/DST fix) is exercised
+    // here too, alongside the pre-existing city_name check, so this also proves
+    // the new column round-trips correctly through RLS-scoped access.
     await asUser(c, ALICE, () => c.query(
-      `insert into public.birth_data (user_id, year, month, day, city_name, sun_idx, moon_idx, asc_idx)
-       values ($1, 1990, 8, 10, 'Mumbai', 4, 1, 7)`, [ALICE]
+      `insert into public.birth_data (user_id, year, month, day, city_name, city_utc, city_tz, sun_idx, moon_idx, asc_idx)
+       values ($1, 1990, 8, 10, 'Mumbai', 5.5, 'Asia/Kolkata', 4, 1, 7)`, [ALICE]
     ));
     await asUser(c, BOB, () => c.query(
-      `insert into public.birth_data (user_id, year, month, day, city_name, sun_idx, moon_idx, asc_idx)
-       values ($1, 1988, 3, 2, 'Delhi', 11, 5, 2)`, [BOB]
+      `insert into public.birth_data (user_id, year, month, day, city_name, city_utc, city_tz, sun_idx, moon_idx, asc_idx)
+       values ($1, 1988, 3, 2, 'Delhi', 5.5, 'Asia/Kolkata', 11, 5, 2)`, [BOB]
     ));
 
     const aliceSees = await asUser(c, ALICE, () => c.query("select * from public.birth_data"));
     check("Alice's SELECT on birth_data returns only her own row", aliceSees.rows.length === 1 && aliceSees.rows[0].city_name === "Mumbai");
+    check("...and her city_tz round-tripped correctly", aliceSees.rows[0].city_tz === "Asia/Kolkata");
 
     const bobSees = await asUser(c, BOB, () => c.query("select * from public.birth_data"));
     check("Bob's SELECT on birth_data returns only his own row", bobSees.rows.length === 1 && bobSees.rows[0].city_name === "Delhi");
@@ -114,7 +119,7 @@ async function expectError(promise, label) {
     check("Bob's SELECT filtered to Alice's user_id returns 0 rows (RLS hides it, not just app-layer filtering)", bobTriesAliceReport.rows.length === 0);
   }
 
-  console.log("\n== Group 4: purchases/unlocks — cannot be written directly by a client ==");
+  console.log("\n== Group 4: purchases/user_entitlements — cannot be written directly by a client ==");
   {
     await expectError(
       asUser(c, ALICE, () => c.query(
@@ -124,18 +129,22 @@ async function expectError(promise, label) {
     );
     await expectError(
       asUser(c, ALICE, () => c.query(
-        `insert into public.unlocks (user_id, unlocked, tier, source) values ($1, true, 'bundle', 'purchase')`, [ALICE]
+        `insert into public.user_entitlements (user_id, tier, source) values ($1, 'bundle', 'purchase')`, [ALICE]
       )),
-      "Alice cannot directly INSERT into unlocks (must go through record_test_purchase()/redeem_gift_code())"
+      "Alice cannot directly INSERT into user_entitlements (must go through grant_entitlement() via record_test_purchase()/redeem_gift_code()/complete_razorpay_order())"
+    );
+    await expectError(
+      asUser(c, ALICE, () => c.query("select public.grant_entitlement($1, 'bundle', 'purchase')", [ALICE])),
+      "Alice cannot call grant_entitlement() directly either (not granted to authenticated — would let anyone unlock any tier for free)"
     );
 
-    const beforeUnlock = await asUser(c, ALICE, () => c.query("select * from public.unlocks where user_id = $1", [ALICE]));
-    check("Alice starts unlocked=false/no row before any purchase", beforeUnlock.rows.length === 0);
+    const beforeEntitlements = await asUser(c, ALICE, () => c.query("select * from public.user_entitlements where user_id = $1", [ALICE]));
+    check("Alice holds no entitlements before any purchase", beforeEntitlements.rows.length === 0);
 
     await asUser(c, ALICE, () => c.query("select public.record_test_purchase('bundle', 59900, 'upi')"));
 
-    const afterUnlock = await asUser(c, ALICE, () => c.query("select * from public.unlocks where user_id = $1", [ALICE]));
-    check("record_test_purchase() correctly sets Alice unlocked=true, tier=bundle, source=purchase", afterUnlock.rows.length === 1 && afterUnlock.rows[0].unlocked === true && afterUnlock.rows[0].tier === "bundle" && afterUnlock.rows[0].source === "purchase");
+    const afterFirstPurchase = await asUser(c, ALICE, () => c.query("select * from public.user_entitlements where user_id = $1", [ALICE]));
+    check("record_test_purchase() correctly grants Alice a bundle entitlement (source=purchase)", afterFirstPurchase.rows.length === 1 && afterFirstPurchase.rows[0].tier === "bundle" && afterFirstPurchase.rows[0].source === "purchase");
 
     const alicePurchases = await asUser(c, ALICE, () => c.query("select * from public.purchases where user_id = $1", [ALICE]));
     check("record_test_purchase() logged a purchases row for Alice", alicePurchases.rows.length === 1 && Number(alicePurchases.rows[0].amount_paise) === 59900);
@@ -143,8 +152,23 @@ async function expectError(promise, label) {
     const bobSeesAlicePurchase = await asUser(c, BOB, () => c.query("select * from public.purchases where user_id = $1", [ALICE]));
     check("Bob cannot see Alice's purchase row", bobSeesAlicePurchase.rows.length === 0);
 
-    const bobSeesAliceUnlock = await asUser(c, BOB, () => c.query("select * from public.unlocks where user_id = $1", [ALICE]));
-    check("Bob cannot see Alice's unlock row", bobSeesAliceUnlock.rows.length === 0);
+    const bobSeesAliceEntitlement = await asUser(c, BOB, () => c.query("select * from public.user_entitlements where user_id = $1", [ALICE]));
+    check("Bob cannot see Alice's entitlement row", bobSeesAliceEntitlement.rows.length === 0);
+
+    // THE core fix this migration exists for: buying a SECOND, DIFFERENT
+    // tier must ADD a row, not overwrite the first — the exact bug the old
+    // single-row public.unlocks table had (on conflict (user_id) do update).
+    await asUser(c, ALICE, () => c.query("select public.record_test_purchase('onetime', 39900, 'upi')"));
+    const afterSecondPurchase = await asUser(c, ALICE, () => c.query("select tier, source from public.user_entitlements where user_id = $1 order by tier", [ALICE]));
+    check("THE FIX: after buying a second, different tier, Alice holds BOTH entitlements (bundle AND onetime) — the second purchase did not erase the first",
+      afterSecondPurchase.rows.length === 2 &&
+      afterSecondPurchase.rows.some(r => r.tier === "bundle") &&
+      afterSecondPurchase.rows.some(r => r.tier === "onetime"));
+
+    // Idempotency: buying a tier you already hold again must not duplicate the row.
+    await asUser(c, ALICE, () => c.query("select public.record_test_purchase('onetime', 39900, 'upi')"));
+    const afterRepeatPurchase = await asUser(c, ALICE, () => c.query("select * from public.user_entitlements where user_id = $1 and tier = 'onetime'", [ALICE]));
+    check("grant_entitlement() is idempotent — re-buying the same tier does not create a duplicate row", afterRepeatPurchase.rows.length === 1);
   }
 
   console.log("\n== Group 5: gift_codes — no direct insert, sender-only visibility, redeem via function only ==");
@@ -176,8 +200,8 @@ async function expectError(promise, label) {
     const redeemResult = await asUser(c, BOB, () => c.query("select * from public.redeem_gift_code('NKSH-TEST-0001')"));
     check("Bob successfully redeems Alice's code via the function and gets back the correct tier", redeemResult.rows.length === 1 && redeemResult.rows[0].tier === "onetime");
 
-    const bobUnlockAfterRedeem = await asUser(c, BOB, () => c.query("select * from public.unlocks where user_id = $1", [BOB]));
-    check("Redeeming set Bob's unlock: unlocked=true, tier=onetime, source=gift", bobUnlockAfterRedeem.rows.length === 1 && bobUnlockAfterRedeem.rows[0].unlocked === true && bobUnlockAfterRedeem.rows[0].tier === "onetime" && bobUnlockAfterRedeem.rows[0].source === "gift");
+    const bobEntitlementAfterRedeem = await asUser(c, BOB, () => c.query("select * from public.user_entitlements where user_id = $1", [BOB]));
+    check("Redeeming granted Bob a onetime entitlement with source=gift", bobEntitlementAfterRedeem.rows.length === 1 && bobEntitlementAfterRedeem.rows[0].tier === "onetime" && bobEntitlementAfterRedeem.rows[0].source === "gift");
 
     await expectError(
       asUser(c, BOB, () => c.query("select public.redeem_gift_code('NKSH-TEST-0001')")),

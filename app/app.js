@@ -9,11 +9,26 @@ const state = {
   computed: { sunIdx: null, moonIdx: null, ascIdx: null, moonPhase: null },
   palmAnswers: {},
   palmReport: null,
-  unlocked: false,
+  // Replaces the old single `unlocked` boolean — see the hasTier()/
+  // hasFullReportAccess()/hasHoroscopeAccess()/hasFuturePartnerAccess()
+  // helpers below backendDb() for how this is read everywhere. `tiers` holds
+  // every tier ("onetime" | "bundle" | "subscription") this user has ever
+  // purchased or been gifted, from user_entitlements — NOT overwritten by a
+  // later purchase of a different tier the way the old unlocks table was.
+  entitlements: { tiers: [] },
+  // Set right after a purchase/redemption completes so the immediate
+  // post-purchase screen (#btn-success-continue, gift redemption) can route
+  // by what was JUST bought instead of always assuming the full report.
+  lastPurchasedTier: null,
   selectedTier: "onetime",
   payMethod: "upi",
   history: ["screen-landing"],
   compatResult: null,
+  // The partner's OWN birth city for the Compatibility form — required so
+  // their chart is computed in their own timezone, not the logged-in user's
+  // (see initCompat()/birthLocalToUtc()). Same {name,country,lat,lon,utc,tz}
+  // shape as state.birth.city.
+  compatPartnerCity: null,
   notifPermission: (typeof Notification !== "undefined" && Notification.permission) || "unsupported",
   // Gifting: giftCodes is deliberately NOT reset on logout (see initDashNav) so a
   // "recipient" who signs up fresh in the same browser tab can still redeem a code
@@ -44,7 +59,14 @@ const state = {
 const TIER_INFO = {
   onetime: { name: "One-Time Report", price: 399, label: "₹399" },
   bundle: { name: "Premium Bundle", price: 599, label: "₹599" },
-  subscription: { name: "Monthly Subscription", price: 299, label: "₹299/mo" },
+  // NOTE: "subscription" is the tier's internal id only (matches the DB check
+  // constraint in backend/sql/002_schema.sql + 005_tier_entitlements.sql —
+  // renaming the id would require a data migration for zero UX benefit).
+  // It is NOT a recurring subscription: confirmed one-time via faq.html
+  // ("All three are one-time payments, not recurring subscriptions") and the
+  // absence of any subscription-lifecycle/webhook/renewal code anywhere in
+  // this repo. Display copy must never say "/mo", "monthly", or "every month".
+  subscription: { name: "Horoscope Access Pass", price: 299, label: "₹299" },
 };
 
 // The login/signup/forgot-password/reset-password screens all share the
@@ -62,6 +84,42 @@ const AUTH_FLOW_SCREENS = ["screen-auth", "screen-forgot-password", "screen-rese
 // still works standalone; it just won't persist anything anywhere.
 function backendDb() {
   return (typeof NakshatraDB !== "undefined" && NakshatraDB.db) || null;
+}
+
+// ================= ENTITLEMENTS =================
+// Tier-specific access checks — see state.entitlements above and
+// backend/sql/005_tier_entitlements.sql. What each tier actually grants
+// (matches pricing.html + the #tier-list copy in index.template.html):
+//   onetime      -> full report (chart + horoscope + palm + compat + year ahead)
+//   bundle       -> everything onetime grants, PLUS the Future Partner Report
+//   subscription -> "Horoscope Access Pass": weekly horoscope only, one-time payment
+function hasTier(tierKey) {
+  return state.entitlements.tiers.indexOf(tierKey) !== -1;
+}
+function hasFullReportAccess() {
+  return hasTier("onetime") || hasTier("bundle");
+}
+function hasHoroscopeAccess() {
+  return hasTier("onetime") || hasTier("bundle") || hasTier("subscription");
+}
+function hasFuturePartnerAccess() {
+  return hasTier("bundle");
+}
+// Converts a {year,month,day,hour,minute} local birth time at `city` to the
+// correct UTC instant, DST-aware whenever we know the city's IANA zone.
+// Prefers city.tz (toUtcDateTz — correct year-round, including DST) and
+// falls back to the legacy fixed city.utc (toUtcDate) only for old
+// already-saved rows from before the city_tz column existed, where tz may
+// be missing.
+function birthLocalToUtc(city, local) {
+  if (city && city.tz) return toUtcDateTz(local, city.tz);
+  return toUtcDate(local, city ? city.utc : 5.5);
+}
+
+// Idempotent — adding a tier the user already holds is a no-op, matching
+// grant_entitlement()'s own idempotency on the server.
+function addEntitlement(tierKey) {
+  if (!hasTier(tierKey)) state.entitlements.tiers.push(tierKey);
 }
 
 // Wraps a supabase-js call so a network/DB failure never throws past this
@@ -86,11 +144,11 @@ async function loadUserDataFromBackend() {
   const dbInstance = backendDb();
   if (!dbInstance) return;
 
-  const [profileRes, birthRes, palmRes, unlockRes] = await Promise.all([
+  const [profileRes, birthRes, palmRes, entitlementsRes] = await Promise.all([
     backendCall(dbInstance.loadProfile(), "loadProfile"),
     backendCall(dbInstance.loadBirthData(), "loadBirthData"),
     backendCall(dbInstance.loadPalmReport(), "loadPalmReport"),
-    backendCall(dbInstance.loadUnlockStatus(), "loadUnlockStatus"),
+    backendCall(dbInstance.loadEntitlements(), "loadEntitlements"),
   ]);
 
   if (profileRes.data) {
@@ -102,14 +160,14 @@ async function loadUserDataFromBackend() {
     state.birth = {
       year: b.year, month: b.month, day: b.day, hour: b.hour, minute: b.minute,
       unknownTime: b.unknown_time,
-      city: b.city_name ? { name: b.city_name, country: b.city_country, lat: b.city_lat, lon: b.city_lon, utc: b.city_utc } : null,
+      city: b.city_name ? { name: b.city_name, country: b.city_country, lat: b.city_lat, lon: b.city_lon, utc: b.city_utc, tz: b.city_tz } : null,
     };
     state.computed.sunIdx = b.sun_idx;
     state.computed.moonIdx = b.moon_idx;
     state.computed.ascIdx = b.asc_idx;
     state.computed.moonPhase = getMoonPhase(new Date()); // always "now" — never persisted
     if (state.birth.city) {
-      state.computed.birthUtc = toUtcDate({ year: b.year, month: b.month, day: b.day, hour: b.hour, minute: b.minute }, state.birth.city.utc);
+      state.computed.birthUtc = birthLocalToUtc(state.birth.city, { year: b.year, month: b.month, day: b.day, hour: b.hour, minute: b.minute });
     }
   }
 
@@ -118,8 +176,11 @@ async function loadUserDataFromBackend() {
     state.palmReport = palmRes.data.report || null;
   }
 
-  if (unlockRes.data) {
-    state.unlocked = !!unlockRes.data.unlocked;
+  // entitlementsRes.data is an array of {tier, source, granted_at} rows —
+  // one per tier this user owns (see loadEntitlements() in
+  // supabase-client.js) — never a single overwritten boolean/tier pair.
+  if (entitlementsRes.data) {
+    state.entitlements.tiers = entitlementsRes.data.map(row => row.tier);
   }
 }
 
@@ -356,6 +417,19 @@ function initAuth() {
     state.authMode = authIntent;
     syncAuthTabs();
     showScreen("screen-auth");
+  }
+
+  // pricing.html's "Choose Plan" buttons link here with ?tier=onetime|bundle|
+  // subscription (plus ?auth=signup) so the plan a visitor picked on the
+  // public Pricing page survives the Pricing -> signup -> checkout hand-off
+  // instead of silently resetting to the "onetime" default once they reach
+  // the in-app tier-selection screen. resetOnboarding() (run right after
+  // signup, further down) does NOT touch selectedTier, so this survives the
+  // Pricing -> signup -> onboarding -> checkout hand-off intact; logging out
+  // (resetLocalSessionState()) resets it back to "onetime" as before.
+  const tierIntent = new URLSearchParams(location.search).get("tier");
+  if (tierIntent && TIER_INFO[tierIntent]) {
+    state.selectedTier = tierIntent;
   }
 
   $("#btn-auth-submit").addEventListener("click", async () => {
@@ -643,12 +717,17 @@ function initOnboarding() {
     $("#input-tob").style.opacity = state.birth.unknownTime ? 0.4 : 1;
   });
 
-  $("#input-city").addEventListener("click", openCitySheet);
+  $("#input-city").addEventListener("click", () => openCitySheet("birth"));
   $("#city-search").addEventListener("input", renderCityList);
   $("#sheet-city-backdrop").addEventListener("click", (e) => { if (e.target.id === "sheet-city-backdrop") closeCitySheet(); });
 }
 
-function openCitySheet() { $("#sheet-city-backdrop").classList.add("visible"); renderCityList(); $("#city-search").focus(); }
+// The city picker sheet is a single shared element used by both onboarding
+// (state.birth.city) and the Compatibility form (state.compatPartnerCity) —
+// citySheetTarget records which one the next selection should write to, so
+// the SAME sheet/search UI can be reused instead of duplicating it.
+let citySheetTarget = "birth";
+function openCitySheet(target) { citySheetTarget = target || "birth"; $("#sheet-city-backdrop").classList.add("visible"); renderCityList(); $("#city-search").focus(); }
 function closeCitySheet() { $("#sheet-city-backdrop").classList.remove("visible"); }
 
 function renderCityList() {
@@ -659,8 +738,14 @@ function renderCityList() {
   ).join("") || `<p class="muted center" style="padding:20px 0">No cities found — try a nearby major city.</p>`;
   $all(".city-item").forEach(el => el.addEventListener("click", () => {
     const c = CITIES[Number(el.dataset.city)];
-    state.birth.city = c;
-    $("#input-city").value = `${c.name}, ${c.country}`;
+    if (citySheetTarget === "compat") {
+      state.compatPartnerCity = c;
+      $("#compat-city").value = `${c.name}, ${c.country}`;
+      const evt = new Event("input"); $("#compat-city").dispatchEvent(evt); // let initCompat()'s validity check re-run
+    } else {
+      state.birth.city = c;
+      $("#input-city").value = `${c.name}, ${c.country}`;
+    }
     closeCitySheet();
   }));
 }
@@ -678,7 +763,7 @@ function runChartCalculation() {
   setTimeout(async () => {
     clearInterval(iv);
     const b = state.birth;
-    const utc = toUtcDate({ year: b.year, month: b.month, day: b.day, hour: b.hour, minute: b.minute }, b.city.utc);
+    const utc = birthLocalToUtc(b.city, { year: b.year, month: b.month, day: b.day, hour: b.hour, minute: b.minute });
     state.computed.sunIdx = getSunSign(utc);
     state.computed.moonIdx = getMoonSign(utc);
     state.computed.ascIdx = b.unknownTime ? null : getAscendantSign(utc, b.city.lat, b.city.lon);
@@ -690,7 +775,7 @@ function runChartCalculation() {
       const { error } = await backendCall(dbInstance.saveBirthData({
         year: b.year, month: b.month, day: b.day, hour: b.hour, minute: b.minute,
         unknown_time: b.unknownTime,
-        city_name: b.city.name, city_country: b.city.country, city_lat: b.city.lat, city_lon: b.city.lon, city_utc: b.city.utc,
+        city_name: b.city.name, city_country: b.city.country, city_lat: b.city.lat, city_lon: b.city.lon, city_utc: b.city.utc, city_tz: b.city.tz,
         sun_idx: state.computed.sunIdx, moon_idx: state.computed.moonIdx, asc_idx: state.computed.ascIdx,
         moon_phase: state.computed.moonPhase.name,
       }), "saveBirthData");
@@ -730,13 +815,14 @@ function renderDashboard() {
 function resetLocalSessionState() {
   Object.assign(state, {
     user: null, birth: { year: null, month: null, day: null, hour: 12, minute: 0, unknownTime: false, city: null },
-    computed: { sunIdx: null, moonIdx: null, ascIdx: null, moonPhase: null }, palmAnswers: {}, palmReport: null, unlocked: false,
-    selectedTier: "onetime", payMethod: "upi", compatResult: null,
+    computed: { sunIdx: null, moonIdx: null, ascIdx: null, moonPhase: null }, palmAnswers: {}, palmReport: null,
+    entitlements: { tiers: [] }, lastPurchasedTier: null,
+    selectedTier: "onetime", payMethod: "upi", compatResult: null, compatPartnerCity: null,
     giftInProgress: null, lastGiftCode: null, giftTier: "bundle",
     chats: {}, activeChatId: null,
   });
   resetPalmUI();
-  $("#compat-name").value = ""; $("#compat-dob").value = ""; $("#compat-tob").value = "";
+  $("#compat-name").value = ""; $("#compat-dob").value = ""; $("#compat-tob").value = ""; $("#compat-city").value = "";
   $("#btn-compat-generate").disabled = true;
 }
 
@@ -760,8 +846,10 @@ function renderHoroscope() {
   $("#horo-p2").textContent = h.paragraphs[2];
   $("#horo-p3").textContent = h.paragraphs[3];
   $("#horo-lock-wrap").classList.toggle("locked-wrap", true);
-  $all("#horo-lock-wrap .locked-content").forEach(el => el.classList.toggle("locked-content", !state.unlocked));
-  $("#horo-lock-wrap .lock-overlay").style.display = state.unlocked ? "none" : "flex";
+  // Any paid tier grants the weekly horoscope, including the ₹299 Horoscope
+  // Access Pass (subscription tier) — see hasHoroscopeAccess() above.
+  $all("#horo-lock-wrap .locked-content").forEach(el => el.classList.toggle("locked-content", !hasHoroscopeAccess()));
+  $("#horo-lock-wrap .lock-overlay").style.display = hasHoroscopeAccess() ? "none" : "flex";
   state._lastHoroscope = h;
 }
 
@@ -1043,8 +1131,10 @@ function renderPalmResult() {
   $("#palm-line-0").textContent = lines[0];
   $("#palm-locked-lines").innerHTML = lines.slice(1).map(l => `<div class="card"><p style="margin:0">${l}</p></div>`).join("");
   const lockWrap = $("#palm-result .locked-wrap");
-  $all("#palm-result .locked-content").forEach(el => el.classList.toggle("locked-content", !state.unlocked));
-  lockWrap.querySelector(".lock-overlay").style.display = state.unlocked ? "none" : "flex";
+  // Palm reading is part of the full report (onetime/bundle only — the
+  // ₹299 Horoscope Access Pass does not include it).
+  $all("#palm-result .locked-content").forEach(el => el.classList.toggle("locked-content", !hasFullReportAccess()));
+  lockWrap.querySelector(".lock-overlay").style.display = hasFullReportAccess() ? "none" : "flex";
 }
 
 // ================= LOVE ENERGY =================
@@ -1081,11 +1171,17 @@ function renderCompatScreen() {
 
 function initCompat() {
   function checkFormValid() {
-    const valid = $("#compat-name").value.trim() && $("#compat-dob").value;
+    // Their birth city is required (not just name+DOB) — it's what lets us
+    // compute THEIR chart in THEIR own timezone instead of silently reusing
+    // the logged-in user's birth city (see birthLocalToUtc() and the fix
+    // below — this used to be a disclosed shortcut, now it's a real lookup).
+    const valid = $("#compat-name").value.trim() && $("#compat-dob").value && state.compatPartnerCity;
     $("#btn-compat-generate").disabled = !valid;
   }
   $("#compat-name").addEventListener("input", checkFormValid);
   $("#compat-dob").addEventListener("input", checkFormValid);
+  $("#compat-city").addEventListener("input", checkFormValid); // fired manually by renderCityList() on selection
+  $("#compat-city").addEventListener("click", () => openCitySheet("compat"));
   const todayStr = new Date().toISOString().slice(0, 10);
   $("#compat-dob").setAttribute("max", todayStr);
   $("#compat-dob").setAttribute("min", "1900-01-01");
@@ -1094,6 +1190,7 @@ function initCompat() {
     const name = $("#compat-name").value.trim();
     const dobStr = $("#compat-dob").value;
     if (!name || !dobStr) return toast("Enter their name and date of birth");
+    if (!state.compatPartnerCity) return toast("Add their birth city");
     const [y, m, d] = dobStr.split("-").map(Number);
     const chosen = new Date(Date.UTC(y, m - 1, d));
     const todayUTC = new Date(Date.UTC(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()));
@@ -1101,8 +1198,9 @@ function initCompat() {
     const tobStr = $("#compat-tob").value;
     let hour = 12, minute = 0;
     if (tobStr) { const [h, mi] = tobStr.split(":").map(Number); hour = h; minute = mi; }
-    const utcOffset = state.birth.city ? state.birth.city.utc : 5.5;
-    const utc = toUtcDate({ year: y, month: m, day: d, hour, minute }, utcOffset);
+    // THE FIX: convert using the PARTNER's own city/timezone, not the
+    // logged-in user's — state.compatPartnerCity, never state.birth.city.
+    const utc = birthLocalToUtc(state.compatPartnerCity, { year: y, month: m, day: d, hour, minute });
     const partnerSun = getSunSign(utc);
     const partnerMoon = getMoonSign(utc);
     const c = state.computed;
@@ -1117,7 +1215,8 @@ function initCompat() {
 
   $("#btn-compat-reset").addEventListener("click", () => {
     state.compatResult = null;
-    $("#compat-name").value = ""; $("#compat-dob").value = ""; $("#compat-tob").value = "";
+    state.compatPartnerCity = null;
+    $("#compat-name").value = ""; $("#compat-dob").value = ""; $("#compat-tob").value = ""; $("#compat-city").value = "";
     $("#btn-compat-generate").disabled = true;
     renderCompatScreen();
   });
@@ -1132,8 +1231,9 @@ function renderCompatResult() {
   $("#compat-p0").textContent = r.synastry.paragraphs[0];
   $("#compat-locked-lines").innerHTML = r.synastry.paragraphs.slice(1).map(p => `<div class="card"><p style="margin:0">${p}</p></div>`).join("");
   const wrap = $("#compat-result .locked-wrap");
-  $all("#compat-result .locked-content").forEach(el => el.classList.toggle("locked-content", !state.unlocked));
-  wrap.querySelector(".lock-overlay").style.display = state.unlocked ? "none" : "flex";
+  // Compatibility is part of the full report (onetime/bundle only).
+  $all("#compat-result .locked-content").forEach(el => el.classList.toggle("locked-content", !hasFullReportAccess()));
+  wrap.querySelector(".lock-overlay").style.display = hasFullReportAccess() ? "none" : "flex";
 }
 
 // ================= YEAR AHEAD =================
@@ -1149,8 +1249,9 @@ function renderYearAheadScreen() {
   $("#ya-p0").textContent = ya.paragraphs[0];
   $("#ya-locked-lines").innerHTML = ya.paragraphs.slice(1).map(p => `<div class="card"><p style="margin:0">${p}</p></div>`).join("");
   const wrap = $("#screen-yearahead .locked-wrap");
-  $all("#screen-yearahead .locked-content").forEach(el => el.classList.toggle("locked-content", !state.unlocked));
-  wrap.querySelector(".lock-overlay").style.display = state.unlocked ? "none" : "flex";
+  // Year Ahead is part of the full report (onetime/bundle only).
+  $all("#screen-yearahead .locked-content").forEach(el => el.classList.toggle("locked-content", !hasFullReportAccess()));
+  wrap.querySelector(".lock-overlay").style.display = hasFullReportAccess() ? "none" : "flex";
 }
 
 // ================= NOTIFICATIONS =================
@@ -1221,7 +1322,9 @@ function initTierSelection() {
     state.selectedTier = card.dataset.tier;
   });
   $("#btn-report-checkout").addEventListener("click", () => {
-    if (state.unlocked) { showScreen("screen-fullreport"); return; }
+    // "Everything, unlocked" (#screen-report) is the full-report paywall —
+    // granted by onetime or bundle, not by the horoscope-only subscription tier.
+    if (hasFullReportAccess()) { showScreen("screen-fullreport"); return; }
     state.giftInProgress = null; // this is a self-purchase entry point, not the gift flow
     showScreen("screen-checkout");
   });
@@ -1230,7 +1333,7 @@ function renderTierSelection() {
   $all(".tier-card").forEach(c => c.classList.toggle("selected", c.dataset.tier === state.selectedTier));
   const btn = $("#btn-report-checkout");
   const tierPicker = $("#tier-list");
-  if (state.unlocked) {
+  if (hasFullReportAccess()) {
     btn.textContent = tr("report.already-unlocked");
     tierPicker.style.display = "none";
   } else {
@@ -1307,7 +1410,8 @@ function initCheckout() {
           state.giftInProgress = null;
           showScreen("screen-gift-sent", { silent: true });
         } else {
-          state.unlocked = true;
+          addEntitlement(tierKey);
+          state.lastPurchasedTier = tierKey;
           $("#success-sub").textContent = tr("success.sub-template", { tier: tierDisplayName(tierKey) });
           showScreen("screen-success", { silent: true });
         }
@@ -1319,7 +1423,18 @@ function initCheckout() {
     rzp.open();
   });
 
-  $("#btn-success-continue").addEventListener("click", () => showScreen("screen-fullreport"));
+  // Route to what was actually just bought: the ₹299 Horoscope Access Pass
+  // (subscription tier) only grants the weekly horoscope, not the full
+  // report — sending its buyer to #screen-fullreport would show them a
+  // paywalled screen for content they haven't purchased.
+  $("#btn-success-continue").addEventListener("click", () => {
+    const justBought = state.lastPurchasedTier;
+    if (justBought === "subscription" && !hasFullReportAccess()) {
+      showScreen("screen-horoscope");
+    } else {
+      showScreen("screen-fullreport");
+    }
+  });
 }
 
 // ================= GIFTING =================
@@ -1444,7 +1559,12 @@ function initGiftRedeem() {
   $("#btn-redeem-submit").addEventListener("click", async () => {
     const raw = $("#input-gift-code").value.trim().toUpperCase();
     if (!raw) return toast("Enter a gift code");
-    if (state.unlocked) { closeRedeem(); toast("You've already unlocked your full report."); showScreen("screen-fullreport"); return; }
+    // Gift codes are only ever minted for onetime/bundle (see #gift-tier-list
+    // in index.template.html — subscription isn't giftable), so "bundle" is
+    // the highest tier a code could add. Only short-circuit once the user
+    // already holds it — someone with just "onetime" should still be able to
+    // redeem a Bundle code for the extra Future Partner Report access.
+    if (hasTier("bundle")) { closeRedeem(); toast("You already have full access to your report."); showScreen("screen-fullreport"); return; }
 
     const dbInstance = backendDb();
     if (!dbInstance) {
@@ -1454,10 +1574,11 @@ function initGiftRedeem() {
       if (g.redeemed) return toast("This code has already been redeemed.");
       g.redeemed = true;
       g.redeemedBy = (state.user && state.user.name) || "you";
-      state.unlocked = true;
+      addEntitlement(g.tier);
+      state.lastPurchasedTier = g.tier;
       closeRedeem();
-      toast(`🎁 Unlocked! Gifted by ${g.senderName}.`);
-      showScreen("screen-fullreport");
+      toast(`🎁 Unlocked your ${tierDisplayName(g.tier)}! Gifted by ${g.senderName}.`);
+      showScreen(hasFullReportAccess() ? "screen-fullreport" : "screen-horoscope");
       return;
     }
 
@@ -1475,10 +1596,11 @@ function initGiftRedeem() {
         );
         return;
       }
-      state.unlocked = true;
+      const grantedTier = data && data.tier;
+      if (grantedTier) { addEntitlement(grantedTier); state.lastPurchasedTier = grantedTier; }
       closeRedeem();
-      toast(data && data.tier ? `🎁 Unlocked your ${tierDisplayName(data.tier)}!` : "🎁 Unlocked!");
-      showScreen("screen-fullreport");
+      toast(grantedTier ? `🎁 Unlocked your ${tierDisplayName(grantedTier)}!` : "🎁 Unlocked!");
+      showScreen(hasFullReportAccess() ? "screen-fullreport" : "screen-horoscope");
     } finally {
       submitBtn.disabled = false;
     }
@@ -1807,20 +1929,33 @@ function renderFullReport() {
     $("#fr-compat").innerHTML = `<p style="margin:0">${tr("fr.compat-recovery")}</p>`;
   }
 
-  const fp = computeFuturePartner();
-  $("#fr-partner").innerHTML = `
-    <div class="row wrap" style="gap:18px;justify-content:space-between">
-      <div><div class="muted">${tr("fr.partner.initial")}</div><strong style="font-size:1.3rem">${fp.initial}.</strong></div>
-      <div><div class="muted">${tr("fr.partner.year")}</div><strong style="font-size:1.3rem">${fp.marriageYear}</strong></div>
-      <div><div class="muted">${tr("fr.partner.age")}</div><strong style="font-size:1.3rem">${fp.partnerAge}</strong></div>
-      <div><div class="muted">${tr("fr.partner.compat")}</div><strong style="font-size:1.3rem">${fp.compat}%</strong></div>
-    </div>
-    <div class="divider"></div>
-    <div class="muted">${tr("fr.partner.theme")}</div>
-    <p style="margin:2px 0 10px;font-weight:600;color:var(--text)">${fp.theme}</p>
-    <div class="muted">${tr("fr.partner.outlook")}</div>
-    <p style="margin:2px 0 0">${fp.outlook}</p>
-  `;
+  // Future Partner Report is Bundle-only (see item #9/#65 of the site-wide
+  // QA pass — its formulaic "prediction" isn't part of Nakshatra's documented
+  // classical rules, so it's gated + clearly disclaimed rather than shown to
+  // everyone as if it carried the same weight as the rest of the report).
+  const partnerWrap = $("#fr-partner-wrap");
+  const partnerLocked = $("#fr-partner-locked");
+  if (hasFuturePartnerAccess()) {
+    if (partnerWrap) partnerWrap.style.display = "";
+    if (partnerLocked) partnerLocked.style.display = "none";
+    const fp = computeFuturePartner();
+    $("#fr-partner").innerHTML = `
+      <div class="row wrap" style="gap:18px;justify-content:space-between">
+        <div><div class="muted">${tr("fr.partner.initial")}</div><strong style="font-size:1.3rem">${fp.initial}.</strong></div>
+        <div><div class="muted">${tr("fr.partner.year")}</div><strong style="font-size:1.3rem">${fp.marriageYear}</strong></div>
+        <div><div class="muted">${tr("fr.partner.age")}</div><strong style="font-size:1.3rem">${fp.partnerAge}</strong></div>
+        <div><div class="muted">${tr("fr.partner.compat")}</div><strong style="font-size:1.3rem">${fp.compat}%</strong></div>
+      </div>
+      <div class="divider"></div>
+      <div class="muted">${tr("fr.partner.theme")}</div>
+      <p style="margin:2px 0 10px;font-weight:600;color:var(--text)">${fp.theme}</p>
+      <div class="muted">${tr("fr.partner.outlook")}</div>
+      <p style="margin:2px 0 0">${fp.outlook}</p>
+    `;
+  } else {
+    if (partnerWrap) partnerWrap.style.display = "none";
+    if (partnerLocked) partnerLocked.style.display = "";
+  }
 }
 
 // ================= SHARE CARD =================

@@ -10,6 +10,7 @@ truncate table
   public.chat_messages,
   public.gift_codes,
   public.razorpay_orders,
+  public.user_entitlements,
   public.unlocks,
   public.purchases,
   public.palm_reports,
@@ -66,13 +67,18 @@ if [ "$SELF_RESULT" = "onetime|NULL" ]; then
 else
   echo "FAIL - self-purchase: expected 'onetime|NULL', got '$SELF_RESULT'"; PAY_EXIT=1
 fi
-SELF_UNLOCK=$(sudo -u postgres psql -d nakshatra_test -t -A -c "
-select unlocked || '|' || tier || '|' || source from public.unlocks where user_id = '11111111-1111-1111-1111-111111111111';
+# Scoped to tier='onetime' specifically — by this point in the script Alice
+# (same UUID) already holds a separate 'bundle' entitlement from
+# test-rls.js's own Group 4 (run just above, in the same database), which is
+# itself proof the fix works: the old single-row unlocks table would have
+# had that earlier 'bundle' row silently overwritten by this one.
+SELF_ENTITLEMENT=$(sudo -u postgres psql -d nakshatra_test -t -A -c "
+select tier || '|' || source from public.user_entitlements where user_id = '11111111-1111-1111-1111-111111111111' and tier = 'onetime';
 ")
-if [ "$SELF_UNLOCK" = "true|onetime|purchase" ]; then
-  echo "PASS - self-purchase correctly set unlocks (unlocked=true, tier=onetime, source=purchase)"
+if [ "$SELF_ENTITLEMENT" = "onetime|purchase" ]; then
+  echo "PASS - self-purchase correctly granted a onetime entitlement (source=purchase)"
 else
-  echo "FAIL - self-purchase unlock row wrong: '$SELF_UNLOCK'"; PAY_EXIT=1
+  echo "FAIL - self-purchase entitlement row wrong: '$SELF_ENTITLEMENT'"; PAY_EXIT=1
 fi
 SELF_PURCHASE_COUNT=$(sudo -u postgres psql -d nakshatra_test -t -A -c "
 select count(*) from public.purchases where user_id = '11111111-1111-1111-1111-111111111111' and status = 'razorpay_success';
@@ -122,13 +128,32 @@ if [ "$GIFT_ROW" = "33333333-3333-3333-3333-333333333333|bundle|A Friend" ]; the
 else
   echo "FAIL - gift_codes row wrong: '$GIFT_ROW'"; PAY_EXIT=1
 fi
-SENDER_UNLOCK_AFTER_GIFT=$(sudo -u postgres psql -d nakshatra_test -t -A -c "
-select count(*) from public.unlocks where user_id = '33333333-3333-3333-3333-333333333333';
+SENDER_ENTITLEMENTS_AFTER_GIFT=$(sudo -u postgres psql -d nakshatra_test -t -A -c "
+select count(*) from public.user_entitlements where user_id = '33333333-3333-3333-3333-333333333333';
 ")
-if [ "$SENDER_UNLOCK_AFTER_GIFT" = "0" ]; then
-  echo "PASS - buying a gift did NOT unlock anything for the sender (only the eventual redeemer gets unlocked)"
+if [ "$SENDER_ENTITLEMENTS_AFTER_GIFT" = "0" ]; then
+  echo "PASS - buying a gift did NOT grant the sender anything (only the eventual redeemer gets an entitlement)"
 else
-  echo "FAIL - expected no unlocks row for the gift sender, found $SENDER_UNLOCK_AFTER_GIFT"; PAY_EXIT=1
+  echo "FAIL - expected no user_entitlements row for the gift sender, found $SENDER_ENTITLEMENTS_AFTER_GIFT"; PAY_EXIT=1
+fi
+
+# THE core fix, exercised via complete_razorpay_order() too (not just
+# record_test_purchase()): Alice already holds 'bundle' (test-rls.js Group 4)
+# and 'onetime' (order_test_self, above) — buying a THIRD, different tier
+# (subscription) via the real Razorpay path must ADD a third row, not
+# overwrite either of the first two.
+sudo -u postgres psql -d nakshatra_test -q -c "
+insert into public.razorpay_orders (order_id, user_id, tier, amount_paise, status) values
+  ('order_test_self_2', '11111111-1111-1111-1111-111111111111', 'subscription', 29900, 'created');
+select public.complete_razorpay_order('order_test_self_2', 'pay_test_self_2', 'upi');
+" > /dev/null
+SELF_ENTITLEMENT_COUNT_2=$(sudo -u postgres psql -d nakshatra_test -t -A -c "
+select count(*) from public.user_entitlements where user_id = '11111111-1111-1111-1111-111111111111';
+")
+if [ "$SELF_ENTITLEMENT_COUNT_2" = "3" ]; then
+  echo "PASS - THE FIX: a third, different-tier purchase (via complete_razorpay_order) ADDS an entitlement instead of overwriting the earlier ones (now holds all 3: bundle, onetime, subscription)"
+else
+  echo "FAIL - expected 3 entitlement rows after a third different-tier purchase, got $SELF_ENTITLEMENT_COUNT_2"; PAY_EXIT=1
 fi
 
 # Unknown order_id should fail cleanly (ORDER_NOT_FOUND), not silently no-op.

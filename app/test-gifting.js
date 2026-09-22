@@ -13,7 +13,21 @@ const fs = require("fs");
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   const errors = [];
   page.on("pageerror", (e) => errors.push("PAGEERROR: " + e.message));
-  page.on("console", (msg) => { if (msg.type() === "error") errors.push("CONSOLE ERROR: " + msg.text()); });
+  page.on("console", (msg) => {
+    if (msg.type() !== "error") return;
+    if (msg.text().includes("ERR_TUNNEL_CONNECTION_FAILED")) return; // expected in this sandbox — no real network
+    errors.push("CONSOLE ERROR: " + msg.text());
+  });
+
+  // Without a real/faked backend, #btn-pay-submit just toasts "Payments
+  // aren't available" and does nothing (see initCheckout() in app.js) — this
+  // file predates the real Razorpay integration and was never updated with
+  // these, matching the pattern test-final.js and tests-backend/
+  // test-backend-integration.js already use.
+  const fakeSupabaseSrc = require("fs").readFileSync(path.join(__dirname, "tests-backend", "fake-supabase.js"), "utf8");
+  await page.addInitScript(fakeSupabaseSrc);
+  const fakeRazorpaySrc = require("fs").readFileSync(path.join(__dirname, "tests-backend", "fake-razorpay.js"), "utf8");
+  await page.addInitScript(fakeRazorpaySrc);
 
   if (!fs.existsSync("shots-gift")) fs.mkdirSync("shots-gift");
   const shot = (name) => page.screenshot({ path: `shots-gift/${name}.png` });
@@ -69,7 +83,10 @@ const fs = require("fs");
   await page.click("#btn-gift-continue"); // re-enter checkout
   await page.waitForTimeout(150);
 
-  await page.fill("#input-upi", "aditi@okhdfc");
+  // #input-upi was a field from a pre-Razorpay test-mode checkout prototype
+  // (removed when the real Razorpay Checkout integration shipped — see
+  // initCheckout() in app.js); #btn-pay-submit alone now opens the real
+  // Razorpay popup, which fake-razorpay.js auto-completes in tests.
   await page.click("#btn-pay-submit");
   await page.waitForTimeout(2000);
   const onGiftSent = await page.evaluate(() => document.querySelector(".screen.active").id);
@@ -148,7 +165,6 @@ const fs = require("fs");
   await page.waitForTimeout(150);
   const thirdCheckoutLabel = await page.textContent("#checkout-summary-label");
   console.log("Third (fresh) user's checkout summary label (expect 'Order summary', not a stale gift):", thirdCheckoutLabel);
-  await page.fill("#input-upi", "third@okaxis");
   await page.click("#btn-pay-submit");
   await page.waitForTimeout(2000);
   const thirdScreenAfterPay = await page.evaluate(() => document.querySelector(".screen.active").id);

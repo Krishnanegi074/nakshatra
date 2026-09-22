@@ -576,13 +576,14 @@
     <div class="topbar"><button class="icon-btn" data-back="screen-dashboard">←</button><h2 data-i18n="compat.title">Compatibility Report</h2></div>
 
     <div id="compat-form">
-      <p class="muted" data-i18n="compat.intro">Add their birth details — just a name and date of birth is enough for a Sun-sign read. Add their birth time for a deeper Moon-sign comparison too.</p>
+      <p class="muted" data-i18n="compat.intro">Add their birth details — name, date of birth, and birth city are enough for a Sun-sign read. Add their birth time for a deeper Moon-sign comparison too.</p>
       <div class="card stack">
         <div class="field"><label data-i18n="compat.label.name">Their name</label><input type="text" id="compat-name" placeholder="e.g. Rohan Verma"></div>
         <div class="field"><label data-i18n="compat.label.dob">Their date of birth</label><input type="date" id="compat-dob"></div>
+        <div class="field"><label data-i18n="compat.label.city">Their birth city</label><input type="text" id="compat-city" placeholder="Search for their birth city..." readonly data-i18n-ph="onb.ph.city"></div>
         <div class="field"><label data-i18n="compat.label.tob">Their birth time</label> <span class="muted" data-i18n="compat.tob.optional">(optional — improves accuracy)</span><input type="time" id="compat-tob"></div>
       </div>
-      <p class="field-hint" data-i18n="compat.hint">To keep this quick, we calculate their chart using your own birth city's time zone rather than asking for a second location.</p>
+      <p class="field-hint" data-i18n="compat.hint">We use their own birth city's time zone (not yours) to compute their chart, so it's calculated correctly no matter where they were born.</p>
       <button class="btn btn-primary btn-block" id="btn-compat-generate" style="margin-top:10px" disabled data-i18n="compat.btn.generate">Generate Compatibility Report</button>
     </div>
 
@@ -646,11 +647,11 @@
       <div class="tier-card" data-tier="bundle">
         <span class="badge" data-i18n="tier.bundle.badge">Most Popular</span>
         <div class="row between"><strong data-i18n="tier.bundle.title">Premium Bundle</strong><span class="tier-price"><span class="was">₹999</span>₹599</span></div>
-        <p class="muted" style="margin:6px 0 0" data-i18n="tier.bundle.desc">Full report + Future Partner Report + unlimited Love Energy for 30 days.</p>
+        <p class="muted" style="margin:6px 0 0" data-i18n="tier.bundle.desc">Everything in the One-Time Report, plus your Future Partner Report — unlocked once, no recurring charge.</p>
       </div>
       <div class="tier-card" data-tier="subscription">
-        <div class="row between"><strong data-i18n="tier.sub.title">Monthly Subscription</strong><span class="tier-price">₹299<span style="font-size:0.85rem;color:var(--text-faint)">/mo</span></span></div>
-        <p class="muted" style="margin:6px 0 0" data-i18n="tier.sub.desc">New weekly horoscope + unlimited unlocks every month.</p>
+        <div class="row between"><strong data-i18n="tier.sub.title">Horoscope Access Pass</strong><span class="tier-price">₹299</span></div>
+        <p class="muted" style="margin:6px 0 0" data-i18n="tier.sub.desc">Full weekly horoscope access, unlocked once. One-time payment — not a subscription.</p>
       </div>
     </div>
 
@@ -801,9 +802,19 @@
     <div class="report-section-title"><span class="eyebrow" style="margin:0" data-i18n="fr.section.compat">💞 Compatibility Report</span><div class="line"></div></div>
     <div class="card stack" id="fr-compat"></div>
 
-    <div class="report-section-title"><span class="eyebrow" style="margin:0" data-i18n="fr.section.partner">💍 Future Partner Report</span><div class="line"></div></div>
-    <div class="card stack" id="fr-partner"></div>
-    <p class="muted center" style="margin-top:6px" data-i18n="fr.disclaimer">Entertainment-only cosmic prediction — for fun, not fortune-telling.</p>
+    <!-- Bundle-only: computeFuturePartner()/renderFullReport() in app.js hide this
+         whole block (display:none) unless hasFuturePartnerAccess() — see item #9/#65
+         of the site-wide QA pass. #fr-partner-locked is the upsell shown to
+         everyone else instead. -->
+    <div id="fr-partner-wrap">
+      <div class="report-section-title"><span class="eyebrow" style="margin:0" data-i18n="fr.section.partner">💍 Future Partner Report</span><div class="line"></div></div>
+      <div class="card stack" id="fr-partner"></div>
+      <p class="muted center" style="margin-top:6px" data-i18n="fr.disclaimer">Just for fun: a playful, non-predictive pattern generated for entertainment and self-reflection. Unlike the rest of this report, it isn't based on Nakshatra's documented classical rules and shouldn't be read as an actual prediction.</p>
+    </div>
+    <div id="fr-partner-locked" style="display:none">
+      <div class="report-section-title"><span class="eyebrow" style="margin:0" data-i18n="fr.section.partner">💍 Future Partner Report</span><div class="line"></div></div>
+      <div class="card center muted" data-i18n="fr.partner.locked">Included with the Premium Bundle. Upgrade to see this playful, just-for-fun extra.</div>
+    </div>
 
     <button class="btn btn-primary btn-block" id="btn-fullreport-share" style="margin-top:18px" data-i18n="fr.btn.share">Share as Image Card</button>
   </section>

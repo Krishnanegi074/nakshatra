@@ -36,9 +36,56 @@ function toSidereal(tropicalLonDeg, utcDate) {
   return norm360(tropicalLonDeg - getAyanamsa(utcDate));
 }
 
+// LEGACY / fixed-offset only — does not know about DST. Kept for backward
+// compatibility with already-saved birth_data rows that only have a numeric
+// `city_utc` and no `city_tz` (see city-data.js and toUtcDateTz() below,
+// which is what new code should use).
 function toUtcDate(birthLocal, utcOffsetHours) {
   const localAsUtcMs = Date.UTC(birthLocal.year, birthLocal.month - 1, birthLocal.day, birthLocal.hour, birthLocal.minute);
   return new Date(localAsUtcMs - utcOffsetHours * 3600 * 1000);
+}
+
+// Resolves the UTC offset (in minutes) that `ianaTz` had at approximately
+// the given UTC instant — i.e. whether standard or daylight-saving time was
+// in effect at that moment in that zone.
+function tzOffsetMinutesAt(ianaTz, utcMs) {
+  const dtf = new Intl.DateTimeFormat("en-US", {
+    timeZone: ianaTz, hourCycle: "h23",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+  });
+  const parts = {};
+  for (const p of dtf.formatToParts(new Date(utcMs))) parts[p.type] = p.value;
+  const asIfUtcMs = Date.UTC(
+    Number(parts.year), Number(parts.month) - 1, Number(parts.day),
+    Number(parts.hour), Number(parts.minute), Number(parts.second)
+  );
+  return (asIfUtcMs - utcMs) / 60000;
+}
+
+// birthLocal: {year,month,day,hour,minute} in LOCAL WALL-CLOCK time at the
+// birth place. ianaTz: an IANA timezone identifier, e.g. "America/New_York".
+//
+// Converts to the correct UTC instant using the offset that actually applied
+// AT THE BIRTH DATE (not today's offset) — so e.g. a July birth in New York
+// correctly resolves to EDT (UTC-4) and a January birth to EST (UTC-5),
+// instead of a single fixed offset that's only right for half the year.
+//
+// Implementation: a standard two-pass fixed-point resolution (the same
+// approach date libraries like Luxon use). First guess the offset by
+// treating the local wall-clock fields as if they were UTC, then re-check
+// the offset at the corrected instant in case the correction itself crossed
+// a DST transition boundary. The one inherent ambiguity no library can fully
+// resolve is a wall-clock time that occurs twice during a "fall back" — this
+// converges on one of the two valid instants, an accepted, documented
+// limitation shared by every timezone-conversion library.
+function toUtcDateTz(birthLocal, ianaTz) {
+  const naiveUtcMs = Date.UTC(birthLocal.year, birthLocal.month - 1, birthLocal.day, birthLocal.hour, birthLocal.minute);
+  const offsetMin1 = tzOffsetMinutesAt(ianaTz, naiveUtcMs);
+  const correctedMs = naiveUtcMs - offsetMin1 * 60000;
+  const offsetMin2 = tzOffsetMinutesAt(ianaTz, correctedMs);
+  const finalMs = offsetMin2 === offsetMin1 ? correctedMs : naiveUtcMs - offsetMin2 * 60000;
+  return new Date(finalMs);
 }
 
 function getSunSign(utcDate) {

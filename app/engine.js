@@ -38,9 +38,60 @@ function toSidereal(tropicalLonDeg, utcDate) {
 
 // birthLocal: {year,month,day,hour,minute} in LOCAL time at the birth place
 // utcOffsetHours: e.g. 5.5 for IST
+// LEGACY / fixed-offset only — does not know about DST. Kept for backward
+// compatibility with already-saved birth_data rows that only have a numeric
+// `city_utc` and no `city_tz` (see city-data.js and toUtcDateTz() below,
+// which is what new code should use).
 function toUtcDate(birthLocal, utcOffsetHours) {
   const localAsUtcMs = Date.UTC(birthLocal.year, birthLocal.month - 1, birthLocal.day, birthLocal.hour, birthLocal.minute);
   return new Date(localAsUtcMs - utcOffsetHours * 3600 * 1000);
+}
+
+// Resolves the UTC offset (in minutes) that `ianaTz` had at approximately
+// the given UTC instant — i.e. whether standard or daylight-saving time was
+// in effect at that moment in that zone.
+function tzOffsetMinutesAt(ianaTz, utcMs) {
+  const dtf = new Intl.DateTimeFormat("en-US", {
+    timeZone: ianaTz, hourCycle: "h23",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+  });
+  const parts = {};
+  for (const p of dtf.formatToParts(new Date(utcMs))) parts[p.type] = p.value;
+  const asIfUtcMs = Date.UTC(
+    Number(parts.year), Number(parts.month) - 1, Number(parts.day),
+    Number(parts.hour), Number(parts.minute), Number(parts.second)
+  );
+  return (asIfUtcMs - utcMs) / 60000;
+}
+
+// birthLocal: {year,month,day,hour,minute} in LOCAL WALL-CLOCK time at the
+// birth place. ianaTz: an IANA timezone identifier, e.g. "America/New_York".
+//
+// Converts to the correct UTC instant using the offset that actually applied
+// AT THE BIRTH DATE (not today's offset) — so e.g. a July birth in New York
+// correctly resolves to EDT (UTC-4) and a January birth to EST (UTC-5),
+// instead of a single fixed offset that's only right for half the year.
+//
+// Implementation: a standard two-pass fixed-point resolution (the same
+// approach date libraries like Luxon use). First guess the offset by
+// treating the local wall-clock fields as if they were UTC, then re-check
+// the offset at the corrected instant in case the correction itself crossed
+// a DST transition boundary — this second pass is what makes birth times
+// near a "spring forward"/"fall back" transition resolve correctly rather
+// than off by an hour. The one inherent ambiguity no library can fully
+// resolve is a wall-clock time that occurs twice during a "fall back" (e.g.
+// 1:30 AM occurring once in EDT and once in EST) — this converges on one of
+// the two valid instants, which is an accepted, documented limitation
+// shared by every timezone-conversion library, not a bug specific to this
+// implementation.
+function toUtcDateTz(birthLocal, ianaTz) {
+  const naiveUtcMs = Date.UTC(birthLocal.year, birthLocal.month - 1, birthLocal.day, birthLocal.hour, birthLocal.minute);
+  const offsetMin1 = tzOffsetMinutesAt(ianaTz, naiveUtcMs);
+  const correctedMs = naiveUtcMs - offsetMin1 * 60000;
+  const offsetMin2 = tzOffsetMinutesAt(ianaTz, correctedMs);
+  const finalMs = offsetMin2 === offsetMin1 ? correctedMs : naiveUtcMs - offsetMin2 * 60000;
+  return new Date(finalMs);
 }
 
 function getSunSign(utcDate) {
@@ -80,7 +131,7 @@ function getTransitingSign(body, utcDate) {
   return signIndexFromLongitude(toSidereal(elon, utcDate));
 }
 
-module.exports = { SIGNS, toUtcDate, getSunSign, getMoonSign, getAscendantSign, getMoonPhase, getTransitingSign, signIndexFromLongitude, getAyanamsa, toSidereal };
+module.exports = { SIGNS, toUtcDate, toUtcDateTz, tzOffsetMinutesAt, getSunSign, getMoonSign, getAscendantSign, getMoonPhase, getTransitingSign, signIndexFromLongitude, getAyanamsa, toSidereal };
 
 // ---- self-test when run directly ----
 if (require.main === module) {
@@ -125,6 +176,25 @@ if (require.main === module) {
 
   // Moon phase sanity: MoonPhase(t) near a known new moon should be close to 0/360
   console.log("Sample moon phase 2026-08-17:", getMoonPhase(new Date("2026-08-17T00:00:00Z")));
+
+  // toUtcDateTz(): DST-aware conversion sanity checks.
+  // New York: July is EDT (UTC-4), January is EST (UTC-5) — a fixed offset
+  // gets one of these two right and the other wrong by an hour.
+  const julyNY = toUtcDateTz({ year: 2026, month: 7, day: 15, hour: 9, minute: 0 }, "America/New_York");
+  assert.strictEqual(julyNY.toISOString(), "2026-07-15T13:00:00.000Z", "July NY birth should resolve as EDT (UTC-4)");
+  const janNY = toUtcDateTz({ year: 2026, month: 1, day: 15, hour: 9, minute: 0 }, "America/New_York");
+  assert.strictEqual(janNY.toISOString(), "2026-01-15T14:00:00.000Z", "January NY birth should resolve as EST (UTC-5)");
+  // London: July is BST (UTC+1), January is GMT (UTC+0).
+  const julyLondon = toUtcDateTz({ year: 2026, month: 7, day: 15, hour: 9, minute: 0 }, "Europe/London");
+  assert.strictEqual(julyLondon.toISOString(), "2026-07-15T08:00:00.000Z", "July London birth should resolve as BST (UTC+1)");
+  const janLondon = toUtcDateTz({ year: 2026, month: 1, day: 15, hour: 9, minute: 0 }, "Europe/London");
+  assert.strictEqual(janLondon.toISOString(), "2026-01-15T09:00:00.000Z", "January London birth should resolve as GMT (UTC+0)");
+  // India never observes DST — toUtcDateTz("Asia/Kolkata") should exactly
+  // match the legacy fixed-offset toUtcDate(local, 5.5) year-round.
+  const juneKolkataTz = toUtcDateTz({ year: 2026, month: 6, day: 21, hour: 6, minute: 40 }, "Asia/Kolkata");
+  const juneKolkataFixed = toUtcDate({ year: 2026, month: 6, day: 21, hour: 6, minute: 40 }, 5.5);
+  assert.strictEqual(juneKolkataTz.toISOString(), juneKolkataFixed.toISOString(), "Asia/Kolkata has no DST — tz-aware and fixed-offset results should match exactly");
+  console.log("toUtcDateTz() DST-aware conversion tests: PASS");
 
   console.log("ALL ENGINE TESTS PASSED");
 }

@@ -50,6 +50,17 @@ docs/       Product/business planning doc
   (`razorpay_orders` table, `complete_razorpay_order()`), replacing the
   test-mode-only checkout. Run after `002_schema.sql` and
   `003_account_deletion.sql`.
+- `sql/005_tier_entitlements.sql` — replaces the single-row `unlocks` table
+  (silently overwritten by each new purchase) with `user_entitlements` — one
+  row per `(user_id, tier)` a person actually owns, so e.g. buying the
+  Horoscope Access Pass and later the One-Time Report keeps both instead of
+  the second purchase erasing the first. Run after `002_schema.sql`,
+  `003_account_deletion.sql`, and `004_razorpay_payments.sql`.
+- `sql/006_city_timezone.sql` — adds `birth_data.city_tz` (IANA timezone
+  identifier), used for DST-aware chart calculation instead of the old fixed
+  `city_utc` offset (see `app/city-data.js`'s `tz` field and
+  `app/engine.js`'s `toUtcDateTz()`). Additive/backward-compatible; run any
+  time after `002_schema.sql`.
 - `supabase/functions/create-razorpay-order/`,
   `supabase/functions/verify-razorpay-payment/` — the two Edge Functions the
   live checkout calls. Deploy both via the Supabase dashboard (Edge

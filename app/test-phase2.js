@@ -6,7 +6,20 @@ const path = require("path");
   const page = await browser.newPage({ viewport: { width: 390, height: 844 }, permissions: [] });
   const errors = [];
   page.on("pageerror", (e) => errors.push("PAGEERROR: " + e.message));
-  page.on("console", (msg) => { if (msg.type() === "error") errors.push("CONSOLE ERROR: " + msg.text()); });
+  page.on("console", (msg) => {
+    if (msg.type() !== "error") return;
+    if (msg.text().includes("ERR_TUNNEL_CONNECTION_FAILED")) return; // expected in this sandbox — no real network
+    errors.push("CONSOLE ERROR: " + msg.text());
+  });
+
+  // Without a real/faked backend, #btn-pay-submit just toasts "Payments
+  // aren't available" and does nothing (see initCheckout() in app.js) — this
+  // file predates the real Razorpay integration, matching the pattern
+  // test-final.js/test-gifting.js already use.
+  const fakeSupabaseSrc = require("fs").readFileSync(path.join(__dirname, "tests-backend", "fake-supabase.js"), "utf8");
+  await page.addInitScript(fakeSupabaseSrc);
+  const fakeRazorpaySrc = require("fs").readFileSync(path.join(__dirname, "tests-backend", "fake-razorpay.js"), "utf8");
+  await page.addInitScript(fakeRazorpaySrc);
 
   const fs = require("fs");
   if (!fs.existsSync("shots2")) fs.mkdirSync("shots2");
@@ -37,12 +50,21 @@ const path = require("path");
 
   await page.fill("#compat-name", "Rohan Verma");
   const genDisabled2 = await page.evaluate(() => document.getElementById("btn-compat-generate").disabled);
-  console.log("Compat generate disabled with name only (no dob):", genDisabled2);
+  console.log("Compat generate disabled with name only (no dob, no city):", genDisabled2);
 
   await page.fill("#compat-dob", "1995-09-10");
   await page.waitForTimeout(100);
   const genDisabled3 = await page.evaluate(() => document.getElementById("btn-compat-generate").disabled);
-  console.log("Compat generate disabled with name+dob:", genDisabled3);
+  console.log("Compat generate disabled with name+dob but NO city (city is required — see the timezone fix):", genDisabled3);
+
+  // Their birth city is required (not optional) — this is THE fix for "compat used
+  // the logged-in user's own city timezone for the partner". Pick a DIFFERENT
+  // timezone (New York) than the test user's own (Chennai, from signUpAndOnboard
+  // above) so this also exercises DST-aware conversion end-to-end, not just IST.
+  await page.click("#compat-city"); await page.fill("#city-search", "New York"); await page.waitForTimeout(100); await page.click(".city-item");
+  await page.waitForTimeout(100);
+  const genDisabled3b = await page.evaluate(() => document.getElementById("btn-compat-generate").disabled);
+  console.log("Compat generate disabled with name+dob+city:", genDisabled3b);
 
   // future date rejection test
   await page.fill("#compat-dob", "2099-01-01");
@@ -56,7 +78,7 @@ const path = require("path");
   await page.waitForTimeout(200);
   await shot("03-compat-result-locked");
   const compatScore = await page.textContent("#compat-score");
-  console.log("Compat score shown:", compatScore);
+  console.log("Compat score shown (computed using partner's OWN New York timezone, not the test user's Chennai one):", compatScore);
 
   // Try a different person
   await page.click("#btn-compat-reset");
@@ -64,7 +86,9 @@ const path = require("path");
   await shot("04-compat-reset");
   const backOnForm = await page.isVisible("#compat-form");
   const nameCleared = await page.inputValue("#compat-name");
-  console.log("Back on form after reset:", backOnForm, "| name field cleared:", JSON.stringify(nameCleared));
+  const cityCleared = await page.inputValue("#compat-city");
+  const genDisabledAfterReset = await page.evaluate(() => document.getElementById("btn-compat-generate").disabled);
+  console.log("Back on form after reset:", backOnForm, "| name field cleared:", JSON.stringify(nameCleared), "| city field cleared:", JSON.stringify(cityCleared), "| generate disabled again (state.compatPartnerCity really cleared, not just the input):", genDisabledAfterReset);
 
   // --- Year Ahead ---
   await page.click(".screen.active [data-back=\"screen-dashboard\"]");
@@ -91,7 +115,6 @@ const path = require("path");
   await page.waitForTimeout(100);
   await page.click("#btn-report-checkout");
   await page.waitForTimeout(100);
-  await page.fill("#input-upi", "priya@okaxis");
   await page.click("#btn-pay-submit");
   await page.waitForTimeout(2200);
   await page.click("#btn-success-continue");

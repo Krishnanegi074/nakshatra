@@ -111,13 +111,13 @@ async function logout(page) {
 
   // Razorpay-side failure first (the user declines/cancels in the real
   // popup) — rzp.on("payment.failed", ...) in app.js should just toast and
-  // leave the user on checkout, never touching purchases/unlocks.
+  // leave the user on checkout, never touching purchases/user_entitlements.
   await page.evaluate(() => window.__fakeRazorpayForceNextFailure());
   await page.click("#btn-pay-submit");
   await page.waitForTimeout(500);
   check("A Razorpay-side payment failure leaves the user on checkout", await page.isVisible("#screen-checkout.active"), results);
   store = await page.evaluate(() => window.__fakeSupabaseStore);
-  check("No purchases/unlocks row was created by the Razorpay-side failure", store.purchases.length === 0 && store.unlocks.length === 0, results);
+  check("No purchases/user_entitlements row was created by the Razorpay-side failure", store.purchases.length === 0 && store.user_entitlements.length === 0, results);
 
   // Now the Razorpay side succeeds but OUR OWN server-side confirmation
   // fails — forces the NEXT verify-razorpay-payment call to fail, matching
@@ -127,7 +127,7 @@ async function logout(page) {
   await page.waitForTimeout(2000);
   check("Forced RPC failure sends the user back to checkout, NOT success", await page.isVisible("#screen-checkout.active"), results);
   store = await page.evaluate(() => window.__fakeSupabaseStore);
-  check("No purchases/unlocks row was created by the failed attempt", store.purchases.length === 0 && store.unlocks.length === 0, results);
+  check("No purchases/user_entitlements row was created by the failed attempt", store.purchases.length === 0 && store.user_entitlements.length === 0, results);
 
   await page.click("#btn-pay-submit"); // retry, no forced error this time
   await page.waitForTimeout(2000);
@@ -138,7 +138,7 @@ async function logout(page) {
   // app.js) — true before this migration too; the old assertion here
   // ("bundle") was already stale relative to the app's actual default.
   check("verify-razorpay-payment created exactly one purchases row for the real (onetime) tier", store.purchases.length === 1 && store.purchases[0].tier === "onetime" && store.purchases[0].status === "razorpay_success", results);
-  check("verify-razorpay-payment correctly unlocked the user (source=purchase)", store.unlocks.length === 1 && store.unlocks[0].unlocked === true && store.unlocks[0].tier === "onetime" && store.unlocks[0].source === "purchase", results);
+  check("verify-razorpay-payment correctly granted a tier-specific entitlement (source=purchase)", store.user_entitlements.length === 1 && store.user_entitlements[0].tier === "onetime" && store.user_entitlements[0].source === "purchase", results);
 
   console.log("\n== Group 4: chat messages persist through the real send/greeting path ==");
   await page.click("#btn-success-continue");
@@ -209,11 +209,13 @@ async function logout(page) {
   check("A real gift_codes row was created for the displayed code, owned by user A, not yet redeemed", !!codeRow && codeRow.sender_id === userA && codeRow.redeemed === false, results);
 
   console.log("\n== Group 7: self-redeem is blocked by the RPC (via the real UI, not just a unit test) ==");
-  // A is not yet unlocked-by-gift (only by the earlier direct purchase), but
-  // the UI already short-circuits on state.unlocked before calling the RPC —
-  // so to actually exercise GIFT_CODE_SELF_REDEEM we need a user who owns a
-  // code but isn't unlocked by any other means yet. Send a second gift as A
-  // won't work (A is unlocked) — use a fresh third user instead.
+  // A already owns "onetime" (the earlier direct purchase), but the redeem
+  // sheet's pre-check only short-circuits once a user holds "bundle" — the
+  // highest tier a gift code can ever grant (see hasTier("bundle") in
+  // initGiftRedeem() in app.js) — so A redeeming A's own "bundle" gift code
+  // would still reach the RPC and correctly get GIFT_CODE_SELF_REDEEM. Using
+  // a fresh third user here instead just keeps this group's setup minimal
+  // and independent of Group 6's state.
   await page.click("#btn-gift-done");
   await page.waitForTimeout(100);
   await logout(page);
@@ -237,7 +239,7 @@ async function logout(page) {
   await page.waitForTimeout(300);
   check("Self-redeeming your own gift code is blocked", !(await page.isVisible("#screen-fullreport.active")), results);
   store = await page.evaluate(() => window.__fakeSupabaseStore);
-  check("Chetan is still not unlocked after the blocked self-redeem attempt", store.unlocks.every(u => u.user_id !== store.profiles.find(p => p.name === "Chetan Test").id), results);
+  check("Chetan still has no entitlements after the blocked self-redeem attempt", store.user_entitlements.every(u => u.user_id !== store.profiles.find(p => p.name === "Chetan Test").id), results);
   await page.click("#btn-close-redeem"); // the sheet stays open after a blocked attempt — close it before navigating away
   await page.waitForTimeout(100);
 
@@ -254,16 +256,17 @@ async function logout(page) {
   await page.waitForTimeout(300);
   check("Redeeming a real gift code sent by a different real user unlocks the full report", await page.isVisible("#screen-fullreport.active"), results);
   store = await page.evaluate(() => window.__fakeSupabaseStore);
-  const dUnlock = store.unlocks.find(u => u.user_id === userD);
-  check("record via redeem_gift_code() RPC set source=gift for the redeemer", dUnlock && dUnlock.unlocked === true && dUnlock.source === "gift", results);
+  const dEntitlement = store.user_entitlements.find(u => u.user_id === userD);
+  check("record via redeem_gift_code() RPC granted the gifted tier (bundle) with source=gift for the redeemer", dEntitlement && dEntitlement.tier === "bundle" && dEntitlement.source === "gift", results);
   const redeemedCodeRow = store.gift_codes.find(g => g.code === giftCode);
   check("The gift_codes row is now marked redeemed, by the correct redeemer", redeemedCodeRow.redeemed === true && redeemedCodeRow.redeemed_by === userD, results);
 
-  console.log("\n== Group 9: redeeming again while already unlocked short-circuits before ever calling the RPC ==");
-  // Divya is already unlocked from Group 8 — the UI's `if (state.unlocked)`
-  // guard should send her straight to the full report without touching the
-  // backend again at all (not even a redundant successful RPC call).
-  const unlocksCountBeforeRepeat = (await page.evaluate(() => window.__fakeSupabaseStore.unlocks)).length;
+  console.log("\n== Group 9: redeeming again while already holding the gift's tier short-circuits before ever calling the RPC ==");
+  // Divya already holds "bundle" from Group 8 — the UI's `if (hasTier("bundle"))`
+  // guard (bundle being the highest tier any gift code can grant) should send
+  // her straight to the full report without touching the backend again at
+  // all (not even a redundant successful RPC call).
+  const entitlementsCountBeforeRepeat = (await page.evaluate(() => window.__fakeSupabaseStore.user_entitlements)).length;
   await page.click('.screen.active [data-back="screen-dashboard"]').catch(() => {});
   await page.waitForTimeout(100);
   await page.click('[data-nav="screen-report"]');
@@ -273,9 +276,9 @@ async function logout(page) {
   await page.fill("#input-gift-code", giftCode);
   await page.click("#btn-redeem-submit");
   await page.waitForTimeout(300);
-  check("Re-submitting the redeem form while already unlocked lands back on the full report", await page.isVisible("#screen-fullreport.active"), results);
-  const unlocksCountAfterRepeat = (await page.evaluate(() => window.__fakeSupabaseStore.unlocks)).length;
-  check("No new/duplicate unlocks row was created by the redundant redeem attempt", unlocksCountAfterRepeat === unlocksCountBeforeRepeat, results);
+  check("Re-submitting the redeem form while already holding bundle lands back on the full report", await page.isVisible("#screen-fullreport.active"), results);
+  const entitlementsCountAfterRepeat = (await page.evaluate(() => window.__fakeSupabaseStore.user_entitlements)).length;
+  check("No new/duplicate entitlement row was created by the redundant redeem attempt", entitlementsCountAfterRepeat === entitlementsCountBeforeRepeat, results);
 
   console.log("\n== Group 10: data isolation — every signed-up user's data stays separate ==");
   store = await page.evaluate(() => window.__fakeSupabaseStore);
@@ -300,6 +303,7 @@ async function logout(page) {
   const snapshot = await page.evaluate(() => ({
     store: window.__fakeSupabaseStore,
     session: window.__fakeSupabaseGetSession(),
+    seq: window.__fakeSupabaseGetSeq(),
   }));
   check("Sanity: snapshot captured a live session before reload", !!snapshot.session, results);
   await page.addInitScript(`window.__fakeSupabaseApplySeed(${JSON.stringify(snapshot)});`);
@@ -346,6 +350,60 @@ async function logout(page) {
   console.log("\n== Group 14: a deleted account's email can be used to sign up again (proves it's a real delete, not just a local reset) ==");
   await signupUser(page, "Rahul Again", "rahul@example.com", "1993-06-20", "Delhi");
   check("Re-signing up with the deleted account's email succeeds (no longer taken)", await page.isVisible("#screen-dashboard.active"), results);
+
+  console.log("\n== Group 15: THE core fix — buying two DIFFERENT tiers keeps BOTH entitlements (the old `unlocks` table silently overwrote the first) ==");
+  await page.click('.screen.active [data-back="screen-dashboard"]').catch(() => {});
+  await page.waitForTimeout(100);
+  await logout(page);
+  await signupUser(page, "Priya MultiTier", "priya-multitier@example.com", "1995-04-02", "Delhi");
+  const userP = (await page.evaluate(() => window.__fakeSupabaseStore.profiles)).find(p => p.name === "Priya MultiTier").id;
+
+  // First purchase: the ₹299 Horoscope Access Pass (subscription tier) —
+  // horoscope-only, NOT the full report.
+  await page.click('[data-nav="screen-report"]');
+  await page.waitForTimeout(150);
+  await page.click('#tier-list [data-tier="subscription"]');
+  await page.click("#btn-report-checkout");
+  await page.waitForTimeout(150);
+  await page.click("#btn-pay-submit");
+  await page.waitForTimeout(2000);
+  check("First purchase (Horoscope Access Pass) reaches the success screen", await page.isVisible("#screen-success.active"), results);
+  store = await page.evaluate(() => window.__fakeSupabaseStore);
+  check("Exactly one entitlement row exists for Priya after the first purchase (tier=subscription)",
+    store.user_entitlements.filter(e => e.user_id === userP).length === 1 &&
+    store.user_entitlements.find(e => e.user_id === userP).tier === "subscription",
+    results);
+  await page.click("#btn-success-continue");
+  await page.waitForTimeout(150);
+  check("Continuing after a subscription-only purchase lands on the horoscope screen, not the (unpurchased) full report",
+    await page.isVisible("#screen-horoscope.active"), results);
+  check("The horoscope itself is unlocked (no lock overlay)", !(await page.isVisible("#horo-lock-wrap .lock-overlay")), results);
+
+  // Second, DIFFERENT purchase: the ₹399 One-Time Report — this is the
+  // exact scenario 005_tier_entitlements.sql's migration note calls out:
+  // "a fresh test purchase of one tier, followed by a test purchase of a
+  // DIFFERENT tier by the same test user, leaves BOTH rows".
+  await page.click('.screen.active [data-back="screen-dashboard"]').catch(() => {});
+  await page.waitForTimeout(100);
+  await page.click('[data-nav="screen-report"]');
+  await page.waitForTimeout(150);
+  check("Tier picker is shown again (subscription alone doesn't grant full-report access)", await page.isVisible("#tier-list"), results);
+  await page.click('#tier-list [data-tier="onetime"]');
+  await page.click("#btn-report-checkout");
+  await page.waitForTimeout(150);
+  await page.click("#btn-pay-submit");
+  await page.waitForTimeout(2000);
+  check("Second purchase (One-Time Report) reaches the success screen", await page.isVisible("#screen-success.active"), results);
+  store = await page.evaluate(() => window.__fakeSupabaseStore);
+  const priyaEntitlements = store.user_entitlements.filter(e => e.user_id === userP);
+  check("THE FIX: Priya now holds BOTH entitlements (subscription AND onetime) — the second purchase did not erase the first",
+    priyaEntitlements.length === 2 &&
+    priyaEntitlements.some(e => e.tier === "subscription") &&
+    priyaEntitlements.some(e => e.tier === "onetime"),
+    results);
+  await page.click("#btn-success-continue");
+  await page.waitForTimeout(150);
+  check("Continuing after the second (onetime) purchase now lands on the full report", await page.isVisible("#screen-fullreport.active"), results);
 
   console.log("\nJS ERRORS:", errors.length);
   errors.forEach(e => console.log(" -", e));

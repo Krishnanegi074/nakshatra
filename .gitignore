@@ -1,0 +1,9 @@
+node_modules/
+
+# Playwright test-run screenshot output (regenerated on every test run, not
+# meaningful to keep in history) — app/shots-i18n/ is the one exception,
+# already tracked from before this .gitignore existed, kept as-is.
+app/shots/
+app/shots2/
+app/shots-cv/
+app/shots-gift/

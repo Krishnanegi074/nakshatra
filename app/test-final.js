@@ -66,6 +66,11 @@ const path = require("path");
   await page.waitForTimeout(150);
   await page.fill("#compat-name", "Test Partner");
   await page.fill("#compat-dob", "1994-12-01");
+  // Their birth city is required (see the "compat used the logged-in user's own
+  // city timezone for the partner" fix) — without it #btn-compat-generate stays
+  // disabled, so pick one via the shared city sheet just like onboarding does.
+  await page.click("#compat-city"); await page.fill("#city-search", "London"); await page.waitForTimeout(100); await page.click(".city-item");
+  await page.waitForTimeout(100);
   await page.click("#btn-compat-generate");
   await page.waitForTimeout(150);
   check("Compat result score shows a percentage", (await page.textContent("#compat-score")).includes("%"));

@@ -100,8 +100,10 @@
       // ==================== BIRTH DATA ====================
       // `fields` matches birth_data's columns 1:1 (year, month, day, hour,
       // minute, unknown_time, city_name, city_country, city_lat, city_lon,
-      // city_utc, sun_idx, moon_idx, asc_idx, moon_phase). user_id is
+      // city_utc, city_tz, sun_idx, moon_idx, asc_idx, moon_phase). user_id is
       // populated automatically by the column default (auth.uid()).
+      // city_tz is the IANA timezone identifier (see 006_city_timezone.sql) —
+      // city_utc is kept only as a legacy fixed-offset fallback.
       async saveBirthData(fields) {
         return supabase.from("birth_data").upsert(fields, { onConflict: "user_id" });
       },
@@ -135,10 +137,16 @@
         });
       },
 
-      async loadUnlockStatus() {
+      // Replaces loadUnlockStatus()/public.unlocks (a single boolean + single
+      // `tier` column, silently OVERWRITTEN by every new purchase — see
+      // sql/005_tier_entitlements.sql's header for the full story). Returns
+      // an ARRAY (not .maybeSingle()) since a user can now hold up to three
+      // rows — one per tier they've purchased or been gifted — and owning a
+      // second tier no longer erases the first.
+      async loadEntitlements() {
         const uid = await currentUserId();
-        if (!uid) return { data: null, error: null };
-        return supabase.from("unlocks").select("*").eq("user_id", uid).maybeSingle();
+        if (!uid) return { data: [], error: null };
+        return supabase.from("user_entitlements").select("tier, source, granted_at").eq("user_id", uid);
       },
 
       // ==================== REAL PAYMENTS (Razorpay) ====================

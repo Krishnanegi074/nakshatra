@@ -52,7 +52,7 @@ function generateWeeklyHoroscope(sunIdx, moonIdx, ascIdx, now, moonPhaseName) {
   ];
   const loveLines = [
     `In relationships, the pull between your Sun in ${sun.name} and Moon in ${moon.name} feels ${pairTone} right now — good energy to notice before you act on it.`,
-    `Your inner world (Moon in ${moon.name}) and outer style (Sun in ${sun.name}) are working in a ${pairTone} rhythm this week — that shows up most in close conversations.`,
+    `Your inner world (Moon in ${moon.name}) and outer style (Sun in ${sun.name}) are working in ${withArticle(pairTone)} rhythm this week — that shows up most in close conversations.`,
   ];
   const careerLines = [
     `On the work front, week ${week}'s steadier pace favors ${sun.name === "Virgo" || sun.element === "Earth" ? "finishing the detail work you've been circling" : "picking one priority and actually closing it out"}.`,

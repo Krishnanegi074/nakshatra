@@ -7,7 +7,21 @@ const path = require("path");
 
   const errors = [];
   page.on("pageerror", (e) => errors.push("PAGEERROR: " + e.message));
-  page.on("console", (msg) => { if (msg.type() === "error") errors.push("CONSOLE ERROR: " + msg.text()); });
+  page.on("console", (msg) => {
+    if (msg.type() !== "error") return;
+    if (msg.text().includes("ERR_TUNNEL_CONNECTION_FAILED")) return; // expected in this sandbox — no real network
+    errors.push("CONSOLE ERROR: " + msg.text());
+  });
+
+  // Without a real/faked backend, #btn-pay-submit just toasts "Payments
+  // aren't available" and does nothing (see initCheckout() in app.js) — this
+  // file predates the real Razorpay integration and was never updated with
+  // these, matching the pattern test-final.js/test-gifting.js/test-phase2.js
+  // already use.
+  const fakeSupabaseSrc = require("fs").readFileSync(path.join(__dirname, "tests-backend", "fake-supabase.js"), "utf8");
+  await page.addInitScript(fakeSupabaseSrc);
+  const fakeRazorpaySrc = require("fs").readFileSync(path.join(__dirname, "tests-backend", "fake-razorpay.js"), "utf8");
+  await page.addInitScript(fakeRazorpaySrc);
 
   const shot = (name) => page.screenshot({ path: `shots/${name}.png` });
   const fs = require("fs");
@@ -95,13 +109,12 @@ const path = require("path");
   await page.click('.tier-card[data-tier="onetime"]');
   await page.click("#btn-report-checkout");
   await page.waitForTimeout(200);
-  await shot("15-checkout-upi");
+  await shot("15-checkout-summary");
 
-  await page.click('.paytab[data-pay="card"]');
-  await page.waitForTimeout(150);
-  await shot("16-checkout-card");
-  await page.click('.paytab[data-pay="upi"]');
-  await page.fill("#input-upi", "ananya@okhdfcbank");
+  // #input-upi and the card/UPI .paytab toggle were from a pre-Razorpay test-mode
+  // checkout prototype (removed when the real Razorpay Checkout integration
+  // shipped — see initCheckout() in app.js); #btn-pay-submit alone now opens the
+  // real Razorpay popup, which fake-razorpay.js auto-completes in tests.
   await page.click("#btn-pay-submit");
   await page.waitForTimeout(400);
   await shot("17-processing");
