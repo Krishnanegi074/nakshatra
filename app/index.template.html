@@ -15,56 +15,102 @@
 <div id="stars-bg"></div>
 <div id="toast"></div>
 
-<div id="app-root">
+<div id="app-root" class="landing-active">
 
   <!-- ============ LANDING ============ -->
   <section id="screen-landing" class="screen active no-nav">
     <div class="landing-navbar">
-      <div class="landing-navbar-brand">🌙</div>
-      <div class="landing-navbar-actions">
-        <button class="btn btn-ghost btn-sm" id="btn-navbar-login" data-i18n="landing.navbar.login">Log In</button>
-        <button class="btn btn-primary btn-sm" id="btn-navbar-start" data-i18n="landing.navbar.start">Start</button>
-        <button class="icon-btn" id="btn-lang-toggle">🌐</button>
-      </div>
-    </div>
-    <div class="landing-hero">
-      <div class="landing-logo">🌙✨</div>
-      <div class="eyebrow" data-i18n="landing.eyebrow">Nakshatra · Rule-Based Cosmic Guidance</div>
-      <h1 data-i18n-html="landing.h1">Your palm and your<br>birth chart, decoded.</h1>
-      <p class="sub" data-i18n-html="landing.sub">Real astronomical calculations, classical palmistry rules —<br>no vague AI guesses, ever.</p>
-      <button class="btn btn-primary btn-block" id="btn-landing-start" data-i18n="landing.cta.start">Begin Your Reading →</button>
-      <div style="height:10px"></div>
-      <button class="btn btn-secondary btn-block" id="btn-landing-login" data-i18n="landing.cta.login">I already have an account</button>
-      <div class="trust-strip">
-        <div><div class="t-num">100%</div><div class="t-lbl" data-i18n="landing.trust.rulebased">Rule-based</div></div>
-        <div><div class="t-num" data-i18n="landing.trust.real">Real</div><div class="t-lbl" data-i18n="landing.trust.ephemeris">Ephemeris data</div></div>
-        <div><div class="t-num">0</div><div class="t-lbl" data-i18n="landing.trust.ai">AI guesswork</div></div>
+      <div class="landing-navbar-inner">
+        <div class="landing-navbar-brand">
+          <span class="landing-navbar-mark">🌙</span>
+          <span class="landing-navbar-word">Nakshatra</span>
+        </div>
+        <!-- Desktop-only — hidden on phone/tablet by CSS. These point at the
+             standalone marketing pages that already exist in the repo root
+             (about.html, pricing.html, kundli-matching.html) but weren't
+             linked from anywhere in the app itself. -->
+        <nav class="landing-navbar-links">
+          <a href="javascript:void(0)" class="active" data-i18n="landing.nav.home">Home</a>
+          <a href="kundli-matching.html" data-i18n="landing.nav.kundli">Kundli Matching</a>
+          <a href="pricing.html" data-i18n="landing.nav.pricing">Pricing</a>
+          <a href="about.html" data-i18n="landing.nav.about">About</a>
+        </nav>
+        <div class="landing-navbar-actions">
+          <button class="btn btn-ghost btn-sm" id="btn-navbar-login" data-i18n="landing.navbar.login">Log In</button>
+          <button class="btn btn-primary btn-sm" id="btn-navbar-start" data-i18n="landing.navbar.start">Start</button>
+          <button class="icon-btn" id="btn-lang-toggle">🌐</button>
+        </div>
       </div>
     </div>
 
-    <div style="margin-top:34px" class="stack">
-      <div class="row wrap center" style="justify-content:center">
+    <div class="landing-hero">
+      <svg class="constellation-svg" viewBox="0 0 320 170" aria-hidden="true" focusable="false">
+        <path d="M58 46 L118 22 L182 48 L258 34 M118 22 L136 92 M182 48 L214 104 M58 46 L38 112" stroke="var(--gold)" stroke-width="1" fill="none"/>
+        <g fill="var(--gold-bright)">
+          <circle cx="58" cy="46" r="2.6"/>
+          <circle cx="118" cy="22" r="3.2"/>
+          <circle cx="182" cy="48" r="2.8"/>
+          <circle cx="258" cy="34" r="2.2"/>
+          <circle cx="136" cy="92" r="2.3"/>
+          <circle cx="214" cy="104" r="2.1"/>
+          <circle cx="38" cy="112" r="1.9"/>
+        </g>
+      </svg>
+      <div class="landing-hero-grid">
+        <div class="landing-hero-copy">
+          <div class="landing-badge"><span class="eyebrow" data-i18n="landing.eyebrow">Nakshatra · Rule-Based Cosmic Guidance</span></div>
+          <h1 data-i18n-html="landing.h1">Your palm and your <br class="h1-break">birth chart, decoded.</h1>
+          <p class="sub" data-i18n-html="landing.sub">Real astronomical calculations, classical palmistry rules —<br>no vague AI guesses, ever.</p>
+          <div class="landing-cta-group">
+            <button class="btn btn-primary btn-block" id="btn-landing-start" data-i18n="landing.cta.start">Begin Your Reading →</button>
+            <button class="btn btn-secondary btn-block" id="btn-landing-login" data-i18n="landing.cta.login">I already have an account</button>
+          </div>
+          <div class="trust-strip">
+            <div class="trust-item"><div class="t-num">100%</div><div class="t-lbl" data-i18n="landing.trust.rulebased">Rule-based</div></div>
+            <div class="trust-divider"></div>
+            <div class="trust-item"><div class="t-num" data-i18n="landing.trust.real">Real</div><div class="t-lbl" data-i18n="landing.trust.ephemeris">Ephemeris data</div></div>
+            <div class="trust-divider"></div>
+            <div class="trust-item"><div class="t-num">0</div><div class="t-lbl" data-i18n="landing.trust.ai">AI guesswork</div></div>
+          </div>
+        </div>
+        <!-- Desktop-only decorative visual — an orbit of concentric rings
+             with a constellation traced across them. Pure SVG, no image
+             assets, hidden on phone/tablet where there's no room for it. -->
+        <div class="landing-hero-visual" aria-hidden="true">
+          <svg class="orbit-svg" viewBox="0 0 480 480" focusable="false">
+            <circle cx="240" cy="240" r="220" class="orbit-ring"/>
+            <circle cx="240" cy="240" r="150" class="orbit-ring"/>
+            <circle cx="240" cy="240" r="80" class="orbit-ring"/>
+            <path class="orbit-path" d="M320 100 L392 230 L268 330 L150 268" />
+            <g class="orbit-stars">
+              <circle cx="320" cy="100" r="7"/>
+              <circle cx="392" cy="230" r="9"/>
+              <circle cx="268" cy="330" r="6"/>
+              <circle cx="150" cy="268" r="5.5"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="landing-body">
+      <div class="feature-pill-row">
         <span class="feature-pill" data-i18n="landing.pill.chart">🪐 Birth chart</span>
         <span class="feature-pill" data-i18n="landing.pill.palm">🖐️ Palm reading</span>
         <span class="feature-pill" data-i18n="landing.pill.love">💗 Love energy</span>
         <span class="feature-pill" data-i18n="landing.pill.horoscope">🔮 Weekly horoscope</span>
       </div>
-      <div class="card">
-        <div class="row">
-          <div class="zodiac-badge">🖐️</div>
-          <div>
-            <strong data-i18n="landing.card1.title">Palm Reading</strong>
-            <p style="margin:2px 0 0" data-i18n="landing.card1.desc">Upload a photo, confirm your line shapes, get a classical palmistry read.</p>
-          </div>
+
+      <div class="showcase-grid">
+        <div class="showcase-card">
+          <div class="showcase-badge">🖐️</div>
+          <strong data-i18n="landing.card1.title">Palm Reading</strong>
+          <p data-i18n="landing.card1.desc">Upload a photo, confirm your line shapes, get a classical palmistry read.</p>
         </div>
-      </div>
-      <div class="card">
-        <div class="row">
-          <div class="zodiac-badge">☀️</div>
-          <div>
-            <strong data-i18n="landing.card2.title">Sun · Moon · Rising</strong>
-            <p style="margin:2px 0 0" data-i18n="landing.card2.desc">Computed from your real birth date, time, and place — not a guess.</p>
-          </div>
+        <div class="showcase-card">
+          <div class="showcase-badge">☀️</div>
+          <strong data-i18n="landing.card2.title">Sun · Moon · Rising</strong>
+          <p data-i18n="landing.card2.desc">Computed from your real birth date, time, and place — not a guess.</p>
         </div>
       </div>
 
@@ -119,10 +165,12 @@
         </div>
       </div>
 
-      <p class="pricing-note" data-i18n-html="landing.pricing-note">Free to preview. <strong>Pay once, only if you want your full report.</strong></p>
-      <button class="btn btn-primary btn-block" id="btn-landing-start-bottom" data-i18n="landing.cta.start">Begin Your Reading →</button>
+      <div class="landing-closing">
+        <p class="pricing-note" data-i18n-html="landing.pricing-note">Free to preview. <strong>Pay once, only if you want your full report.</strong></p>
+        <button class="btn btn-primary btn-block" id="btn-landing-start-bottom" data-i18n="landing.cta.start">Begin Your Reading →</button>
+      </div>
 
-      <p class="muted center" style="margin-top:16px;font-size:0.72rem" data-i18n-html="landing.legal-footer">By continuing, you agree to our <a href="javascript:void(0)" id="link-landing-terms">Terms of Service</a> and <a href="javascript:void(0)" id="link-landing-privacy">Privacy Policy</a>.</p>
+      <p class="muted center landing-legal" data-i18n-html="landing.legal-footer">By continuing, you agree to our <a href="javascript:void(0)" id="link-landing-terms">Terms of Service</a> and <a href="javascript:void(0)" id="link-landing-privacy">Privacy Policy</a>.</p>
     </div>
   </section>
 

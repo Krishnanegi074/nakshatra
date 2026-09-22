@@ -263,6 +263,11 @@ function showScreen(id, opts) {
   const target = document.getElementById(id);
   if (target) target.classList.add("active");
   window.scrollTo(0, 0);
+  // The landing screen gets a full-width desktop layout instead of the
+  // app's usual boxed "card" shell (see .landing-active in app.css) — every
+  // other screen keeps the normal bounded card, on phone and desktop alike.
+  const appRoot = document.getElementById("app-root");
+  if (appRoot) appRoot.classList.toggle("landing-active", id === "screen-landing");
   const navScreens = ["screen-dashboard", "screen-horoscope", "screen-palm", "screen-love", "screen-fullreport", "screen-compat", "screen-yearahead"];
   $("#bottom-nav").classList.toggle("visible", navScreens.includes(id));
   $all(".nav-item").forEach(n => n.classList.toggle("active", n.dataset.nav === id));

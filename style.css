@@ -55,6 +55,22 @@ a { color: var(--gold-bright); text-decoration: none; }
 
 img, svg { max-width: 100%; }
 
+/* ---------- Starfield backdrop ----------
+   Same twinkling-dot effect as the app's landing screen (see app.css /
+   app.js #stars-bg), so these marketing pages read as part of the same
+   site rather than an older, static-background version of it. Fixed to
+   the viewport so it stays in place behind the page as you scroll. */
+#stars-bg {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+}
+.nk-star {
+  position: absolute; background: #fff; border-radius: 50%;
+  opacity: 0.75; animation: nk-twinkle 3.2s ease-in-out infinite;
+}
+@keyframes nk-twinkle { 0%, 100% { opacity: 0.2; } 50% { opacity: 0.9; } }
+
+header, main, footer { position: relative; z-index: 1; }
+
 .nk-wrap {
   max-width: var(--wrap-max);
   margin: 0 auto;
@@ -243,7 +259,10 @@ img, svg { max-width: 100%; }
   .nk-wrap { padding: 0 24px; }
   .nk-nav { padding: 18px 20px; }
   .nk-nav-links { display: none; }
-  .nk-nav-actions .nk-btn-ghost { display: none; }
+  /* Log In and Start Free both already live inside the hamburger menu below
+     (.nk-mobile-menu) — keeping Start Free in the collapsed bar too left it
+     overlapping the "NAKSHATRA" wordmark at phone widths. */
+  .nk-nav-actions .nk-btn-ghost, .nk-nav-actions .nk-btn-primary { display: none; }
   .nk-nav-toggle { display: inline-flex; }
   .nk-section { padding: 64px 0; }
   .nk-section-tight { padding: 48px 0; }

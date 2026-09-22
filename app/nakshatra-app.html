@@ -368,62 +368,183 @@ button { font-family: inherit; }
 }
 
 /* ---------- Landing screen ---------- */
+/* Every other screen sits inside #app-root's boxed "card" shell (bounded,
+   rounded, margined from 700px up — see the App shell comment above). The
+   landing screen is the one exception: app.js's showScreen() toggles
+   .landing-active on #app-root whenever landing is shown (and it's set
+   directly in the markup for the very first paint, before any JS runs),
+   and from 700px up that unboxes it into a full-bleed desktop page. Every
+   other screen never gets this class, so its own card is untouched. */
+@media (min-width: 700px) {
+  #app-root.landing-active {
+    max-width: none; width: 100%; margin: 0; min-height: 100vh;
+    border-radius: 0; border: none; box-shadow: none; overflow: visible;
+  }
+}
+
 /* position:sticky doesn't work here — #app-root has overflow:hidden (for its
    rounded corners) which establishes its own scroll container, and since
    #app-root itself never scrolls (the window does), a sticky descendant has
-   nothing to stick against and just scrolls away. position:fixed avoids that,
-   but must be independently centered/width-matched to #app-root's own
-   breakpoints (mobile fills the viewport; >=700px it's a bounded, margined
-   card) so the bar still lines up with the card's edges at every width. */
+   nothing to stick against and just scrolls away. position:fixed avoids
+   that, and since landing is unboxed above, this bar can now just be
+   100% wide with its own inner max-width wrapper for alignment, instead of
+   having to match #app-root's own card breakpoints. */
 .landing-navbar {
   position: fixed; top: 0; left: 0; right: 0; z-index: 20;
-  max-width: 460px; margin: 0 auto;
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  padding: 12px 20px;
   background: linear-gradient(180deg, rgba(13,8,32,0.97), rgba(13,8,32,0.9));
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--border);
 }
-.landing-navbar-brand { font-size: 1.3rem; line-height: 1; }
+.landing-navbar-inner {
+  max-width: 460px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 14px 20px;
+}
+.landing-navbar-brand { display: flex; align-items: center; gap: 8px; }
+.landing-navbar-mark { font-size: 1.25rem; line-height: 1; }
+.landing-navbar-word { font-family: 'Cinzel', serif; font-size: 1rem; letter-spacing: 0.04em; color: var(--text); }
+.landing-navbar-links { display: none; }
 .landing-navbar-actions { display: flex; align-items: center; gap: 8px; }
 .landing-navbar .btn-sm { padding: 8px 14px; font-size: 0.78rem; white-space: nowrap; }
 .landing-navbar .icon-btn { width: 34px; height: 34px; font-size: 0.9rem; flex-shrink: 0; }
 @media (min-width: 700px) {
-  .landing-navbar { top: 24px; max-width: 640px; border-radius: 32px 32px 0 0; }
+  .landing-navbar-inner { max-width: 640px; }
 }
 @media (min-width: 1024px) {
-  .landing-navbar { max-width: 800px; }
+  .landing-navbar-inner { max-width: 1180px; padding: 18px 40px; }
+  .landing-navbar-links { display: flex; align-items: center; gap: 30px; margin: 0 40px; }
+  .landing-navbar-links a {
+    font-size: 0.88rem; color: var(--text-dim); text-decoration: none; white-space: nowrap;
+  }
+  .landing-navbar-links a:hover, .landing-navbar-links a.active { color: var(--gold-bright); }
 }
 
-.landing-hero { padding-top: 74px; text-align: center; }
-.landing-logo { font-size: 2.4rem; margin-bottom: 10px; }
-.landing-hero h1 { font-size: 2rem; line-height: 1.15; }
-.landing-hero .sub { color: var(--text-dim); font-size: 0.98rem; margin-bottom: 28px; }
-.feature-pill {
-  display: inline-flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border);
-  border-radius: 999px; padding: 7px 13px; font-size: 0.76rem; color: var(--text-dim); margin: 3px;
+/* Hero: a faint hand-drawn constellation (an asterism, like the star
+   cluster a "nakshatra" — lunar mansion — is named for) sits behind the
+   headline. Decorative only (aria-hidden), so it never competes with the
+   actual text for attention. */
+.landing-hero { position: relative; padding-top: 92px; text-align: center; overflow: hidden; }
+.constellation-svg {
+  position: absolute; top: 2px; left: 50%; transform: translateX(-50%);
+  width: 300px; max-width: 92%; height: auto; z-index: 0; opacity: 0.5; pointer-events: none;
 }
-.trust-strip { display:flex; justify-content:center; gap: 18px; margin-top: 22px; }
+.landing-hero-grid { position: relative; z-index: 1; }
+.landing-badge {
+  display: inline-flex; align-items: center;
+  background: rgba(232,198,135,0.08); border: 1px solid var(--border);
+  border-radius: 999px; padding: 6px 16px; margin-bottom: 20px;
+}
+.landing-badge .eyebrow { margin: 0; }
+.landing-hero h1 { font-size: 2.05rem; line-height: 1.16; margin-bottom: 12px; }
+.landing-hero .sub {
+  color: var(--text-dim); font-size: 0.98rem; margin: 0 auto 30px;
+  max-width: 320px;
+}
+.landing-cta-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+
+.trust-strip { display: flex; align-items: center; justify-content: center; gap: 16px; }
+.trust-item { text-align: center; }
 .trust-strip .t-num { font-family: 'Cinzel', serif; color: var(--gold-bright); font-size: 1.05rem; }
 .trust-strip .t-lbl { font-size: 0.68rem; color: var(--text-faint); }
+.trust-divider { width: 1px; height: 24px; background: var(--border); }
+
+.landing-hero-visual { display: none; }
+
+.landing-body { margin-top: 40px; }
+
+/* ---------- Landing: desktop hero (>=1024px) ----------
+   Below 1024px the hero stays the single centered column above (phone AND
+   tablet — a two-column hero has nowhere near enough room until a real
+   desktop viewport). At 1024px it becomes a proper two-column layout: copy
+   on the left, a decorative orbit visual on the right, matching the rest of
+   the "unboxed" desktop treatment #app-root.landing-active turns on. */
+@media (min-width: 1024px) {
+  .landing-hero { padding-top: 64px; padding-bottom: 40px; overflow: visible; }
+  .constellation-svg { display: none; }
+  .landing-hero-grid {
+    display: grid; grid-template-columns: 1.25fr 0.75fr; align-items: center; gap: 40px;
+    max-width: 1180px; margin: 0 auto; padding: 0 40px; text-align: left;
+  }
+  .landing-hero-copy { text-align: left; }
+  /* The <br> in landing.h1 is only there for narrower widths, where "Your
+     palm and your" / "birth chart, decoded." is a clean, tested 2-line
+     split. At this wider desktop column that same split runs out of room
+     and force-wraps again mid-phrase (stranding "your" alone) — so here we
+     drop the manual break and let the browser balance the wrap itself
+     across the extra width instead. */
+  .landing-hero h1 { font-size: 2.75rem; line-height: 1.18; text-wrap: balance; }
+  .landing-hero h1 br.h1-break { display: none; }
+  .landing-hero .sub { margin: 0 0 32px; max-width: 460px; }
+  .landing-cta-group { flex-direction: row; margin-bottom: 36px; }
+  .landing-cta-group .btn { width: auto; }
+  .trust-strip { justify-content: flex-start; }
+
+  .landing-hero-visual { display: flex; align-items: center; justify-content: center; }
+  .orbit-svg { width: 100%; max-width: 440px; height: auto; }
+  .orbit-ring { fill: none; stroke: var(--border); stroke-width: 1; }
+  .orbit-path { fill: none; stroke: var(--gold); stroke-width: 1.5; opacity: 0.75; }
+  .orbit-stars circle { fill: var(--gold-bright); animation: twinkle 3.4s ease-in-out infinite; filter: drop-shadow(0 0 5px rgba(232,198,135,0.7)); }
+  .orbit-stars circle:nth-child(2) { animation-delay: 0.6s; }
+  .orbit-stars circle:nth-child(3) { animation-delay: 1.2s; }
+  .orbit-stars circle:nth-child(4) { animation-delay: 1.8s; }
+}
+
+/* ---------- Landing: feature chips ---------- */
+.feature-pill-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.feature-pill {
+  display: inline-flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 999px; padding: 7px 14px; font-size: 0.76rem; color: var(--text-dim);
+}
+
+/* ---------- Landing: showcase pair ---------- */
+.showcase-grid { display: flex; flex-direction: column; gap: 12px; margin-top: 18px; }
+@media (min-width: 560px) {
+  .showcase-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+}
+.showcase-card {
+  background: linear-gradient(160deg, rgba(232,198,135,0.10), rgba(255,255,255,0.03));
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 22px 18px; text-align: center;
+}
+.showcase-badge {
+  width: 52px; height: 52px; margin: 0 auto 14px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-size: 1.4rem;
+  background: var(--navy-1); border: 1px solid var(--gold);
+}
+.showcase-card strong { display: block; font-size: 0.95rem; margin-bottom: 5px; }
+.showcase-card p { font-size: 0.82rem; margin: 0; }
 
 /* ---------- Landing: "why us" / "how it works" sections ---------- */
-.section-eyebrow { text-align: center; margin: 34px 0 4px; }
+.section-eyebrow { text-align: center; margin: 42px 0 4px; }
 .section-eyebrow .eyebrow { margin-bottom: 2px; }
-.section-title { text-align: center; font-size: 1.15rem; margin: 0 0 18px; }
+.section-title { text-align: center; font-size: 1.2rem; margin: 0 0 20px; }
 
 .why-grid { display: flex; flex-direction: column; gap: 12px; }
 @media (min-width: 560px) {
   .why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 }
-.why-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; }
-.why-item .why-icon { font-size: 1.3rem; margin-bottom: 6px; }
+.why-item {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 16px; text-align: left;
+}
+.why-item .why-icon {
+  width: 38px; height: 38px; margin-bottom: 10px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-size: 1.05rem;
+  background: rgba(232,198,135,0.12); border: 1px solid var(--border);
+}
 .why-item strong { display: block; font-size: 0.92rem; margin-bottom: 4px; }
 .why-item p { font-size: 0.82rem; margin: 0; }
 
-.steps-list { display: flex; flex-direction: column; gap: 14px; }
-.step-item { display: flex; gap: 14px; align-items: flex-start; }
+/* Steps: a thin connecting line down the left edge, behind the numbered
+   circles, turns a plain list into a visible sequence. */
+.steps-list { position: relative; display: flex; flex-direction: column; gap: 20px; }
+.steps-list::before {
+  content: ""; position: absolute; left: 15px; top: 6px; bottom: 6px; width: 1px;
+  background: linear-gradient(var(--border), transparent);
+}
+.step-item { position: relative; display: flex; gap: 14px; align-items: flex-start; }
 .step-num {
+  position: relative; z-index: 1;
   width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
   background: linear-gradient(135deg, var(--gold-bright), var(--gold));
@@ -432,8 +553,29 @@ button { font-family: inherit; }
 .step-item strong { font-size: 0.92rem; }
 .step-item p { font-size: 0.86rem; margin: 3px 0 0; }
 
-.pricing-note { text-align: center; font-size: 0.82rem; color: var(--text-dim); margin: 26px 0 14px; }
+/* ---------- Landing: closing panel ---------- */
+.landing-closing {
+  margin-top: 42px; text-align: center; padding: 26px 20px;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: linear-gradient(160deg, rgba(232,198,135,0.08), rgba(255,255,255,0.02));
+}
+.pricing-note { text-align: center; font-size: 0.82rem; color: var(--text-dim); margin: 0 0 16px; }
 .pricing-note strong { color: var(--gold-bright); }
+.landing-legal { margin-top: 18px; font-size: 0.72rem; }
+
+/* ---------- Landing: desktop body sections (>=700px) ---------- */
+@media (min-width: 700px) {
+  .landing-body { max-width: 640px; margin: 40px auto 0; }
+}
+@media (min-width: 1024px) {
+  .landing-body { max-width: 1180px; margin: 60px auto 0; padding: 0 40px; }
+  .showcase-grid { gap: 20px; }
+  .why-grid { grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .steps-list { flex-direction: row; gap: 24px; }
+  .steps-list::before { left: 15px; right: 15px; top: 15px; bottom: auto; width: auto; height: 1px; background: var(--border); }
+  .step-item { flex-direction: column; align-items: flex-start; flex: 1; }
+  .landing-closing { max-width: 720px; margin-left: auto; margin-right: auto; }
+}
 
 /* ---------- Toast ---------- */
 #toast {
@@ -493,7 +635,11 @@ button { font-family: inherit; }
 @keyframes typingDot { 0%, 60%, 100% { opacity: 0.3; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
 .chat-bar { gap: 8px; padding-top: 6px; }
 .chat-input {
-  flex: 1; padding: 12px 14px; border-radius: var(--radius-sm); background: rgba(255,255,255,0.05);
+  /* min-width:0 overrides the flex item default of min-width:auto — without it,
+     a text input's intrinsic content width (~20ch by UA default) refuses to
+     shrink below that, which at narrow (phone) widths pushes the Send button
+     partly off-screen and causes horizontal page overflow. */
+  flex: 1; min-width: 0; padding: 12px 14px; border-radius: var(--radius-sm); background: rgba(255,255,255,0.05);
   border: 1px solid var(--border); color: var(--text); font-size: 0.9rem; font-family: inherit;
 }
 .chat-input:focus { border-color: var(--gold); outline: none; }
@@ -519,56 +665,102 @@ button { font-family: inherit; }
 <div id="stars-bg"></div>
 <div id="toast"></div>
 
-<div id="app-root">
+<div id="app-root" class="landing-active">
 
   <!-- ============ LANDING ============ -->
   <section id="screen-landing" class="screen active no-nav">
     <div class="landing-navbar">
-      <div class="landing-navbar-brand">🌙</div>
-      <div class="landing-navbar-actions">
-        <button class="btn btn-ghost btn-sm" id="btn-navbar-login" data-i18n="landing.navbar.login">Log In</button>
-        <button class="btn btn-primary btn-sm" id="btn-navbar-start" data-i18n="landing.navbar.start">Start</button>
-        <button class="icon-btn" id="btn-lang-toggle">🌐</button>
-      </div>
-    </div>
-    <div class="landing-hero">
-      <div class="landing-logo">🌙✨</div>
-      <div class="eyebrow" data-i18n="landing.eyebrow">Nakshatra · Rule-Based Cosmic Guidance</div>
-      <h1 data-i18n-html="landing.h1">Your palm and your<br>birth chart, decoded.</h1>
-      <p class="sub" data-i18n-html="landing.sub">Real astronomical calculations, classical palmistry rules —<br>no vague AI guesses, ever.</p>
-      <button class="btn btn-primary btn-block" id="btn-landing-start" data-i18n="landing.cta.start">Begin Your Reading →</button>
-      <div style="height:10px"></div>
-      <button class="btn btn-secondary btn-block" id="btn-landing-login" data-i18n="landing.cta.login">I already have an account</button>
-      <div class="trust-strip">
-        <div><div class="t-num">100%</div><div class="t-lbl" data-i18n="landing.trust.rulebased">Rule-based</div></div>
-        <div><div class="t-num" data-i18n="landing.trust.real">Real</div><div class="t-lbl" data-i18n="landing.trust.ephemeris">Ephemeris data</div></div>
-        <div><div class="t-num">0</div><div class="t-lbl" data-i18n="landing.trust.ai">AI guesswork</div></div>
+      <div class="landing-navbar-inner">
+        <div class="landing-navbar-brand">
+          <span class="landing-navbar-mark">🌙</span>
+          <span class="landing-navbar-word">Nakshatra</span>
+        </div>
+        <!-- Desktop-only — hidden on phone/tablet by CSS. These point at the
+             standalone marketing pages that already exist in the repo root
+             (about.html, pricing.html, kundli-matching.html) but weren't
+             linked from anywhere in the app itself. -->
+        <nav class="landing-navbar-links">
+          <a href="javascript:void(0)" class="active" data-i18n="landing.nav.home">Home</a>
+          <a href="kundli-matching.html" data-i18n="landing.nav.kundli">Kundli Matching</a>
+          <a href="pricing.html" data-i18n="landing.nav.pricing">Pricing</a>
+          <a href="about.html" data-i18n="landing.nav.about">About</a>
+        </nav>
+        <div class="landing-navbar-actions">
+          <button class="btn btn-ghost btn-sm" id="btn-navbar-login" data-i18n="landing.navbar.login">Log In</button>
+          <button class="btn btn-primary btn-sm" id="btn-navbar-start" data-i18n="landing.navbar.start">Start</button>
+          <button class="icon-btn" id="btn-lang-toggle">🌐</button>
+        </div>
       </div>
     </div>
 
-    <div style="margin-top:34px" class="stack">
-      <div class="row wrap center" style="justify-content:center">
+    <div class="landing-hero">
+      <svg class="constellation-svg" viewBox="0 0 320 170" aria-hidden="true" focusable="false">
+        <path d="M58 46 L118 22 L182 48 L258 34 M118 22 L136 92 M182 48 L214 104 M58 46 L38 112" stroke="var(--gold)" stroke-width="1" fill="none"/>
+        <g fill="var(--gold-bright)">
+          <circle cx="58" cy="46" r="2.6"/>
+          <circle cx="118" cy="22" r="3.2"/>
+          <circle cx="182" cy="48" r="2.8"/>
+          <circle cx="258" cy="34" r="2.2"/>
+          <circle cx="136" cy="92" r="2.3"/>
+          <circle cx="214" cy="104" r="2.1"/>
+          <circle cx="38" cy="112" r="1.9"/>
+        </g>
+      </svg>
+      <div class="landing-hero-grid">
+        <div class="landing-hero-copy">
+          <div class="landing-badge"><span class="eyebrow" data-i18n="landing.eyebrow">Nakshatra · Rule-Based Cosmic Guidance</span></div>
+          <h1 data-i18n-html="landing.h1">Your palm and your <br class="h1-break">birth chart, decoded.</h1>
+          <p class="sub" data-i18n-html="landing.sub">Real astronomical calculations, classical palmistry rules —<br>no vague AI guesses, ever.</p>
+          <div class="landing-cta-group">
+            <button class="btn btn-primary btn-block" id="btn-landing-start" data-i18n="landing.cta.start">Begin Your Reading →</button>
+            <button class="btn btn-secondary btn-block" id="btn-landing-login" data-i18n="landing.cta.login">I already have an account</button>
+          </div>
+          <div class="trust-strip">
+            <div class="trust-item"><div class="t-num">100%</div><div class="t-lbl" data-i18n="landing.trust.rulebased">Rule-based</div></div>
+            <div class="trust-divider"></div>
+            <div class="trust-item"><div class="t-num" data-i18n="landing.trust.real">Real</div><div class="t-lbl" data-i18n="landing.trust.ephemeris">Ephemeris data</div></div>
+            <div class="trust-divider"></div>
+            <div class="trust-item"><div class="t-num">0</div><div class="t-lbl" data-i18n="landing.trust.ai">AI guesswork</div></div>
+          </div>
+        </div>
+        <!-- Desktop-only decorative visual — an orbit of concentric rings
+             with a constellation traced across them. Pure SVG, no image
+             assets, hidden on phone/tablet where there's no room for it. -->
+        <div class="landing-hero-visual" aria-hidden="true">
+          <svg class="orbit-svg" viewBox="0 0 480 480" focusable="false">
+            <circle cx="240" cy="240" r="220" class="orbit-ring"/>
+            <circle cx="240" cy="240" r="150" class="orbit-ring"/>
+            <circle cx="240" cy="240" r="80" class="orbit-ring"/>
+            <path class="orbit-path" d="M320 100 L392 230 L268 330 L150 268" />
+            <g class="orbit-stars">
+              <circle cx="320" cy="100" r="7"/>
+              <circle cx="392" cy="230" r="9"/>
+              <circle cx="268" cy="330" r="6"/>
+              <circle cx="150" cy="268" r="5.5"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="landing-body">
+      <div class="feature-pill-row">
         <span class="feature-pill" data-i18n="landing.pill.chart">🪐 Birth chart</span>
         <span class="feature-pill" data-i18n="landing.pill.palm">🖐️ Palm reading</span>
         <span class="feature-pill" data-i18n="landing.pill.love">💗 Love energy</span>
         <span class="feature-pill" data-i18n="landing.pill.horoscope">🔮 Weekly horoscope</span>
       </div>
-      <div class="card">
-        <div class="row">
-          <div class="zodiac-badge">🖐️</div>
-          <div>
-            <strong data-i18n="landing.card1.title">Palm Reading</strong>
-            <p style="margin:2px 0 0" data-i18n="landing.card1.desc">Upload a photo, confirm your line shapes, get a classical palmistry read.</p>
-          </div>
+
+      <div class="showcase-grid">
+        <div class="showcase-card">
+          <div class="showcase-badge">🖐️</div>
+          <strong data-i18n="landing.card1.title">Palm Reading</strong>
+          <p data-i18n="landing.card1.desc">Upload a photo, confirm your line shapes, get a classical palmistry read.</p>
         </div>
-      </div>
-      <div class="card">
-        <div class="row">
-          <div class="zodiac-badge">☀️</div>
-          <div>
-            <strong data-i18n="landing.card2.title">Sun · Moon · Rising</strong>
-            <p style="margin:2px 0 0" data-i18n="landing.card2.desc">Computed from your real birth date, time, and place — not a guess.</p>
-          </div>
+        <div class="showcase-card">
+          <div class="showcase-badge">☀️</div>
+          <strong data-i18n="landing.card2.title">Sun · Moon · Rising</strong>
+          <p data-i18n="landing.card2.desc">Computed from your real birth date, time, and place — not a guess.</p>
         </div>
       </div>
 
@@ -623,10 +815,12 @@ button { font-family: inherit; }
         </div>
       </div>
 
-      <p class="pricing-note" data-i18n-html="landing.pricing-note">Free to preview. <strong>Pay once, only if you want your full report.</strong></p>
-      <button class="btn btn-primary btn-block" id="btn-landing-start-bottom" data-i18n="landing.cta.start">Begin Your Reading →</button>
+      <div class="landing-closing">
+        <p class="pricing-note" data-i18n-html="landing.pricing-note">Free to preview. <strong>Pay once, only if you want your full report.</strong></p>
+        <button class="btn btn-primary btn-block" id="btn-landing-start-bottom" data-i18n="landing.cta.start">Begin Your Reading →</button>
+      </div>
 
-      <p class="muted center" style="margin-top:16px;font-size:0.72rem" data-i18n-html="landing.legal-footer">By continuing, you agree to our <a href="javascript:void(0)" id="link-landing-terms">Terms of Service</a> and <a href="javascript:void(0)" id="link-landing-privacy">Privacy Policy</a>.</p>
+      <p class="muted center landing-legal" data-i18n-html="landing.legal-footer">By continuing, you agree to our <a href="javascript:void(0)" id="link-landing-terms">Terms of Service</a> and <a href="javascript:void(0)" id="link-landing-privacy">Privacy Policy</a>.</p>
     </div>
   </section>
 
@@ -3334,12 +3528,16 @@ const SIGN_INFO_HI = [
 const I18N = {
   en: {
     "landing.eyebrow": "Nakshatra · Rule-Based Cosmic Guidance",
-    "landing.h1": "Your palm and your<br>birth chart, decoded.",
+    "landing.h1": "Your palm and your <br class=\"h1-break\">birth chart, decoded.",
     "landing.sub": "Real astronomical calculations, classical palmistry rules —<br>no vague AI guesses, ever.",
     "landing.cta.start": "Begin Your Reading →",
     "landing.cta.login": "I already have an account",
     "landing.navbar.start": "Start",
     "landing.navbar.login": "Log In",
+    "landing.nav.home": "Home",
+    "landing.nav.kundli": "Kundli Matching",
+    "landing.nav.pricing": "Pricing",
+    "landing.nav.about": "About",
     "landing.trust.rulebased": "Rule-based",
     "landing.trust.real": "Real",
     "landing.trust.ephemeris": "Ephemeris data",
@@ -3608,12 +3806,16 @@ const I18N = {
 
   hi: {
     "landing.eyebrow": "नक्षत्र · नियम-आधारित ब्रह्मांडीय मार्गदर्शन",
-    "landing.h1": "आपकी हथेली और<br>आपकी जन्म कुंडली, समझाई गई।",
+    "landing.h1": "आपकी हथेली और <br class=\"h1-break\">आपकी जन्म कुंडली, समझाई गई।",
     "landing.sub": "वास्तविक खगोलीय गणनाएं, पारंपरिक हस्तरेखा नियम —<br>कोई अस्पष्ट AI अनुमान नहीं, कभी नहीं।",
     "landing.cta.start": "अपनी रीडिंग शुरू करें →",
     "landing.cta.login": "मेरा पहले से खाता है",
     "landing.navbar.start": "शुरू करें",
     "landing.navbar.login": "लॉग इन",
+    "landing.nav.home": "होम",
+    "landing.nav.kundli": "कुंडली मिलान",
+    "landing.nav.pricing": "मूल्य",
+    "landing.nav.about": "हमारे बारे में",
     "landing.trust.rulebased": "नियम-आधारित",
     "landing.trust.real": "वास्तविक",
     "landing.trust.ephemeris": "एफेमेरिस डेटा",
@@ -4390,6 +4592,11 @@ function showScreen(id, opts) {
   const target = document.getElementById(id);
   if (target) target.classList.add("active");
   window.scrollTo(0, 0);
+  // The landing screen gets a full-width desktop layout instead of the
+  // app's usual boxed "card" shell (see .landing-active in app.css) — every
+  // other screen keeps the normal bounded card, on phone and desktop alike.
+  const appRoot = document.getElementById("app-root");
+  if (appRoot) appRoot.classList.toggle("landing-active", id === "screen-landing");
   const navScreens = ["screen-dashboard", "screen-horoscope", "screen-palm", "screen-love", "screen-fullreport", "screen-compat", "screen-yearahead"];
   $("#bottom-nav").classList.toggle("visible", navScreens.includes(id));
   $all(".nav-item").forEach(n => n.classList.toggle("active", n.dataset.nav === id));

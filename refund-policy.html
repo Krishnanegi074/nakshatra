@@ -11,14 +11,15 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
 <style>
 :root {
   --navy-0: #0d0820; --navy-1: #1b1032; --navy-2: #241640;
   --plum: #6c4e8c; --plum-light: #9b7ec0;
   --gold: #c9a15f; --gold-bright: #e8c687;
-  --text: #f3eefb; --text-dim: #b6acc9; --text-faint: #8478a0;
+  --text: #f3eefb; --text-dim: #cbc0e6; --text-faint: #b6acc9;
   --surface: rgba(255,255,255,0.06); --surface-2: rgba(255,255,255,0.10);
-  --border: rgba(232,198,135,0.18); --border-strong: rgba(232,198,135,0.38);
+  --border: rgba(232,198,135,0.18); --border-strong: rgba(232,198,135,0.3);
   --success: #74d6a3; --danger: #ef7f7f;
   --radius: 18px; --radius-sm: 12px;
 }
@@ -115,11 +116,42 @@ footer.site a:hover { color: var(--gold-bright); }
 </style>
 </head>
 <body>
+<div id="stars-bg"></div>
 
-<header class="top">
-  <div class="wrap">
-    <a class="brand" href="/"><span class="moon">☾</span> Nakshatra</a>
-    <a class="back-link" href="/">← Back to the app</a>
+<header>
+  <nav class="nk-nav">
+    <a href="index.html" class="nk-logo" aria-label="Nakshatra home">
+      <svg width="30" height="30" viewBox="0 0 56 56" aria-hidden="true">
+        <defs>
+          <linearGradient id="navGold" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#e8c687"/><stop offset="100%" stop-color="#c9a15f"/></linearGradient>
+          <mask id="navMask"><rect width="56" height="56" fill="white"/><circle cx="32" cy="20" r="15" fill="black"/></mask>
+        </defs>
+        <circle cx="24" cy="23" r="17" fill="url(#navGold)" mask="url(#navMask)"/>
+        <circle cx="44" cy="38" r="3" fill="url(#navGold)"/><circle cx="50" cy="30" r="1.8" fill="url(#navGold)"/>
+        <line x1="44" y1="38" x2="50" y2="30" stroke="#e8c687" stroke-width="1.2" opacity="0.6"/>
+      </svg>
+      <span class="nk-logo-word">NAKSHATRA</span>
+    </a>
+    <div class="nk-nav-links">
+      <a href="index.html" class="nk-nav-link">Home</a>
+      <a href="kundli-matching.html" class="nk-nav-link">Kundli Matching</a>
+      <a href="pricing.html" class="nk-nav-link">Pricing</a>
+      <a href="about.html" class="nk-nav-link">About</a>
+    </div>
+    <div class="nk-nav-actions">
+      <a href="index.html" class="nk-btn-ghost">Log In</a>
+      <a href="index.html" class="nk-btn nk-btn-primary">Start Free</a>
+      <button class="nk-nav-toggle" type="button" aria-label="Open menu" aria-expanded="false">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </nav>
+  <div class="nk-mobile-menu">
+    <a href="index.html">Home</a>
+    <a href="kundli-matching.html">Kundli Matching</a>
+    <a href="pricing.html">Pricing</a>
+    <a href="about.html">About</a>
+    <a href="index.html" class="nk-btn nk-btn-primary">Start Free</a>
   </div>
 </header>
 
@@ -140,17 +172,17 @@ footer.site a:hover { color: var(--gold-bright); }
   <p style="margin:0">To request a refund, email <a href="mailto:support@nakshatra.ind.in">support@nakshatra.ind.in</a> within 7 days of the charge, with the email address on your account and your Razorpay payment ID (shown in your payment confirmation). We aim to respond within 3 business days; approved refunds are returned to your original payment method within 5–7 business days, matching Razorpay's standard processing time. This policy doesn't limit any refund right you have under Indian consumer protection law.</p>
 </div>
 
-<div class="callout"><strong>This is the same policy that appears in our <a href="/#terms">Terms of Service</a></strong> — it's duplicated here as its own page so it's easy to link to and find directly.</div>
+<div class="callout"><strong>This is the same policy that appears in our <a href="index.html">Terms of Service</a></strong> — it's duplicated here as its own page so it's easy to link to and find directly.</div>
 
 
     <nav aria-label="More pages" style="margin-top:50px;padding-top:24px;border-top:1px solid var(--border)">
       <ul class="pagenav">
-      <li><a href="/how-it-works.html">How It Works</a></li>
-      <li><a href="/sample-report.html">Sample Report</a></li>
-      <li><a href="/faq.html">FAQ</a></li>
-      <li><a href="/about.html">About</a></li>
-      <li><a href="/responsible-guidance.html">Responsible Use</a></li>
-      <li><a href="/refund-policy.html" class="current">Refund Policy</a></li>
+      <li><a href="how-it-works.html">How It Works</a></li>
+      <li><a href="sample-report.html">Sample Report</a></li>
+      <li><a href="faq.html">FAQ</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="responsible-guidance.html">Responsible Use</a></li>
+      <li><a href="refund-policy.html" class="current">Refund Policy</a></li>
       </ul>
     </nav>
   </div>
@@ -158,11 +190,12 @@ footer.site a:hover { color: var(--gold-bright); }
 
 <footer class="site">
   <div class="wrap">
-    <p><a href="/how-it-works.html">How It Works</a> &nbsp;·&nbsp; <a href="/sample-report.html">Sample Report</a> &nbsp;·&nbsp; <a href="/faq.html">FAQ</a> &nbsp;·&nbsp; <a href="/about.html">About</a> &nbsp;·&nbsp; <a href="/responsible-guidance.html">Responsible Use</a> &nbsp;·&nbsp; <a href="/refund-policy.html">Refund Policy</a> &nbsp;·&nbsp; <a href="/#terms">Terms</a> &nbsp;·&nbsp; <a href="/#privacy">Privacy</a></p>
+    <p><a href="how-it-works.html">How It Works</a> &nbsp;·&nbsp; <a href="sample-report.html">Sample Report</a> &nbsp;·&nbsp; <a href="faq.html">FAQ</a> &nbsp;·&nbsp; <a href="about.html">About</a> &nbsp;·&nbsp; <a href="responsible-guidance.html">Responsible Use</a> &nbsp;·&nbsp; <a href="refund-policy.html">Refund Policy</a> &nbsp;·&nbsp; <a href="index.html">Terms</a> &nbsp;·&nbsp; <a href="index.html">Privacy</a></p>
     <p style="margin-top:10px">Nakshatra is built and operated by Krishna Negi, Delhi, India. Questions or concerns: <a href="mailto:support@nakshatra.ind.in">support@nakshatra.ind.in</a>.</p>
     <p style="margin-top:10px">Nakshatra provides astrology and palmistry content for entertainment and self-reflection only. It is not medical, legal, financial, or psychological advice.</p>
   </div>
 </footer>
 
+<script src="main.js"></script>
 </body>
 </html>

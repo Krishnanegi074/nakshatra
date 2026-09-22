@@ -27,20 +27,23 @@
 .nk-pr-tiers-wrap { padding-top: 80px; }
 .nk-pr-tiers-head { text-align: center; max-width: 520px; margin: 0 auto 56px; }
 
-.nk-pr-tiers { display: grid; grid-template-columns: 0.85fr 1.2fr 0.85fr; gap: 0; align-items: center; }
+/* gap (not 0) is what keeps the "featured" card's pop-out transform below
+   from ever visually overlapping its neighbors' text/buttons. */
+.nk-pr-tiers { display: grid; grid-template-columns: 0.85fr 1.2fr 0.85fr; gap: 28px; align-items: center; }
 
-.nk-pr-tier { padding: 36px 30px; text-align: center; position: relative; z-index: 1; }
-.nk-pr-tiers .nk-pr-tier:first-child { border-radius: var(--radius) 0 0 var(--radius); border-right: none; }
-.nk-pr-tiers .nk-pr-tier:last-child { border-radius: 0 var(--radius) var(--radius) 0; border-left: none; }
+.nk-pr-tier { padding: 36px 30px; text-align: center; position: relative; z-index: 1; border-radius: var(--radius); }
 
 .nk-pr-tier-name { font-size: 16px; color: var(--text-dim); font-family: 'Poppins', sans-serif; font-weight: 600; margin-bottom: 16px; }
 .nk-pr-tier-price { font-family: 'Cinzel', serif; font-size: 34px; color: var(--gold-bright); margin-bottom: 20px; }
 .nk-pr-tier-desc { color: var(--text-faint); font-size: 13.5px; line-height: 1.65; margin-bottom: 26px; }
 .nk-pr-tier-btn { width: 100%; }
 
+/* Was transform: scale(1.08) — with zero gap between columns that scaled
+   right over the neighboring cards' buttons. A vertical lift reads as
+   "featured" just as clearly without ever encroaching sideways. */
 .nk-pr-tier--featured {
   padding: 48px 40px; border-color: var(--gold); background: rgba(201, 161, 95, 0.1);
-  z-index: 2; transform: scale(1.08); box-shadow: 0 30px 60px rgba(0, 0, 0, 0.35);
+  z-index: 2; transform: translateY(-14px); box-shadow: 0 30px 60px rgba(0, 0, 0, 0.35);
 }
 .nk-pr-tier-badge {
   position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
@@ -60,7 +63,5 @@
 
   .nk-pr-tiers-wrap { padding-top: 40px; }
   .nk-pr-tiers { grid-template-columns: 1fr; gap: 28px; }
-  .nk-pr-tiers .nk-pr-tier:first-child,
-  .nk-pr-tiers .nk-pr-tier:last-child { border-radius: var(--radius); border: 1px solid var(--border); }
   .nk-pr-tier--featured { transform: none; }
 }
