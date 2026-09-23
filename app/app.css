@@ -448,13 +448,9 @@ button { font-family: inherit; }
   }
 }
 
-/* position:sticky doesn't work here — #app-root has overflow:hidden (for its
-   rounded corners) which establishes its own scroll container, and since
-   #app-root itself never scrolls (the window does), a sticky descendant has
-   nothing to stick against and just scrolls away. position:fixed avoids
-   that, and since landing is unboxed above, this bar can now just be
-   100% wide with its own inner max-width wrapper for alignment, instead of
-   having to match #app-root's own card breakpoints. */
+/* The public pages share this same 1220px navigation geometry in style.css.
+   Keeping it explicit here avoids loading the marketing stylesheet into the
+   application while making the header visually identical on every route. */
 .landing-navbar {
   position: fixed; top: 0; left: 0; right: 0; z-index: 20;
   background: linear-gradient(180deg, rgba(13,8,32,0.97), rgba(13,8,32,0.9));
@@ -462,27 +458,52 @@ button { font-family: inherit; }
   border-bottom: 1px solid var(--border);
 }
 .landing-navbar-inner {
-  max-width: 460px; margin: 0 auto;
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  padding: 14px 20px;
+  width: 100%; max-width: 1220px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 18px 20px;
 }
-.landing-navbar-brand { display: flex; align-items: center; gap: 8px; }
+.landing-navbar-brand { display: flex; align-items: center; gap: 11px; text-decoration: none; flex-shrink: 0; }
+.landing-navbar-brand svg { width: 30px; height: 30px; flex: 0 0 30px; }
 .landing-navbar-mark { font-size: 1.25rem; line-height: 1; }
-.landing-navbar-word { font-family: 'Cinzel', serif; font-size: 1rem; letter-spacing: 0.04em; color: var(--text); }
+.landing-navbar-word { font-family: 'Cinzel', serif; font-weight: 700; font-size: 19px; letter-spacing: 0.1em; color: var(--gold-bright); }
 .landing-navbar-links { display: none; }
 .landing-navbar-actions { display: flex; align-items: center; gap: 8px; }
-.landing-navbar .btn-sm { padding: 8px 14px; font-size: 0.78rem; white-space: nowrap; }
-.landing-navbar .icon-btn { width: 34px; height: 34px; font-size: 0.9rem; flex-shrink: 0; }
-@media (min-width: 700px) {
-  .landing-navbar-inner { max-width: 640px; }
+.landing-navbar .btn-sm { padding: 10px 6px; font-size: 14px; white-space: nowrap; line-height: 1; }
+.landing-navbar .btn-primary.btn-sm { padding: 15px 28px; font-size: 15px; }
+.landing-navbar .icon-btn { width: 42px; height: 42px; font-size: 0.95rem; flex-shrink: 0; }
+.landing-nav-toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 42px; height: 42px; padding: 0; border-radius: 10px;
+  color: var(--gold-bright); background: transparent; border: 1px solid var(--border);
+  cursor: pointer;
 }
+.landing-mobile-menu {
+  display: none; flex-direction: column; gap: 4px;
+  padding: 10px 24px 22px; border-top: 1px solid rgba(232,198,135,0.08);
+  background: var(--navy-1);
+}
+.landing-mobile-menu.is-open { display: flex; }
+.landing-mobile-menu a, .landing-mobile-menu > button:not(.btn) {
+  padding: 12px 4px; font: 500 15px/1.4 'Poppins', sans-serif; text-align: left;
+  color: var(--text-dim); background: transparent; border: 0;
+  border-bottom: 1px solid rgba(232,198,135,0.08); text-decoration: none; cursor: pointer;
+}
+.landing-mobile-menu a[aria-current="page"] { color: var(--gold-bright); }
+.landing-mobile-menu .btn { width: 100%; margin-top: 10px; }
+.landing-navbar-actions > .btn, .landing-language-toggle { display: none; }
 @media (min-width: 1024px) {
-  .landing-navbar-inner { max-width: 1180px; padding: 18px 40px; }
-  .landing-navbar-links { display: flex; align-items: center; gap: 30px; margin: 0 40px; }
-  .landing-navbar-links a {
-    font-size: 0.88rem; color: var(--text-dim); text-decoration: none; white-space: nowrap;
+  .landing-navbar-inner {
+    display: grid; grid-template-columns: minmax(220px, 1fr) auto minmax(220px, 1fr);
+    padding: 18px 40px;
   }
-  .landing-navbar-links a:hover, .landing-navbar-links a.active { color: var(--gold-bright); }
+  .landing-navbar-links { display: flex; align-items: center; gap: 38px; }
+  .landing-navbar-links a {
+    font-size: 14px; font-weight: 500; color: var(--text-dim); text-decoration: none; white-space: nowrap;
+  }
+  .landing-navbar-links a:hover, .landing-navbar-links a[aria-current="page"] { color: var(--gold-bright); }
+  .landing-navbar-actions { justify-self: end; gap: 18px; }
+  .landing-navbar-actions > .btn, .landing-language-toggle { display: inline-flex; }
+  .landing-nav-toggle { display: none; }
 }
 
 /* Hero: a faint hand-drawn constellation (an asterism, like the star

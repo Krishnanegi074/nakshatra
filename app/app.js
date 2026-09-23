@@ -350,8 +350,10 @@ function initLangSwitch() {
   function close() { $("#sheet-lang-backdrop").classList.remove("visible"); }
   const toggle1 = $("#btn-lang-toggle");
   const toggle2 = $("#btn-lang-toggle-dash");
+  const toggle3 = $("#btn-lang-toggle-mobile");
   if (toggle1) toggle1.addEventListener("click", open);
   if (toggle2) toggle2.addEventListener("click", open);
+  if (toggle3) toggle3.addEventListener("click", open);
   $("#btn-close-lang").addEventListener("click", close);
   $("#sheet-lang-backdrop").addEventListener("click", (e) => { if (e.target.id === "sheet-lang-backdrop") close(); });
   $all(".lang-option").forEach((b) => b.addEventListener("click", () => {
@@ -369,6 +371,16 @@ function initLangSwitch() {
       }
     }
   }));
+
+  // Static marketing pages link here because their copy is English-only.
+  // Open the app's real language picker, then remove the one-time query flag.
+  const params = new URLSearchParams(location.search);
+  if (params.get("language") === "choose") {
+    open();
+    params.delete("language");
+    const cleanQuery = params.toString();
+    history.replaceState(null, "", location.pathname + (cleanQuery ? "?" + cleanQuery : "") + location.hash);
+  }
 }
 
 function toast(msg) {
@@ -447,8 +459,10 @@ function initAuth() {
   $("#btn-landing-start").addEventListener("click", () => { state.authMode = "signup"; syncAuthTabs(); showScreen("screen-auth"); });
   $("#btn-landing-start-bottom").addEventListener("click", () => { state.authMode = "signup"; syncAuthTabs(); showScreen("screen-auth"); });
   $("#btn-navbar-start").addEventListener("click", () => { state.authMode = "signup"; syncAuthTabs(); showScreen("screen-auth"); });
+  $("#btn-navbar-mobile-start").addEventListener("click", () => { state.authMode = "signup"; syncAuthTabs(); showScreen("screen-auth"); });
   $("#btn-landing-login").addEventListener("click", () => { state.authMode = "login"; syncAuthTabs(); showScreen("screen-auth"); });
   $("#btn-navbar-login").addEventListener("click", () => { state.authMode = "login"; syncAuthTabs(); showScreen("screen-auth"); });
+  $("#btn-navbar-mobile-login").addEventListener("click", () => { state.authMode = "login"; syncAuthTabs(); showScreen("screen-auth"); });
   $("#tab-signup").addEventListener("click", () => { state.authMode = "signup"; syncAuthTabs(); });
   $("#tab-login").addEventListener("click", () => { state.authMode = "login"; syncAuthTabs(); });
 
@@ -2328,6 +2342,20 @@ document.addEventListener("DOMContentLoaded", () => {
   // rather than to nodes that are about to be destroyed and rebuilt.
   applyLanguage(state.lang);
   initLangSwitch();
+  const landingNavToggle = $("#btn-landing-nav-toggle");
+  const landingMobileMenu = $("#landing-mobile-menu");
+  if (landingNavToggle && landingMobileMenu) {
+    landingNavToggle.addEventListener("click", () => {
+      const isOpen = landingMobileMenu.classList.toggle("is-open");
+      landingNavToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+      landingNavToggle.setAttribute("aria-label", isOpen ? "Close menu" : "Open menu");
+    });
+    landingMobileMenu.querySelectorAll("a, button").forEach((item) => item.addEventListener("click", () => {
+      landingMobileMenu.classList.remove("is-open");
+      landingNavToggle.setAttribute("aria-expanded", "false");
+      landingNavToggle.setAttribute("aria-label", "Open menu");
+    }));
+  }
   initStars();
   initAuth();
   initOnboarding();

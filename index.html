@@ -457,13 +457,9 @@ button { font-family: inherit; }
   }
 }
 
-/* position:sticky doesn't work here — #app-root has overflow:hidden (for its
-   rounded corners) which establishes its own scroll container, and since
-   #app-root itself never scrolls (the window does), a sticky descendant has
-   nothing to stick against and just scrolls away. position:fixed avoids
-   that, and since landing is unboxed above, this bar can now just be
-   100% wide with its own inner max-width wrapper for alignment, instead of
-   having to match #app-root's own card breakpoints. */
+/* The public pages share this same 1220px navigation geometry in style.css.
+   Keeping it explicit here avoids loading the marketing stylesheet into the
+   application while making the header visually identical on every route. */
 .landing-navbar {
   position: fixed; top: 0; left: 0; right: 0; z-index: 20;
   background: linear-gradient(180deg, rgba(13,8,32,0.97), rgba(13,8,32,0.9));
@@ -471,27 +467,52 @@ button { font-family: inherit; }
   border-bottom: 1px solid var(--border);
 }
 .landing-navbar-inner {
-  max-width: 460px; margin: 0 auto;
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  padding: 14px 20px;
+  width: 100%; max-width: 1220px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 18px 20px;
 }
-.landing-navbar-brand { display: flex; align-items: center; gap: 8px; }
+.landing-navbar-brand { display: flex; align-items: center; gap: 11px; text-decoration: none; flex-shrink: 0; }
+.landing-navbar-brand svg { width: 30px; height: 30px; flex: 0 0 30px; }
 .landing-navbar-mark { font-size: 1.25rem; line-height: 1; }
-.landing-navbar-word { font-family: 'Cinzel', serif; font-size: 1rem; letter-spacing: 0.04em; color: var(--text); }
+.landing-navbar-word { font-family: 'Cinzel', serif; font-weight: 700; font-size: 19px; letter-spacing: 0.1em; color: var(--gold-bright); }
 .landing-navbar-links { display: none; }
 .landing-navbar-actions { display: flex; align-items: center; gap: 8px; }
-.landing-navbar .btn-sm { padding: 8px 14px; font-size: 0.78rem; white-space: nowrap; }
-.landing-navbar .icon-btn { width: 34px; height: 34px; font-size: 0.9rem; flex-shrink: 0; }
-@media (min-width: 700px) {
-  .landing-navbar-inner { max-width: 640px; }
+.landing-navbar .btn-sm { padding: 10px 6px; font-size: 14px; white-space: nowrap; line-height: 1; }
+.landing-navbar .btn-primary.btn-sm { padding: 15px 28px; font-size: 15px; }
+.landing-navbar .icon-btn { width: 42px; height: 42px; font-size: 0.95rem; flex-shrink: 0; }
+.landing-nav-toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 42px; height: 42px; padding: 0; border-radius: 10px;
+  color: var(--gold-bright); background: transparent; border: 1px solid var(--border);
+  cursor: pointer;
 }
+.landing-mobile-menu {
+  display: none; flex-direction: column; gap: 4px;
+  padding: 10px 24px 22px; border-top: 1px solid rgba(232,198,135,0.08);
+  background: var(--navy-1);
+}
+.landing-mobile-menu.is-open { display: flex; }
+.landing-mobile-menu a, .landing-mobile-menu > button:not(.btn) {
+  padding: 12px 4px; font: 500 15px/1.4 'Poppins', sans-serif; text-align: left;
+  color: var(--text-dim); background: transparent; border: 0;
+  border-bottom: 1px solid rgba(232,198,135,0.08); text-decoration: none; cursor: pointer;
+}
+.landing-mobile-menu a[aria-current="page"] { color: var(--gold-bright); }
+.landing-mobile-menu .btn { width: 100%; margin-top: 10px; }
+.landing-navbar-actions > .btn, .landing-language-toggle { display: none; }
 @media (min-width: 1024px) {
-  .landing-navbar-inner { max-width: 1180px; padding: 18px 40px; }
-  .landing-navbar-links { display: flex; align-items: center; gap: 30px; margin: 0 40px; }
-  .landing-navbar-links a {
-    font-size: 0.88rem; color: var(--text-dim); text-decoration: none; white-space: nowrap;
+  .landing-navbar-inner {
+    display: grid; grid-template-columns: minmax(220px, 1fr) auto minmax(220px, 1fr);
+    padding: 18px 40px;
   }
-  .landing-navbar-links a:hover, .landing-navbar-links a.active { color: var(--gold-bright); }
+  .landing-navbar-links { display: flex; align-items: center; gap: 38px; }
+  .landing-navbar-links a {
+    font-size: 14px; font-weight: 500; color: var(--text-dim); text-decoration: none; white-space: nowrap;
+  }
+  .landing-navbar-links a:hover, .landing-navbar-links a[aria-current="page"] { color: var(--gold-bright); }
+  .landing-navbar-actions { justify-self: end; gap: 18px; }
+  .landing-navbar-actions > .btn, .landing-language-toggle { display: inline-flex; }
+  .landing-nav-toggle { display: none; }
 }
 
 /* Hero: a faint hand-drawn constellation (an asterism, like the star
@@ -774,26 +795,42 @@ button { font-family: inherit; }
   <section id="screen-landing" class="screen active no-nav">
     <div class="landing-navbar">
       <div class="landing-navbar-inner">
-        <div class="landing-navbar-brand">
-          <span class="landing-navbar-mark">🌙</span>
-          <span class="landing-navbar-word">Nakshatra</span>
-        </div>
-        <!-- Desktop-only — hidden on phone/tablet by CSS. These point at the
-             standalone marketing pages that already exist in the repo root
-             (about.html, pricing.html, kundli-matching.html) but weren't
-             linked from anywhere in the app itself. -->
-        <nav class="landing-navbar-links">
-          <a href="javascript:void(0)" class="active" data-i18n="landing.nav.home">Home</a>
+        <a href="index.html" class="landing-navbar-brand" aria-label="Nakshatra home">
+          <svg width="30" height="30" viewBox="0 0 56 56" aria-hidden="true">
+            <defs>
+              <linearGradient id="landingNavGold" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#e8c687"/><stop offset="100%" stop-color="#c9a15f"/></linearGradient>
+              <mask id="landingNavMask"><rect width="56" height="56" fill="white"/><circle cx="32" cy="20" r="15" fill="black"/></mask>
+            </defs>
+            <circle cx="24" cy="23" r="17" fill="url(#landingNavGold)" mask="url(#landingNavMask)"/>
+            <circle cx="44" cy="38" r="3" fill="url(#landingNavGold)"/><circle cx="50" cy="30" r="1.8" fill="url(#landingNavGold)"/>
+            <line x1="44" y1="38" x2="50" y2="30" stroke="#e8c687" stroke-width="1.2" opacity="0.6"/>
+          </svg>
+          <span class="landing-navbar-word">NAKSHATRA</span>
+        </a>
+        <nav class="landing-navbar-links" aria-label="Primary navigation">
+          <a href="index.html" aria-current="page" data-i18n="landing.nav.home">Home</a>
           <a href="kundli-matching.html" data-i18n="landing.nav.kundli">Kundli Matching</a>
           <a href="pricing.html" data-i18n="landing.nav.pricing">Pricing</a>
           <a href="about.html" data-i18n="landing.nav.about">About</a>
         </nav>
         <div class="landing-navbar-actions">
           <button class="btn btn-ghost btn-sm" id="btn-navbar-login" data-i18n="landing.navbar.login">Log In</button>
-          <button class="btn btn-primary btn-sm" id="btn-navbar-start" data-i18n="landing.navbar.start">Start</button>
-          <button class="icon-btn" id="btn-lang-toggle">🌐</button>
+          <button class="btn btn-primary btn-sm" id="btn-navbar-start" data-i18n="landing.navbar.start">Start Free</button>
+          <button class="icon-btn landing-language-toggle" id="btn-lang-toggle" type="button" aria-label="Choose language">🌐</button>
+          <button class="landing-nav-toggle" id="btn-landing-nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="landing-mobile-menu">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
         </div>
       </div>
+      <nav class="landing-mobile-menu" id="landing-mobile-menu" aria-label="Mobile navigation">
+        <a href="index.html" aria-current="page" data-i18n="landing.nav.home">Home</a>
+        <a href="kundli-matching.html" data-i18n="landing.nav.kundli">Kundli Matching</a>
+        <a href="pricing.html" data-i18n="landing.nav.pricing">Pricing</a>
+        <a href="about.html" data-i18n="landing.nav.about">About</a>
+        <button type="button" id="btn-navbar-mobile-login" data-i18n="landing.navbar.login">Log In</button>
+        <button type="button" id="btn-lang-toggle-mobile">🌐 <span data-i18n="landing.nav.language">Language</span></button>
+        <button class="btn btn-primary" type="button" id="btn-navbar-mobile-start" data-i18n="landing.navbar.start">Start Free</button>
+      </nav>
     </div>
 
     <div class="landing-hero">
@@ -3833,12 +3870,13 @@ const I18N = {
     "landing.sub": "Real astronomical calculations, classical palmistry rules —<br>no vague AI guesses, ever.",
     "landing.cta.start": "Begin Your Reading →",
     "landing.cta.login": "I already have an account",
-    "landing.navbar.start": "Start",
+    "landing.navbar.start": "Start Free",
     "landing.navbar.login": "Log In",
     "landing.nav.home": "Home",
     "landing.nav.kundli": "Kundli Matching",
     "landing.nav.pricing": "Pricing",
     "landing.nav.about": "About",
+    "landing.nav.language": "Language",
     "landing.trust.rulebased": "Rule-based",
     "landing.trust.real": "Real",
     "landing.trust.ephemeris": "Ephemeris data",
@@ -4141,12 +4179,13 @@ const I18N = {
     "landing.sub": "वास्तविक खगोलीय गणनाएं, पारंपरिक हस्तरेखा नियम —<br>कोई अस्पष्ट AI अनुमान नहीं, कभी नहीं।",
     "landing.cta.start": "अपनी रीडिंग शुरू करें →",
     "landing.cta.login": "मेरा पहले से खाता है",
-    "landing.navbar.start": "शुरू करें",
+    "landing.navbar.start": "मुफ़्त शुरू करें",
     "landing.navbar.login": "लॉग इन",
     "landing.nav.home": "होम",
     "landing.nav.kundli": "कुंडली मिलान",
     "landing.nav.pricing": "मूल्य",
     "landing.nav.about": "हमारे बारे में",
+    "landing.nav.language": "भाषा",
     "landing.trust.rulebased": "नियम-आधारित",
     "landing.trust.real": "वास्तविक",
     "landing.trust.ephemeris": "एफेमेरिस डेटा",
@@ -5095,8 +5134,10 @@ function initLangSwitch() {
   function close() { $("#sheet-lang-backdrop").classList.remove("visible"); }
   const toggle1 = $("#btn-lang-toggle");
   const toggle2 = $("#btn-lang-toggle-dash");
+  const toggle3 = $("#btn-lang-toggle-mobile");
   if (toggle1) toggle1.addEventListener("click", open);
   if (toggle2) toggle2.addEventListener("click", open);
+  if (toggle3) toggle3.addEventListener("click", open);
   $("#btn-close-lang").addEventListener("click", close);
   $("#sheet-lang-backdrop").addEventListener("click", (e) => { if (e.target.id === "sheet-lang-backdrop") close(); });
   $all(".lang-option").forEach((b) => b.addEventListener("click", () => {
@@ -5114,6 +5155,16 @@ function initLangSwitch() {
       }
     }
   }));
+
+  // Static marketing pages link here because their copy is English-only.
+  // Open the app's real language picker, then remove the one-time query flag.
+  const params = new URLSearchParams(location.search);
+  if (params.get("language") === "choose") {
+    open();
+    params.delete("language");
+    const cleanQuery = params.toString();
+    history.replaceState(null, "", location.pathname + (cleanQuery ? "?" + cleanQuery : "") + location.hash);
+  }
 }
 
 function toast(msg) {
@@ -5192,8 +5243,10 @@ function initAuth() {
   $("#btn-landing-start").addEventListener("click", () => { state.authMode = "signup"; syncAuthTabs(); showScreen("screen-auth"); });
   $("#btn-landing-start-bottom").addEventListener("click", () => { state.authMode = "signup"; syncAuthTabs(); showScreen("screen-auth"); });
   $("#btn-navbar-start").addEventListener("click", () => { state.authMode = "signup"; syncAuthTabs(); showScreen("screen-auth"); });
+  $("#btn-navbar-mobile-start").addEventListener("click", () => { state.authMode = "signup"; syncAuthTabs(); showScreen("screen-auth"); });
   $("#btn-landing-login").addEventListener("click", () => { state.authMode = "login"; syncAuthTabs(); showScreen("screen-auth"); });
   $("#btn-navbar-login").addEventListener("click", () => { state.authMode = "login"; syncAuthTabs(); showScreen("screen-auth"); });
+  $("#btn-navbar-mobile-login").addEventListener("click", () => { state.authMode = "login"; syncAuthTabs(); showScreen("screen-auth"); });
   $("#tab-signup").addEventListener("click", () => { state.authMode = "signup"; syncAuthTabs(); });
   $("#tab-login").addEventListener("click", () => { state.authMode = "login"; syncAuthTabs(); });
 
@@ -7073,6 +7126,20 @@ document.addEventListener("DOMContentLoaded", () => {
   // rather than to nodes that are about to be destroyed and rebuilt.
   applyLanguage(state.lang);
   initLangSwitch();
+  const landingNavToggle = $("#btn-landing-nav-toggle");
+  const landingMobileMenu = $("#landing-mobile-menu");
+  if (landingNavToggle && landingMobileMenu) {
+    landingNavToggle.addEventListener("click", () => {
+      const isOpen = landingMobileMenu.classList.toggle("is-open");
+      landingNavToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+      landingNavToggle.setAttribute("aria-label", isOpen ? "Close menu" : "Open menu");
+    });
+    landingMobileMenu.querySelectorAll("a, button").forEach((item) => item.addEventListener("click", () => {
+      landingMobileMenu.classList.remove("is-open");
+      landingNavToggle.setAttribute("aria-expanded", "false");
+      landingNavToggle.setAttribute("aria-label", "Open menu");
+    }));
+  }
   initStars();
   initAuth();
   initOnboarding();
