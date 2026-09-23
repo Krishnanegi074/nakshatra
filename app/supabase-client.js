@@ -97,6 +97,18 @@
         return supabase.from("profiles").select("*").eq("id", uid).maybeSingle();
       },
 
+      // Persists the signed-in visitor's language choice (see
+      // sql/008_preferred_lang.sql) so it follows their account across
+      // devices/browsers instead of resetting to the browser-detected
+      // default every load. No-op-safe: if there's no session (anonymous
+      // visitor switching languages), the update simply matches zero rows
+      // under profiles_update_own's RLS policy rather than erroring.
+      async updatePreferredLang(lang) {
+        const uid = await currentUserId();
+        if (!uid) return { data: null, error: null };
+        return supabase.from("profiles").update({ preferred_lang: lang }).eq("id", uid);
+      },
+
       // ==================== BIRTH DATA ====================
       // `fields` matches birth_data's columns 1:1 (year, month, day, hour,
       // minute, unknown_time, city_name, city_country, city_lat, city_lon,
@@ -184,6 +196,15 @@
 
       async loadSentGift(code) {
         return supabase.from("gift_codes").select("*").eq("code", code).maybeSingle();
+      },
+
+      // Lists every gift code this signed-in user has sent (gift_codes_select_own_sent
+      // — sql/002_schema.sql — scopes this to sender_id = auth.uid(), no code needed),
+      // newest first. Recovers what state.giftCodes/state.lastGiftCode (both purely
+      // in-memory, reset on every page load) can't survive a refresh: the sender can
+      // always come back to the Gift screen and see what they've sent, redeemed or not.
+      async loadSentGifts() {
+        return supabase.from("gift_codes").select("*").order("created_at", { ascending: false });
       },
 
       // Throws-as-error (in the returned `error`) with one of:

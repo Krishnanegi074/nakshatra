@@ -959,23 +959,23 @@ button { font-family: inherit; }
             <div class="paytab active" id="tab-signup" data-i18n="auth.tab.signup">Sign Up</div>
             <div class="paytab" id="tab-login" data-i18n="auth.tab.login">Log In</div>
           </div>
-          <div class="card stack">
+          <form id="form-auth" class="card stack" novalidate>
             <div class="field" id="field-name">
-              <label data-i18n="auth.label.name">Your name</label>
-              <input type="text" id="input-name" placeholder="e.g. Ananya Sharma" data-i18n-ph="auth.ph.name">
+              <label for="input-name" data-i18n="auth.label.name">Your name</label>
+              <input type="text" id="input-name" name="name" placeholder="e.g. Ananya Sharma" data-i18n-ph="auth.ph.name" autocomplete="name">
             </div>
             <div class="field">
-              <label data-i18n="auth.label.email">Email</label>
-              <input type="email" id="input-email" placeholder="you@example.com">
+              <label for="input-email" data-i18n="auth.label.email">Email</label>
+              <input type="email" id="input-email" name="email" placeholder="you@example.com" autocomplete="email">
             </div>
             <div class="field">
               <div class="field-label-row">
-                <label data-i18n="auth.label.password">Password</label>
+                <label for="input-password" data-i18n="auth.label.password">Password</label>
                 <a href="javascript:void(0)" class="auth-forgot-link" id="btn-forgot-password" data-i18n="auth.forgot">Forgot password?</a>
               </div>
-              <input type="password" id="input-password" placeholder="At least 6 characters" data-i18n-ph="auth.ph.password">
+              <input type="password" id="input-password" name="password" placeholder="At least 6 characters" data-i18n-ph="auth.ph.password" autocomplete="new-password">
             </div>
-            <button class="btn btn-primary btn-block" id="btn-auth-submit">Create Account</button>
+            <button class="btn btn-primary btn-block" id="btn-auth-submit" type="submit">Create Account</button>
             <div class="auth-divider"><span data-i18n="auth.divider">or</span></div>
             <button class="btn btn-google btn-block" id="btn-auth-google" type="button">
               <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
@@ -987,7 +987,7 @@ button { font-family: inherit; }
               <span data-i18n="auth.google">Continue with Google</span>
             </button>
             <p class="muted center" id="auth-demo-note" data-i18n="auth.demo-note">Demo prototype — accounts are stored only in this browser session, no data leaves your device.</p>
-          </div>
+          </form>
         </div>
       </div>
     </div>
@@ -1012,19 +1012,19 @@ button { font-family: inherit; }
 
           <div id="forgot-form-state">
             <p class="muted" data-i18n="forgot.subtitle">Enter the email on your account and we'll send you a link to reset your password.</p>
-            <div class="card stack">
+            <form id="form-forgot" class="card stack" novalidate>
               <div class="field">
-                <label data-i18n="auth.label.email">Email</label>
-                <input type="email" id="input-forgot-email" placeholder="you@example.com">
+                <label for="input-forgot-email" data-i18n="auth.label.email">Email</label>
+                <input type="email" id="input-forgot-email" name="email" placeholder="you@example.com" autocomplete="email">
               </div>
-              <button class="btn btn-primary btn-block" id="btn-forgot-submit" data-i18n="forgot.submit">Send Reset Link</button>
-            </div>
+              <button class="btn btn-primary btn-block" id="btn-forgot-submit" type="submit" data-i18n="forgot.submit">Send Reset Link</button>
+            </form>
           </div>
 
           <div id="forgot-sent-state" style="display:none">
             <div class="success-tick">✉️</div>
             <h2 class="center" data-i18n="forgot.sent.title">Check your email</h2>
-            <p class="muted center" id="forgot-sent-desc">We've sent a password reset link to <strong id="forgot-sent-email"></strong>.</p>
+            <p class="muted center" id="forgot-sent-desc">We've sent a password reset link to your email.</p>
             <button class="btn btn-secondary btn-block" id="btn-forgot-resend" data-i18n="forgot.sent.resend">Resend link</button>
             <p class="muted center" style="margin-top:14px"><a href="javascript:void(0)" data-back="screen-auth" data-i18n="forgot.back-to-login">Back to Log In</a></p>
           </div>
@@ -1054,17 +1054,17 @@ button { font-family: inherit; }
         <div class="auth-panel-inner">
           <div class="topbar auth-topbar"><h2 data-i18n="reset.title">Set a new password</h2></div>
           <p class="muted" data-i18n="reset.subtitle">Choose a new password for your account.</p>
-          <div class="card stack">
+          <form id="form-reset" class="card stack" novalidate>
             <div class="field">
-              <label data-i18n="reset.label.password">New password</label>
-              <input type="password" id="input-reset-password" placeholder="At least 6 characters" data-i18n-ph="auth.ph.password">
+              <label for="input-reset-password" data-i18n="reset.label.password">New password</label>
+              <input type="password" id="input-reset-password" name="new-password" placeholder="At least 6 characters" data-i18n-ph="auth.ph.password" autocomplete="new-password">
             </div>
             <div class="field">
-              <label data-i18n="reset.label.confirm">Confirm password</label>
-              <input type="password" id="input-reset-confirm" placeholder="At least 6 characters" data-i18n-ph="auth.ph.password">
+              <label for="input-reset-confirm" data-i18n="reset.label.confirm">Confirm password</label>
+              <input type="password" id="input-reset-confirm" name="confirm-password" placeholder="At least 6 characters" data-i18n-ph="auth.ph.password" autocomplete="new-password">
             </div>
-            <button class="btn btn-primary btn-block" id="btn-reset-submit" data-i18n="reset.submit">Update Password</button>
-          </div>
+            <button class="btn btn-primary btn-block" id="btn-reset-submit" type="submit" data-i18n="reset.submit">Update Password</button>
+          </form>
         </div>
       </div>
     </div>
@@ -1254,7 +1254,10 @@ button { font-family: inherit; }
         <div style="font-size:2rem">🖐️📷</div>
         <p style="margin-top:8px"><strong data-i18n="palm.upload.title">Upload a clear photo of your palm</strong></p>
         <p class="muted" style="margin:0" data-i18n="palm.upload.desc">Used only on this device for this session — never uploaded anywhere.</p>
-        <input type="file" id="palm-file-input" accept="image/*" style="display:none">
+        <!-- HEIC/HEIF (the default format on recent iPhones) is deliberately left out —
+             most browsers can't decode it into an <img>, and app.js rejects it explicitly
+             with a friendly message rather than leaving the crop screen silently stuck. -->
+        <input type="file" id="palm-file-input" accept="image/jpeg,image/png,image/webp,image/gif,image/bmp" style="display:none">
       </div>
 
       <div id="palm-crop-wrap" style="display:none">
@@ -1440,7 +1443,16 @@ button { font-family: inherit; }
 
     <div style="flex:1"></div>
     <button class="btn btn-primary btn-block" id="btn-gift-continue" style="margin-top:18px" disabled data-i18n="gift.btn.continue">Continue to Payment</button>
-    <p class="muted center" style="margin-top:10px" data-i18n="gift.demo-note">Demo note: in this prototype, gift codes are redeemable only within this same browser tab/session (there's no backend to email them) — a live version would deliver &amp; redeem codes automatically.</p>
+    <p class="muted center" style="margin-top:10px" data-i18n="gift.demo-note">Gift codes are real — the person you send one to can redeem it from any device of their own. There's no automatic email delivery yet, so copy the code or download the gift card and send it to them yourself.</p>
+
+    <!-- Recovers a sender's own past codes after a refresh (state.lastGiftCode/
+         state.giftCodes are in-memory only and don't survive one) — see
+         loadSentGiftsList()/renderSentGiftsList() in app.js. Hidden until
+         populated (or if there's nothing to show/no backend). -->
+    <div id="gift-sent-list-wrap" style="display:none;margin-top:28px">
+      <p class="eyebrow" data-i18n="gift.sentlist.title">Your Sent Gifts</p>
+      <div class="stack" id="gift-sent-list" style="margin-top:10px"></div>
+    </div>
   </section>
 
   <!-- ============ GIFT SENT (code display) ============ -->
@@ -4051,6 +4063,9 @@ const I18N = {
     "gift.sent.btn.download": "Download Gift Card",
     "gift.sent.btn.done": "Done",
     "gift.sent.sub": "Send this code to {name} — they redeem it from the \"Have a gift code?\" link on their Unlock screen.",
+    "gift.sentlist.title": "Your Sent Gifts",
+    "gift.sentlist.redeemed": "Redeemed",
+    "gift.sentlist.pending": "Not redeemed yet",
 
     "checkout.title": "Checkout",
     "checkout.secure-banner": "🔒 Secure payment powered by Razorpay — pay by UPI, card, netbanking, or wallet on the next screen. We never see or store your card/UPI details.",
@@ -4356,6 +4371,9 @@ const I18N = {
     "gift.sent.btn.download": "उपहार कार्ड डाउनलोड करें",
     "gift.sent.btn.done": "हो गया",
     "gift.sent.sub": "यह कोड {name} को भेजें — वे इसे अपनी अनलॉक स्क्रीन पर \"क्या आपके पास उपहार कोड है?\" लिंक से भुना सकते हैं।",
+    "gift.sentlist.title": "आपके भेजे गए उपहार",
+    "gift.sentlist.redeemed": "भुनाया गया",
+    "gift.sentlist.pending": "अभी तक नहीं भुनाया गया",
 
     "checkout.title": "चेकआउट",
     "checkout.secure-banner": "🔒 रेज़रपे द्वारा सुरक्षित भुगतान — अगली स्क्रीन पर UPI, कार्ड, नेटबैंकिंग या वॉलेट से भुगतान करें। हम आपका कार्ड/UPI विवरण न तो देखते हैं, न ही सुरक्षित रखते हैं।",
@@ -4546,6 +4564,18 @@ if (typeof module !== "undefined") {
         return supabase.from("profiles").select("*").eq("id", uid).maybeSingle();
       },
 
+      // Persists the signed-in visitor's language choice (see
+      // sql/008_preferred_lang.sql) so it follows their account across
+      // devices/browsers instead of resetting to the browser-detected
+      // default every load. No-op-safe: if there's no session (anonymous
+      // visitor switching languages), the update simply matches zero rows
+      // under profiles_update_own's RLS policy rather than erroring.
+      async updatePreferredLang(lang) {
+        const uid = await currentUserId();
+        if (!uid) return { data: null, error: null };
+        return supabase.from("profiles").update({ preferred_lang: lang }).eq("id", uid);
+      },
+
       // ==================== BIRTH DATA ====================
       // `fields` matches birth_data's columns 1:1 (year, month, day, hour,
       // minute, unknown_time, city_name, city_country, city_lat, city_lon,
@@ -4633,6 +4663,15 @@ if (typeof module !== "undefined") {
 
       async loadSentGift(code) {
         return supabase.from("gift_codes").select("*").eq("code", code).maybeSingle();
+      },
+
+      // Lists every gift code this signed-in user has sent (gift_codes_select_own_sent
+      // — sql/002_schema.sql — scopes this to sender_id = auth.uid(), no code needed),
+      // newest first. Recovers what state.giftCodes/state.lastGiftCode (both purely
+      // in-memory, reset on every page load) can't survive a refresh: the sender can
+      // always come back to the Gift screen and see what they've sent, redeemed or not.
+      async loadSentGifts() {
+        return supabase.from("gift_codes").select("*").order("created_at", { ascending: false });
       },
 
       // Throws-as-error (in the returned `error`) with one of:
@@ -4744,13 +4783,25 @@ const state = {
   notifPermission: (typeof Notification !== "undefined" && Notification.permission) || "unsupported",
   // Gifting: giftCodes is deliberately NOT reset on logout (see initDashNav) so a
   // "recipient" who signs up fresh in the same browser tab can still redeem a code
-  // a previous "sender" generated. There is no backend, so codes only ever exist in
-  // this page's memory — real cross-device delivery is out of scope, and the UI says
-  // so explicitly (see #screen-gift-send's demo note).
+  // a previous "sender" generated. This in-memory cache (plus lastGiftCode, below)
+  // only ever back the NO-BACKEND-CONFIGURED demo/offline fallback path — real
+  // gift sends/redemptions go through Supabase (gift_codes + redeem_gift_code(),
+  // see supabase-client.js) and genuinely work cross-device; the recipient side of
+  // that was always true, but the SENDER's own view of a code they generated used
+  // to be lost on any page refresh (nothing but this in-memory cache held it) —
+  // see state.sentGifts below, which fixes that by re-fetching from the backend.
   giftCodes: {},
   giftInProgress: null,
   lastGiftCode: null,
   giftTier: "bundle",
+  // Every gift code this signed-in user has ever sent (recipient name, tier,
+  // code, redeemed status), fetched fresh from the backend — see
+  // loadSentGiftsList()/renderSentGiftsList() and supabase-client.js's
+  // loadSentGifts(). Unlike giftCodes/lastGiftCode above, this SURVIVES a page
+  // refresh (it isn't the source of truth, just a client-side copy re-pulled on
+  // every visit to screen-gift-send) and IS reset on logout, since it's private,
+  // account-scoped data pulled straight from the signed-in user's own rows.
+  sentGifts: [],
   // Language: detect once from the browser as a nice default, but this is NOT
   // persisted (no localStorage — see the top-of-file note on why artifacts must
   // avoid browser storage) so it resets to the detected default each fresh load.
@@ -4865,6 +4916,16 @@ async function loadUserDataFromBackend() {
 
   if (profileRes.data) {
     state.user = { name: profileRes.data.name, email: profileRes.data.email };
+    // Restore this signed-in user's own saved language choice (see
+    // sql/008_preferred_lang.sql) rather than leaving whatever the
+    // browser-detected default happened to apply at page load — e.g. a
+    // Hindi-speaking user opening the site in a browser set to English
+    // still sees their own chosen language, not English, once their
+    // session loads. Only actually re-render if it differs — applyLanguage()
+    // does a fair amount of DOM work, no need to redo it for a no-op.
+    if (profileRes.data.preferred_lang && profileRes.data.preferred_lang !== state.lang) {
+      applyLanguage(profileRes.data.preferred_lang);
+    }
   }
 
   if (birthRes.data) {
@@ -4896,10 +4957,24 @@ async function loadUserDataFromBackend() {
   }
 }
 
+// Set by initAuth()'s password-recovery detection (below) BEFORE
+// bootstrapSession() is ever called — see the DOMContentLoaded handler at
+// the bottom of this file. Following a Supabase reset-password email link
+// establishes a real, valid session (that's how updatePassword() is able to
+// work at all), so without this flag bootstrapSession() below would see
+// that session, assume it's an ordinary returning visitor, and silently
+// redirect away from screen-reset-password straight to the dashboard —
+// stranding the visitor without ever letting them set a new password. The
+// PASSWORD_RECOVERY event listener in initAuth() is a second, independent
+// safety net for this: it forces screen-reset-password back up even if it
+// fires after bootstrapSession() already redirected.
+let isPasswordRecovery = false;
+
 // Silently resumes an already-signed-in user on page load (real Supabase
 // sessions persist across reloads) instead of always starting at the
 // landing screen.
 async function bootstrapSession() {
+  if (isPasswordRecovery) return;
   const dbInstance = backendDb();
   if (!dbInstance) return;
   const { data } = await backendCall(dbInstance.getSession(), "getSession");
@@ -5024,7 +5099,21 @@ function initLangSwitch() {
   if (toggle2) toggle2.addEventListener("click", open);
   $("#btn-close-lang").addEventListener("click", close);
   $("#sheet-lang-backdrop").addEventListener("click", (e) => { if (e.target.id === "sheet-lang-backdrop") close(); });
-  $all(".lang-option").forEach((b) => b.addEventListener("click", () => { applyLanguage(b.dataset.lang); close(); }));
+  $all(".lang-option").forEach((b) => b.addEventListener("click", () => {
+    applyLanguage(b.dataset.lang);
+    close();
+    // Persist for signed-in users only (see sql/008_preferred_lang.sql) —
+    // an anonymous/pre-auth visitor has no profiles row to save into, and
+    // updatePreferredLang() already no-ops safely in that case anyway, but
+    // skipping the call entirely avoids a pointless network round-trip on
+    // every landing-page language toggle.
+    if (state.user) {
+      const dbInstance = backendDb();
+      if (dbInstance && dbInstance.updatePreferredLang) {
+        backendCall(dbInstance.updatePreferredLang(b.dataset.lang), "updatePreferredLang");
+      }
+    }
+  }));
 }
 
 function toast(msg) {
@@ -5065,7 +5154,7 @@ function showScreen(id, opts) {
   if (id === "screen-fullreport") renderFullReport();
   if (id === "screen-compat") renderCompatScreen();
   if (id === "screen-yearahead") renderYearAheadScreen();
-  if (id === "screen-gift-send") renderGiftSend();
+  if (id === "screen-gift-send") { renderGiftSend(); loadSentGiftsList(); }
   if (id === "screen-gift-sent") renderGiftSent();
   if (id === "screen-chat-picker") renderChatPicker();
   if (id === "screen-chat") renderChatScreen();
@@ -5113,6 +5202,11 @@ function initAuth() {
     $("#tab-login").classList.toggle("active", state.authMode === "login");
     $("#field-name").style.display = state.authMode === "signup" ? "block" : "none";
     $("#btn-auth-submit").textContent = tr(state.authMode === "signup" ? "auth.submit.signup" : "auth.submit.login");
+    // input-password is shared between the Sign Up and Log In tabs (same
+    // element, just relabeled/re-purposed) — keep its autocomplete hint in
+    // sync so password managers offer "save new password" vs "fill saved
+    // password" appropriately instead of always suggesting one or the other.
+    $("#input-password").setAttribute("autocomplete", state.authMode === "signup" ? "new-password" : "current-password");
     // "Forgot password?" only makes sense once there's a password to have
     // forgotten — hide it while the Sign Up tab is active.
     const forgotLink = $("#btn-forgot-password");
@@ -5144,7 +5238,11 @@ function initAuth() {
     state.selectedTier = tierIntent;
   }
 
-  $("#btn-auth-submit").addEventListener("click", async () => {
+  // A real <form> (see index.template.html) so pressing Enter in any field
+  // submits, same as clicking the button — submitter is either the submit
+  // button itself or whichever field had focus.
+  $("#form-auth").addEventListener("submit", async (e) => {
+    e.preventDefault();
     const email = $("#input-email").value.trim();
     const pw = $("#input-password").value;
     const name = $("#input-name").value.trim();
@@ -5226,14 +5324,21 @@ function initAuth() {
     if (!dbInstance || !dbInstance.resetPasswordForEmail) { toast("Something went wrong — please try again."); return false; }
     const { error } = await dbInstance.resetPasswordForEmail(email);
     if (error) { toast(authErrorMessage(error)); return false; }
-    $("#forgot-sent-email").textContent = email;
-    $("#forgot-sent-desc").textContent = tr("forgot.sent.desc", { email });
+    // Was previously two lines — set #forgot-sent-email's text, then
+    // immediately blow it away by overwriting its parent's whole textContent
+    // with the translated string. That second assignment silently destroyed
+    // the <strong> wrapper every time, so the address was never actually
+    // shown bold. Interpolating an already-bolded value via tr()'s {vars}
+    // substitution and using innerHTML (not textContent) keeps both the
+    // translation (see forgot.sent.desc in i18n.js) and the intended styling.
+    $("#forgot-sent-desc").innerHTML = tr("forgot.sent.desc", { email: "<strong>" + email + "</strong>" });
     $("#forgot-form-state").style.display = "none";
     $("#forgot-sent-state").style.display = "block";
     return true;
   }
 
-  $("#btn-forgot-submit").addEventListener("click", async () => {
+  $("#form-forgot").addEventListener("submit", async (e) => {
+    e.preventDefault();
     const btn = $("#btn-forgot-submit");
     const original = btn.textContent;
     btn.disabled = true;
@@ -5242,14 +5347,27 @@ function initAuth() {
   });
 
   $("#btn-forgot-resend").addEventListener("click", async () => {
-    const ok = await sendResetLink();
-    if (ok) toast(tr("forgot.resend-toast"));
+    // Matches btn-forgot-submit's disable-while-sending behavior above — without
+    // this, nothing stopped a visitor from mashing Resend and firing off several
+    // reset emails in a row before the first request even finished.
+    const btn = $("#btn-forgot-resend");
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = tr("auth.submitting");
+    try {
+      const ok = await sendResetLink();
+      if (ok) toast(tr("forgot.resend-toast"));
+    } finally {
+      btn.disabled = false;
+      btn.textContent = original;
+    }
   });
 
   // ---------------- Reset password ----------------
   // Reached only via screen-reset-password's own routing below (a Supabase
   // password-recovery link) — never linked to directly.
-  $("#btn-reset-submit").addEventListener("click", async () => {
+  $("#form-reset").addEventListener("submit", async (e) => {
+    e.preventDefault();
     const pw = $("#input-reset-password").value;
     const confirmPw = $("#input-reset-confirm").value;
     if (!pw || pw.length < 6) return toast("Password must be at least 6 characters");
@@ -5308,6 +5426,7 @@ function initAuth() {
   // long since completed.
   const hashParams = new URLSearchParams(location.hash.replace(/^#/, ""));
   if (hashParams.get("type") === "recovery" || new URLSearchParams(location.search).get("type") === "recovery") {
+    isPasswordRecovery = true;
     showScreen("screen-reset-password");
   }
 
@@ -5317,7 +5436,7 @@ function initAuth() {
   const dbInstance = backendDb();
   if (dbInstance && dbInstance.onAuthStateChange) {
     dbInstance.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") showScreen("screen-reset-password");
+      if (event === "PASSWORD_RECOVERY") { isPasswordRecovery = true; showScreen("screen-reset-password"); }
     });
   }
 }
@@ -5530,7 +5649,7 @@ function resetLocalSessionState() {
     computed: { sunIdx: null, moonIdx: null, ascIdx: null, moonPhase: null }, palmAnswers: {}, palmReport: null,
     entitlements: { tiers: [] }, lastPurchasedTier: null,
     selectedTier: "onetime", payMethod: "upi", compatResult: null, compatPartnerCity: null,
-    giftInProgress: null, lastGiftCode: null, giftTier: "bundle",
+    giftInProgress: null, lastGiftCode: null, giftTier: "bundle", sentGifts: [],
     chats: {}, activeChatId: null,
   });
   resetPalmUI();
@@ -5793,24 +5912,68 @@ function runPalmAnalysis() {
   }
 }
 
+// Generous for a phone photo, but stops someone accidentally picking a
+// multi-hundred-MB RAW file or video and hanging the FileReader/crop step.
+const MAX_PALM_FILE_BYTES = 12 * 1024 * 1024;
+// Matches the <input accept> list in index.template.html — kept as an
+// explicit allowlist (rather than trusting the file picker alone) since
+// accept is only a picker hint and drag-and-drop bypasses it entirely.
+const ACCEPTED_PALM_MIME = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/bmp"];
+
 function initPalmUpload() {
   $("#palm-upload-box").addEventListener("click", () => $("#palm-file-input").click());
   $("#palm-file-input").addEventListener("change", (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    const resetInput = () => { $("#palm-file-input").value = ""; };
+    const name = (file.name || "").toLowerCase();
+    // Browsers vary on whether a HEIC/HEIF file even gets a MIME type at all
+    // (older Safari often reports ""), so check both the extension and the
+    // type rather than relying on either alone.
+    if (/\.(heic|heif)$/.test(name) || /heic|heif/i.test(file.type)) {
+      toast("HEIC photos aren't supported yet — switch your camera to \"Most Compatible\" format, or choose a JPG/PNG/WEBP instead.");
+      resetInput();
+      return;
+    }
+    if (file.type && !ACCEPTED_PALM_MIME.includes(file.type)) {
+      toast("That doesn't look like a photo (JPG, PNG, or WEBP) — please choose an image file.");
+      resetInput();
+      return;
+    }
+    if (file.size > MAX_PALM_FILE_BYTES) {
+      toast("That photo is too large (max 12MB) — please choose a smaller one.");
+      resetInput();
+      return;
+    }
     const reader = new FileReader();
+    reader.onerror = () => {
+      toast("Couldn't read that file — please try again.");
+      resetInput();
+    };
     reader.onload = (ev) => {
       const img = $("#palm-preview");
-      img.onload = () => setupCropUI();
+      img.onload = () => {
+        // Only swap to the crop screen once the browser has actually
+        // managed to decode the image — otherwise a file that passed the
+        // MIME/extension checks above but still can't be rendered (a
+        // corrupt file, or a format quirk we didn't anticipate) used to
+        // leave the visitor stuck looking at an empty crop screen with no
+        // way forward.
+        $("#palm-upload-box").style.display = "none";
+        $("#palm-crop-wrap").style.display = "block";
+        $("#palm-crop-hint").style.display = "block";
+        $("#btn-palm-analyze").style.display = "block";
+        $("#btn-palm-change-photo").style.display = "block";
+        $("#palm-cv-status").style.display = "none";
+        $("#palm-cv-status").textContent = "";
+        $("#palm-quality-warning").style.display = "none";
+        setupCropUI();
+      };
+      img.onerror = () => {
+        toast("Couldn't open that photo — it may be in a format your browser can't display. Please try a JPG or PNG.");
+        resetInput();
+      };
       img.src = ev.target.result;
-      $("#palm-upload-box").style.display = "none";
-      $("#palm-crop-wrap").style.display = "block";
-      $("#palm-crop-hint").style.display = "block";
-      $("#btn-palm-analyze").style.display = "block";
-      $("#btn-palm-change-photo").style.display = "block";
-      $("#palm-cv-status").style.display = "none";
-      $("#palm-cv-status").textContent = "";
-      $("#palm-quality-warning").style.display = "none";
     };
     reader.readAsDataURL(file);
   });
@@ -6161,6 +6324,52 @@ function generateGiftCode() {
 function renderGiftSend() {
   $all("#gift-tier-list .tier-card").forEach(c => c.classList.toggle("selected", c.dataset.tier === state.giftTier));
   $("#btn-gift-continue").disabled = !$("#gift-recipient-name").value.trim();
+}
+
+// Renders state.sentGifts (see loadSentGiftsList() below) into the "Your
+// Sent Gifts" list on screen-gift-send — the fix for item #20: previously
+// a sender's view of a code they'd just generated lived ONLY in
+// state.lastGiftCode/state.giftCodes (in-memory, wiped by any page
+// refresh), with no way back to it even though the row was always still
+// sitting in the real backend. This section re-fetches it every time the
+// screen is shown, so "what code did I send Priya again?" always has an
+// answer as long as the sender is signed in.
+function renderSentGiftsList() {
+  const wrap = $("#gift-sent-list-wrap");
+  const box = $("#gift-sent-list");
+  if (!wrap || !box) return;
+  if (!state.sentGifts.length) { wrap.style.display = "none"; return; }
+  wrap.style.display = "block";
+  box.innerHTML = state.sentGifts.map(g => `
+    <div class="card" style="padding:14px 16px">
+      <div class="row between">
+        <div>
+          <strong>${escapeHtml(g.recipientName)}</strong>
+          <div class="muted" style="font-size:0.78rem;margin-top:2px">${escapeHtml(tierDisplayName(g.tier))}</div>
+        </div>
+        <span class="tag" style="${g.redeemed ? "background:rgba(116,214,163,0.18);color:var(--success)" : ""}">${g.redeemed ? tr("gift.sentlist.redeemed") : tr("gift.sentlist.pending")}</span>
+      </div>
+      <div style="font-family:'Cinzel',serif;font-size:1.05rem;letter-spacing:0.06em;color:var(--gold-bright);margin-top:8px">${escapeHtml(g.code)}</div>
+    </div>
+  `).join("");
+}
+
+// Fire-and-forget from showScreen() whenever screen-gift-send is shown —
+// renderGiftSend() above already rendered the (synchronous, cache-only)
+// form state, so there's nothing to block on here; this just backfills the
+// list once the real data arrives.
+async function loadSentGiftsList() {
+  const dbInstance = backendDb();
+  if (!dbInstance || !dbInstance.loadSentGifts) { state.sentGifts = []; renderSentGiftsList(); return; }
+  const { data } = await backendCall(dbInstance.loadSentGifts(), "loadSentGifts");
+  if (!data) return;
+  state.sentGifts = data.map(row => ({
+    code: row.code,
+    tier: row.tier,
+    recipientName: row.recipient_name,
+    redeemed: !!row.redeemed,
+  }));
+  renderSentGiftsList();
 }
 
 function renderGiftSent() {

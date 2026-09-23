@@ -267,6 +267,9 @@ const I18N = {
     "gift.sent.btn.download": "Download Gift Card",
     "gift.sent.btn.done": "Done",
     "gift.sent.sub": "Send this code to {name} — they redeem it from the \"Have a gift code?\" link on their Unlock screen.",
+    "gift.sentlist.title": "Your Sent Gifts",
+    "gift.sentlist.redeemed": "Redeemed",
+    "gift.sentlist.pending": "Not redeemed yet",
 
     "checkout.title": "Checkout",
     "checkout.secure-banner": "🔒 Secure payment powered by Razorpay — pay by UPI, card, netbanking, or wallet on the next screen. We never see or store your card/UPI details.",
@@ -572,6 +575,9 @@ const I18N = {
     "gift.sent.btn.download": "उपहार कार्ड डाउनलोड करें",
     "gift.sent.btn.done": "हो गया",
     "gift.sent.sub": "यह कोड {name} को भेजें — वे इसे अपनी अनलॉक स्क्रीन पर \"क्या आपके पास उपहार कोड है?\" लिंक से भुना सकते हैं।",
+    "gift.sentlist.title": "आपके भेजे गए उपहार",
+    "gift.sentlist.redeemed": "भुनाया गया",
+    "gift.sentlist.pending": "अभी तक नहीं भुनाया गया",
 
     "checkout.title": "चेकआउट",
     "checkout.secure-banner": "🔒 रेज़रपे द्वारा सुरक्षित भुगतान — अगली स्क्रीन पर UPI, कार्ड, नेटबैंकिंग या वॉलेट से भुगतान करें। हम आपका कार्ड/UPI विवरण न तो देखते हैं, न ही सुरक्षित रखते हैं।",

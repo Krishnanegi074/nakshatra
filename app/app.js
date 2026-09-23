@@ -38,13 +38,25 @@ const state = {
   notifPermission: (typeof Notification !== "undefined" && Notification.permission) || "unsupported",
   // Gifting: giftCodes is deliberately NOT reset on logout (see initDashNav) so a
   // "recipient" who signs up fresh in the same browser tab can still redeem a code
-  // a previous "sender" generated. There is no backend, so codes only ever exist in
-  // this page's memory — real cross-device delivery is out of scope, and the UI says
-  // so explicitly (see #screen-gift-send's demo note).
+  // a previous "sender" generated. This in-memory cache (plus lastGiftCode, below)
+  // only ever back the NO-BACKEND-CONFIGURED demo/offline fallback path — real
+  // gift sends/redemptions go through Supabase (gift_codes + redeem_gift_code(),
+  // see supabase-client.js) and genuinely work cross-device; the recipient side of
+  // that was always true, but the SENDER's own view of a code they generated used
+  // to be lost on any page refresh (nothing but this in-memory cache held it) —
+  // see state.sentGifts below, which fixes that by re-fetching from the backend.
   giftCodes: {},
   giftInProgress: null,
   lastGiftCode: null,
   giftTier: "bundle",
+  // Every gift code this signed-in user has ever sent (recipient name, tier,
+  // code, redeemed status), fetched fresh from the backend — see
+  // loadSentGiftsList()/renderSentGiftsList() and supabase-client.js's
+  // loadSentGifts(). Unlike giftCodes/lastGiftCode above, this SURVIVES a page
+  // refresh (it isn't the source of truth, just a client-side copy re-pulled on
+  // every visit to screen-gift-send) and IS reset on logout, since it's private,
+  // account-scoped data pulled straight from the signed-in user's own rows.
+  sentGifts: [],
   // Language: detect once from the browser as a nice default, but this is NOT
   // persisted (no localStorage — see the top-of-file note on why artifacts must
   // avoid browser storage) so it resets to the detected default each fresh load.
@@ -159,6 +171,16 @@ async function loadUserDataFromBackend() {
 
   if (profileRes.data) {
     state.user = { name: profileRes.data.name, email: profileRes.data.email };
+    // Restore this signed-in user's own saved language choice (see
+    // sql/008_preferred_lang.sql) rather than leaving whatever the
+    // browser-detected default happened to apply at page load — e.g. a
+    // Hindi-speaking user opening the site in a browser set to English
+    // still sees their own chosen language, not English, once their
+    // session loads. Only actually re-render if it differs — applyLanguage()
+    // does a fair amount of DOM work, no need to redo it for a no-op.
+    if (profileRes.data.preferred_lang && profileRes.data.preferred_lang !== state.lang) {
+      applyLanguage(profileRes.data.preferred_lang);
+    }
   }
 
   if (birthRes.data) {
@@ -190,10 +212,24 @@ async function loadUserDataFromBackend() {
   }
 }
 
+// Set by initAuth()'s password-recovery detection (below) BEFORE
+// bootstrapSession() is ever called — see the DOMContentLoaded handler at
+// the bottom of this file. Following a Supabase reset-password email link
+// establishes a real, valid session (that's how updatePassword() is able to
+// work at all), so without this flag bootstrapSession() below would see
+// that session, assume it's an ordinary returning visitor, and silently
+// redirect away from screen-reset-password straight to the dashboard —
+// stranding the visitor without ever letting them set a new password. The
+// PASSWORD_RECOVERY event listener in initAuth() is a second, independent
+// safety net for this: it forces screen-reset-password back up even if it
+// fires after bootstrapSession() already redirected.
+let isPasswordRecovery = false;
+
 // Silently resumes an already-signed-in user on page load (real Supabase
 // sessions persist across reloads) instead of always starting at the
 // landing screen.
 async function bootstrapSession() {
+  if (isPasswordRecovery) return;
   const dbInstance = backendDb();
   if (!dbInstance) return;
   const { data } = await backendCall(dbInstance.getSession(), "getSession");
@@ -318,7 +354,21 @@ function initLangSwitch() {
   if (toggle2) toggle2.addEventListener("click", open);
   $("#btn-close-lang").addEventListener("click", close);
   $("#sheet-lang-backdrop").addEventListener("click", (e) => { if (e.target.id === "sheet-lang-backdrop") close(); });
-  $all(".lang-option").forEach((b) => b.addEventListener("click", () => { applyLanguage(b.dataset.lang); close(); }));
+  $all(".lang-option").forEach((b) => b.addEventListener("click", () => {
+    applyLanguage(b.dataset.lang);
+    close();
+    // Persist for signed-in users only (see sql/008_preferred_lang.sql) —
+    // an anonymous/pre-auth visitor has no profiles row to save into, and
+    // updatePreferredLang() already no-ops safely in that case anyway, but
+    // skipping the call entirely avoids a pointless network round-trip on
+    // every landing-page language toggle.
+    if (state.user) {
+      const dbInstance = backendDb();
+      if (dbInstance && dbInstance.updatePreferredLang) {
+        backendCall(dbInstance.updatePreferredLang(b.dataset.lang), "updatePreferredLang");
+      }
+    }
+  }));
 }
 
 function toast(msg) {
@@ -359,7 +409,7 @@ function showScreen(id, opts) {
   if (id === "screen-fullreport") renderFullReport();
   if (id === "screen-compat") renderCompatScreen();
   if (id === "screen-yearahead") renderYearAheadScreen();
-  if (id === "screen-gift-send") renderGiftSend();
+  if (id === "screen-gift-send") { renderGiftSend(); loadSentGiftsList(); }
   if (id === "screen-gift-sent") renderGiftSent();
   if (id === "screen-chat-picker") renderChatPicker();
   if (id === "screen-chat") renderChatScreen();
@@ -407,6 +457,11 @@ function initAuth() {
     $("#tab-login").classList.toggle("active", state.authMode === "login");
     $("#field-name").style.display = state.authMode === "signup" ? "block" : "none";
     $("#btn-auth-submit").textContent = tr(state.authMode === "signup" ? "auth.submit.signup" : "auth.submit.login");
+    // input-password is shared between the Sign Up and Log In tabs (same
+    // element, just relabeled/re-purposed) — keep its autocomplete hint in
+    // sync so password managers offer "save new password" vs "fill saved
+    // password" appropriately instead of always suggesting one or the other.
+    $("#input-password").setAttribute("autocomplete", state.authMode === "signup" ? "new-password" : "current-password");
     // "Forgot password?" only makes sense once there's a password to have
     // forgotten — hide it while the Sign Up tab is active.
     const forgotLink = $("#btn-forgot-password");
@@ -438,7 +493,11 @@ function initAuth() {
     state.selectedTier = tierIntent;
   }
 
-  $("#btn-auth-submit").addEventListener("click", async () => {
+  // A real <form> (see index.template.html) so pressing Enter in any field
+  // submits, same as clicking the button — submitter is either the submit
+  // button itself or whichever field had focus.
+  $("#form-auth").addEventListener("submit", async (e) => {
+    e.preventDefault();
     const email = $("#input-email").value.trim();
     const pw = $("#input-password").value;
     const name = $("#input-name").value.trim();
@@ -520,14 +579,21 @@ function initAuth() {
     if (!dbInstance || !dbInstance.resetPasswordForEmail) { toast("Something went wrong — please try again."); return false; }
     const { error } = await dbInstance.resetPasswordForEmail(email);
     if (error) { toast(authErrorMessage(error)); return false; }
-    $("#forgot-sent-email").textContent = email;
-    $("#forgot-sent-desc").textContent = tr("forgot.sent.desc", { email });
+    // Was previously two lines — set #forgot-sent-email's text, then
+    // immediately blow it away by overwriting its parent's whole textContent
+    // with the translated string. That second assignment silently destroyed
+    // the <strong> wrapper every time, so the address was never actually
+    // shown bold. Interpolating an already-bolded value via tr()'s {vars}
+    // substitution and using innerHTML (not textContent) keeps both the
+    // translation (see forgot.sent.desc in i18n.js) and the intended styling.
+    $("#forgot-sent-desc").innerHTML = tr("forgot.sent.desc", { email: "<strong>" + email + "</strong>" });
     $("#forgot-form-state").style.display = "none";
     $("#forgot-sent-state").style.display = "block";
     return true;
   }
 
-  $("#btn-forgot-submit").addEventListener("click", async () => {
+  $("#form-forgot").addEventListener("submit", async (e) => {
+    e.preventDefault();
     const btn = $("#btn-forgot-submit");
     const original = btn.textContent;
     btn.disabled = true;
@@ -536,14 +602,27 @@ function initAuth() {
   });
 
   $("#btn-forgot-resend").addEventListener("click", async () => {
-    const ok = await sendResetLink();
-    if (ok) toast(tr("forgot.resend-toast"));
+    // Matches btn-forgot-submit's disable-while-sending behavior above — without
+    // this, nothing stopped a visitor from mashing Resend and firing off several
+    // reset emails in a row before the first request even finished.
+    const btn = $("#btn-forgot-resend");
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = tr("auth.submitting");
+    try {
+      const ok = await sendResetLink();
+      if (ok) toast(tr("forgot.resend-toast"));
+    } finally {
+      btn.disabled = false;
+      btn.textContent = original;
+    }
   });
 
   // ---------------- Reset password ----------------
   // Reached only via screen-reset-password's own routing below (a Supabase
   // password-recovery link) — never linked to directly.
-  $("#btn-reset-submit").addEventListener("click", async () => {
+  $("#form-reset").addEventListener("submit", async (e) => {
+    e.preventDefault();
     const pw = $("#input-reset-password").value;
     const confirmPw = $("#input-reset-confirm").value;
     if (!pw || pw.length < 6) return toast("Password must be at least 6 characters");
@@ -602,6 +681,7 @@ function initAuth() {
   // long since completed.
   const hashParams = new URLSearchParams(location.hash.replace(/^#/, ""));
   if (hashParams.get("type") === "recovery" || new URLSearchParams(location.search).get("type") === "recovery") {
+    isPasswordRecovery = true;
     showScreen("screen-reset-password");
   }
 
@@ -611,7 +691,7 @@ function initAuth() {
   const dbInstance = backendDb();
   if (dbInstance && dbInstance.onAuthStateChange) {
     dbInstance.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") showScreen("screen-reset-password");
+      if (event === "PASSWORD_RECOVERY") { isPasswordRecovery = true; showScreen("screen-reset-password"); }
     });
   }
 }
@@ -824,7 +904,7 @@ function resetLocalSessionState() {
     computed: { sunIdx: null, moonIdx: null, ascIdx: null, moonPhase: null }, palmAnswers: {}, palmReport: null,
     entitlements: { tiers: [] }, lastPurchasedTier: null,
     selectedTier: "onetime", payMethod: "upi", compatResult: null, compatPartnerCity: null,
-    giftInProgress: null, lastGiftCode: null, giftTier: "bundle",
+    giftInProgress: null, lastGiftCode: null, giftTier: "bundle", sentGifts: [],
     chats: {}, activeChatId: null,
   });
   resetPalmUI();
@@ -1087,24 +1167,68 @@ function runPalmAnalysis() {
   }
 }
 
+// Generous for a phone photo, but stops someone accidentally picking a
+// multi-hundred-MB RAW file or video and hanging the FileReader/crop step.
+const MAX_PALM_FILE_BYTES = 12 * 1024 * 1024;
+// Matches the <input accept> list in index.template.html — kept as an
+// explicit allowlist (rather than trusting the file picker alone) since
+// accept is only a picker hint and drag-and-drop bypasses it entirely.
+const ACCEPTED_PALM_MIME = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/bmp"];
+
 function initPalmUpload() {
   $("#palm-upload-box").addEventListener("click", () => $("#palm-file-input").click());
   $("#palm-file-input").addEventListener("change", (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    const resetInput = () => { $("#palm-file-input").value = ""; };
+    const name = (file.name || "").toLowerCase();
+    // Browsers vary on whether a HEIC/HEIF file even gets a MIME type at all
+    // (older Safari often reports ""), so check both the extension and the
+    // type rather than relying on either alone.
+    if (/\.(heic|heif)$/.test(name) || /heic|heif/i.test(file.type)) {
+      toast("HEIC photos aren't supported yet — switch your camera to \"Most Compatible\" format, or choose a JPG/PNG/WEBP instead.");
+      resetInput();
+      return;
+    }
+    if (file.type && !ACCEPTED_PALM_MIME.includes(file.type)) {
+      toast("That doesn't look like a photo (JPG, PNG, or WEBP) — please choose an image file.");
+      resetInput();
+      return;
+    }
+    if (file.size > MAX_PALM_FILE_BYTES) {
+      toast("That photo is too large (max 12MB) — please choose a smaller one.");
+      resetInput();
+      return;
+    }
     const reader = new FileReader();
+    reader.onerror = () => {
+      toast("Couldn't read that file — please try again.");
+      resetInput();
+    };
     reader.onload = (ev) => {
       const img = $("#palm-preview");
-      img.onload = () => setupCropUI();
+      img.onload = () => {
+        // Only swap to the crop screen once the browser has actually
+        // managed to decode the image — otherwise a file that passed the
+        // MIME/extension checks above but still can't be rendered (a
+        // corrupt file, or a format quirk we didn't anticipate) used to
+        // leave the visitor stuck looking at an empty crop screen with no
+        // way forward.
+        $("#palm-upload-box").style.display = "none";
+        $("#palm-crop-wrap").style.display = "block";
+        $("#palm-crop-hint").style.display = "block";
+        $("#btn-palm-analyze").style.display = "block";
+        $("#btn-palm-change-photo").style.display = "block";
+        $("#palm-cv-status").style.display = "none";
+        $("#palm-cv-status").textContent = "";
+        $("#palm-quality-warning").style.display = "none";
+        setupCropUI();
+      };
+      img.onerror = () => {
+        toast("Couldn't open that photo — it may be in a format your browser can't display. Please try a JPG or PNG.");
+        resetInput();
+      };
       img.src = ev.target.result;
-      $("#palm-upload-box").style.display = "none";
-      $("#palm-crop-wrap").style.display = "block";
-      $("#palm-crop-hint").style.display = "block";
-      $("#btn-palm-analyze").style.display = "block";
-      $("#btn-palm-change-photo").style.display = "block";
-      $("#palm-cv-status").style.display = "none";
-      $("#palm-cv-status").textContent = "";
-      $("#palm-quality-warning").style.display = "none";
     };
     reader.readAsDataURL(file);
   });
@@ -1455,6 +1579,52 @@ function generateGiftCode() {
 function renderGiftSend() {
   $all("#gift-tier-list .tier-card").forEach(c => c.classList.toggle("selected", c.dataset.tier === state.giftTier));
   $("#btn-gift-continue").disabled = !$("#gift-recipient-name").value.trim();
+}
+
+// Renders state.sentGifts (see loadSentGiftsList() below) into the "Your
+// Sent Gifts" list on screen-gift-send — the fix for item #20: previously
+// a sender's view of a code they'd just generated lived ONLY in
+// state.lastGiftCode/state.giftCodes (in-memory, wiped by any page
+// refresh), with no way back to it even though the row was always still
+// sitting in the real backend. This section re-fetches it every time the
+// screen is shown, so "what code did I send Priya again?" always has an
+// answer as long as the sender is signed in.
+function renderSentGiftsList() {
+  const wrap = $("#gift-sent-list-wrap");
+  const box = $("#gift-sent-list");
+  if (!wrap || !box) return;
+  if (!state.sentGifts.length) { wrap.style.display = "none"; return; }
+  wrap.style.display = "block";
+  box.innerHTML = state.sentGifts.map(g => `
+    <div class="card" style="padding:14px 16px">
+      <div class="row between">
+        <div>
+          <strong>${escapeHtml(g.recipientName)}</strong>
+          <div class="muted" style="font-size:0.78rem;margin-top:2px">${escapeHtml(tierDisplayName(g.tier))}</div>
+        </div>
+        <span class="tag" style="${g.redeemed ? "background:rgba(116,214,163,0.18);color:var(--success)" : ""}">${g.redeemed ? tr("gift.sentlist.redeemed") : tr("gift.sentlist.pending")}</span>
+      </div>
+      <div style="font-family:'Cinzel',serif;font-size:1.05rem;letter-spacing:0.06em;color:var(--gold-bright);margin-top:8px">${escapeHtml(g.code)}</div>
+    </div>
+  `).join("");
+}
+
+// Fire-and-forget from showScreen() whenever screen-gift-send is shown —
+// renderGiftSend() above already rendered the (synchronous, cache-only)
+// form state, so there's nothing to block on here; this just backfills the
+// list once the real data arrives.
+async function loadSentGiftsList() {
+  const dbInstance = backendDb();
+  if (!dbInstance || !dbInstance.loadSentGifts) { state.sentGifts = []; renderSentGiftsList(); return; }
+  const { data } = await backendCall(dbInstance.loadSentGifts(), "loadSentGifts");
+  if (!data) return;
+  state.sentGifts = data.map(row => ({
+    code: row.code,
+    tier: row.tier,
+    recipientName: row.recipient_name,
+    redeemed: !!row.redeemed,
+  }));
+  renderSentGiftsList();
 }
 
 function renderGiftSent() {

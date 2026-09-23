@@ -1,9 +1,12 @@
 node_modules/
 
 # Playwright test-run screenshot output (regenerated on every test run, not
-# meaningful to keep in history) — app/shots-i18n/ is the one exception,
-# already tracked from before this .gitignore existed, kept as-is.
+# meaningful to keep in history). app/shots-i18n/ was previously carved out
+# here as "already tracked, kept as-is" — that turned out to be stale: it
+# isn't actually tracked (`git ls-files` shows nothing under it), so it's
+# just as ephemeral as the others and belongs in this same list.
 app/shots/
 app/shots2/
 app/shots-cv/
 app/shots-gift/
+app/shots-i18n/

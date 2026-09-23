@@ -335,6 +335,39 @@ async function expectError(promise, label) {
     );
   }
 
+  console.log("\n== Group 10: profiles.preferred_lang — own-write, cross-user blocked, constrained values ==");
+  {
+    // sql/008_preferred_lang.sql — lets a signed-in user's language choice
+    // follow their account across devices instead of resetting to the
+    // browser-detected default every load (app/app.js's initLangSwitch()/
+    // loadUserDataFromBackend()). Reuses the same profiles_update_own RLS
+    // policy Group 1 already exercises on `name` — this proves the new
+    // column specifically, plus the check constraint added alongside it.
+    const aliceDefault = await asUser(c, ALICE, () => c.query("select preferred_lang from public.profiles where id = $1", [ALICE]));
+    check("New column defaults to 'en' for an existing row that never set it", aliceDefault.rows[0].preferred_lang === "en");
+
+    await asUser(c, ALICE, () => c.query("update public.profiles set preferred_lang = 'hi' where id = $1", [ALICE]));
+    const aliceAfter = await asUser(c, ALICE, () => c.query("select preferred_lang from public.profiles where id = $1", [ALICE]));
+    check("Alice can update her own preferred_lang to 'hi'", aliceAfter.rows[0].preferred_lang === "hi");
+
+    await asUser(c, ALICE, () => c.query("update public.profiles set preferred_lang = 'en' where id = $1", [BOB]));
+    const bobUnchanged = await asUser(c, BOB, () => c.query("select preferred_lang from public.profiles where id = $1", [BOB]));
+    check("Alice's UPDATE targeting Bob's preferred_lang did not change it (RLS filtered it to 0 rows)", bobUnchanged.rows[0].preferred_lang === "en");
+
+    await expectError(
+      asUser(c, ALICE, () => c.query("update public.profiles set preferred_lang = 'fr' where id = $1", [ALICE])),
+      "An unsupported language code ('fr') is rejected by the check constraint"
+    );
+    const aliceStillHi = await asUser(c, ALICE, () => c.query("select preferred_lang from public.profiles where id = $1", [ALICE]));
+    check("...and Alice's preferred_lang is still 'hi' (the rejected update did not partially apply)", aliceStillHi.rows[0].preferred_lang === "hi");
+
+    // profiles isn't in run-rls-tests.sh's per-run truncate list (Alice/Bob
+    // are persistent fixtures reused across every group above) — reset what
+    // this group changed so a repeat run of this script sees the same 'en'
+    // starting point this group itself assumed.
+    await asUser(c, ALICE, () => c.query("update public.profiles set preferred_lang = 'en' where id = $1", [ALICE]));
+  }
+
   await c.end();
 
   console.log(`\n=== RESULT: ${results.filter(r => r.pass).length} / ${results.length} checks passed ===`);

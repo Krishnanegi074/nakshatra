@@ -72,7 +72,12 @@
 
   function requireOwn(row, table) {
     // Mirrors the RLS boundary: never return/mutate another user's row.
-    return row && row.user_id === currentUserId() ? row : undefined;
+    // profiles is keyed by `id` (= auth.uid()), same as profiles_update_own's
+    // real RLS policy (sql/002_schema.sql) — every other table here is
+    // keyed by a separate `user_id` column instead.
+    if (!row) return undefined;
+    const ownerCol = table === "profiles" ? "id" : "user_id";
+    return row[ownerCol] === currentUserId() ? row : undefined;
   }
 
   class FakeBuilder {
@@ -130,13 +135,13 @@
       }
 
       if (this._updatePayload) {
-        rows.forEach((r, i) => { if (this._matches(r) && requireOwn(r)) rows[i] = Object.assign({}, r, this._updatePayload); });
+        rows.forEach((r, i) => { if (this._matches(r) && requireOwn(r, this.table)) rows[i] = Object.assign({}, r, this._updatePayload); });
         return { data: null, error: null };
       }
 
       if (this._delete) {
         for (let i = rows.length - 1; i >= 0; i--) {
-          if (this._matches(rows[i]) && requireOwn(rows[i])) rows.splice(i, 1);
+          if (this._matches(rows[i]) && requireOwn(rows[i], this.table)) rows.splice(i, 1);
         }
         return { data: null, error: null };
       }
@@ -335,6 +340,25 @@
       async getSession() { return { data: { session }, error: null }; },
       async getUser() { return { data: { user: session ? session.user : null }, error: null }; },
       onAuthStateChange() { return { data: { subscription: { unsubscribe() {} } } }; },
+      // Real Supabase never reveals whether an email is registered (security),
+      // so this always "succeeds" regardless of whether store.users has a match —
+      // mirrors that, and lets test-auth-recovery.js exercise the UI's sent-state
+      // without needing a real inbox.
+      async resetPasswordForEmail(email, opts) {
+        if (forceNextRpcError) { forceNextRpcError = false; return { error: { message: "simulated failure" } }; }
+        return { data: {}, error: null };
+      },
+      // Mirrors supabase-client.js's updatePassword(), which calls
+      // supabase.auth.updateUser({password}) — only meaningful with an active
+      // session (real Supabase: either an ordinary signed-in session, or the
+      // temporary one a password-recovery link itself creates, which is exactly
+      // what test-auth-recovery.js uses window.__fakeSupabaseSetSession to fake).
+      async updateUser({ password }) {
+        if (!session) return { data: { user: null }, error: { message: "Auth session missing!" } };
+        const u = store.users.find((x) => x.id === session.user.id);
+        if (u && password) u.password = password;
+        return { data: { user: session.user }, error: null };
+      },
     },
     from(table) { return new FakeBuilder(table); },
     functions: {
