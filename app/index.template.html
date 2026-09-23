@@ -21,26 +21,42 @@
   <section id="screen-landing" class="screen active no-nav">
     <div class="landing-navbar">
       <div class="landing-navbar-inner">
-        <div class="landing-navbar-brand">
-          <span class="landing-navbar-mark">🌙</span>
-          <span class="landing-navbar-word">Nakshatra</span>
-        </div>
-        <!-- Desktop-only — hidden on phone/tablet by CSS. These point at the
-             standalone marketing pages that already exist in the repo root
-             (about.html, pricing.html, kundli-matching.html) but weren't
-             linked from anywhere in the app itself. -->
-        <nav class="landing-navbar-links">
-          <a href="javascript:void(0)" class="active" data-i18n="landing.nav.home">Home</a>
+        <a href="index.html" class="landing-navbar-brand" aria-label="Nakshatra home">
+          <svg width="30" height="30" viewBox="0 0 56 56" aria-hidden="true">
+            <defs>
+              <linearGradient id="landingNavGold" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#e8c687"/><stop offset="100%" stop-color="#c9a15f"/></linearGradient>
+              <mask id="landingNavMask"><rect width="56" height="56" fill="white"/><circle cx="32" cy="20" r="15" fill="black"/></mask>
+            </defs>
+            <circle cx="24" cy="23" r="17" fill="url(#landingNavGold)" mask="url(#landingNavMask)"/>
+            <circle cx="44" cy="38" r="3" fill="url(#landingNavGold)"/><circle cx="50" cy="30" r="1.8" fill="url(#landingNavGold)"/>
+            <line x1="44" y1="38" x2="50" y2="30" stroke="#e8c687" stroke-width="1.2" opacity="0.6"/>
+          </svg>
+          <span class="landing-navbar-word">NAKSHATRA</span>
+        </a>
+        <nav class="landing-navbar-links" aria-label="Primary navigation">
+          <a href="index.html" aria-current="page" data-i18n="landing.nav.home">Home</a>
           <a href="kundli-matching.html" data-i18n="landing.nav.kundli">Kundli Matching</a>
           <a href="pricing.html" data-i18n="landing.nav.pricing">Pricing</a>
           <a href="about.html" data-i18n="landing.nav.about">About</a>
         </nav>
         <div class="landing-navbar-actions">
           <button class="btn btn-ghost btn-sm" id="btn-navbar-login" data-i18n="landing.navbar.login">Log In</button>
-          <button class="btn btn-primary btn-sm" id="btn-navbar-start" data-i18n="landing.navbar.start">Start</button>
-          <button class="icon-btn" id="btn-lang-toggle">🌐</button>
+          <button class="btn btn-primary btn-sm" id="btn-navbar-start" data-i18n="landing.navbar.start">Start Free</button>
+          <button class="icon-btn landing-language-toggle" id="btn-lang-toggle" type="button" aria-label="Choose language">🌐</button>
+          <button class="landing-nav-toggle" id="btn-landing-nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="landing-mobile-menu">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
         </div>
       </div>
+      <nav class="landing-mobile-menu" id="landing-mobile-menu" aria-label="Mobile navigation">
+        <a href="index.html" aria-current="page" data-i18n="landing.nav.home">Home</a>
+        <a href="kundli-matching.html" data-i18n="landing.nav.kundli">Kundli Matching</a>
+        <a href="pricing.html" data-i18n="landing.nav.pricing">Pricing</a>
+        <a href="about.html" data-i18n="landing.nav.about">About</a>
+        <button type="button" id="btn-navbar-mobile-login" data-i18n="landing.navbar.login">Log In</button>
+        <button type="button" id="btn-lang-toggle-mobile">🌐 <span data-i18n="landing.nav.language">Language</span></button>
+        <button class="btn btn-primary" type="button" id="btn-navbar-mobile-start" data-i18n="landing.navbar.start">Start Free</button>
+      </nav>
     </div>
 
     <div class="landing-hero">

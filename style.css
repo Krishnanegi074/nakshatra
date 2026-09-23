@@ -71,12 +71,25 @@ img, svg { max-width: 100%; }
 
 header, main, footer { position: relative; z-index: 1; }
 
-/* header needs to outrank main/footer specifically (not just tie with them):
-   with all three at the same z-index, tied stacking order falls back to DOM
-   order, and main comes AFTER header in the document — so main was painting
-   OVER header, silently swallowing clicks on anything inside header that
-   overflows below its own box (the language dropdown, the mobile menu). */
-header { z-index: 2; }
+/* Sticky so the nav (and its language toggle) stays reachable while
+   scrolling. Also carries the nav's background/blur/border directly, since
+   header is a normal full-width block (unlike .nk-nav, which is capped by
+   --wrap-max) — no full-bleed trick needed here.
+
+   z-index: 30 is also load-bearing for stacking: with header tied at the
+   same z-index as main/footer, tied stacking order falls back to DOM order,
+   and main (later in the document) was painting OVER header, silently
+   swallowing clicks on anything inside header that overflows below its own
+   box (the language dropdown, the mobile menu). 30 outranks both with room
+   to spare. */
+header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: linear-gradient(180deg, rgba(13, 8, 32, 0.97), rgba(13, 8, 32, 0.9));
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+}
 
 .nk-wrap {
   max-width: var(--wrap-max);
@@ -145,42 +158,10 @@ header { z-index: 2; }
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
   max-width: var(--wrap-max);
   margin: 0 auto;
-  padding: 22px 40px;
-  border-bottom: 1px solid rgba(232, 198, 135, 0.14);
-  background: linear-gradient(180deg, rgba(13, 8, 32, 0.97), rgba(13, 8, 32, 0.9));
-  backdrop-filter: blur(8px);
-}
-
-/* Matches the app's .landing-navbar (app.css) fill exactly (same navy +
-   alpha), so the nav reads as the same solid band on every page instead of
-   just showing the hero gradient straight through it. .nk-nav itself is
-   centered with a max-width (for its CONTENT), not full-bleed, so this is
-   the standard "full-bleed inside a centered container" trick: a box-shadow
-   spread of 100vmax fills out to the viewport edges (no need for a separate
-   full-width wrapper element), and clip-path constrains that spread to the
-   element's own top/bottom edges (0 vertical inset) while leaving it
-   unclipped horizontally (-100vmax) — without the clip-path, the shadow
-   would spread 100vmax in EVERY direction, covering the whole page below
-   the nav too, not just a band behind it.
-
-   This lives on a ::before pseudo-element rather than directly on .nk-nav:
-   clip-path clips an element's ENTIRE rendered subtree, not just its own
-   box, so putting it on .nk-nav itself was silently clipping away any real
-   child that overflows the nav's own height — e.g. the language dropdown
-   (.nk-lang-menu), which intentionally renders below the nav's bottom edge.
-   A pseudo-element has no descendants to accidentally clip, so it can carry
-   the clip-path/box-shadow trick alone while real nav children (including
-   anything that opens below the nav) render and receive clicks normally. */
-.nk-nav::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  box-shadow: 0 0 0 100vmax rgba(13, 8, 32, 0.93);
-  clip-path: inset(0 -100vmax);
+  padding: 18px 40px;
 }
 
 .nk-logo {
@@ -238,8 +219,9 @@ header { z-index: 2; }
    Mirrors the app's own .icon-btn (app.css) so the marketing pages' globe
    button matches the homepage's language switcher look exactly. Deliberately
    NOT inside the .nk-nav-actions .nk-btn-ghost/.nk-btn-primary { display: none }
-   rule at 900px, so it stays visible next to the hamburger on mobile too —
-   same as the homepage, where the globe icon is always reachable. */
+   rule at the mobile breakpoint, so it stays visible next to the hamburger
+   on mobile too — same as the homepage, where the globe icon is always
+   reachable. */
 .nk-lang-toggle-wrap {
   position: relative;
 }
@@ -324,6 +306,8 @@ header { z-index: 2; }
 
 .nk-mobile-menu .nk-btn { margin-top: 10px; width: 100%; }
 
+.nk-mobile-menu .nk-mobile-login { color: var(--gold-bright); }
+
 /* ---------- Footer ---------- */
 
 .nk-footer {
@@ -364,14 +348,20 @@ header { z-index: 2; }
 
 /* ---------- Responsive ---------- */
 
-@media (max-width: 900px) {
+@media (min-width: 1024px) {
+  .nk-nav {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) auto minmax(220px, 1fr);
+  }
+  .nk-nav-actions { justify-self: end; }
+}
+
+@media (max-width: 1023px) {
   .nk-wrap { padding: 0 24px; }
   .nk-nav { padding: 18px 20px; }
   .nk-nav-links { display: none; }
-  /* Log In and Start Free both already live inside the hamburger menu below
-     (.nk-mobile-menu) — keeping Start Free in the collapsed bar too left it
-     overlapping the "NAKSHATRA" wordmark at phone widths. */
-  .nk-nav-actions .nk-btn-ghost, .nk-nav-actions .nk-btn-primary { display: none; }
+  .nk-nav-actions .nk-btn-ghost,
+  .nk-nav-actions .nk-btn-primary { display: none; }
   .nk-nav-toggle { display: inline-flex; }
   .nk-section { padding: 64px 0; }
   .nk-section-tight { padding: 48px 0; }
