@@ -140,36 +140,43 @@ footer.site a:hover { color: var(--gold-bright); }
       <span class="nk-logo-word">NAKSHATRA</span>
     </a>
     <div class="nk-nav-links">
-      <a href="index.html" class="nk-nav-link">Home</a>
-      <a href="kundli-matching.html" class="nk-nav-link">Kundli Matching</a>
-      <a href="pricing.html" class="nk-nav-link">Pricing</a>
-      <a href="about.html" class="nk-nav-link">About</a>
+      <a href="index.html" class="nk-nav-link" data-i18n="nav.home">Home</a>
+      <a href="kundli-matching.html" class="nk-nav-link" data-i18n="nav.kundli">Kundli Matching</a>
+      <a href="pricing.html" class="nk-nav-link" data-i18n="nav.pricing">Pricing</a>
+      <a href="about.html" class="nk-nav-link" data-i18n="nav.about">About</a>
     </div>
     <div class="nk-nav-actions">
-      <a href="index.html?auth=login" class="nk-btn-ghost">Log In</a>
-      <a href="index.html?auth=signup" class="nk-btn nk-btn-primary">Start Free</a>
-      <button class="nk-nav-toggle" type="button" aria-label="Open menu" aria-expanded="false">
+      <a href="index.html?auth=login" class="nk-btn-ghost" data-i18n="nav.login">Log In</a>
+      <a href="index.html?auth=signup" class="nk-btn nk-btn-primary" data-i18n="nav.start">Start Free</a>
+      <div class="nk-lang-toggle-wrap">
+        <button class="nk-lang-toggle" type="button" data-i18n-aria="nav.lang_aria" aria-label="Change language" aria-haspopup="true" aria-expanded="false">&#127760;</button>
+        <div class="nk-lang-menu">
+          <button type="button" data-lang="en">English</button>
+          <button type="button" data-lang="hi">हिन्दी</button>
+        </div>
+      </div>
+      <button class="nk-nav-toggle" type="button" data-i18n-aria="nav.menu_aria" aria-label="Open menu" aria-expanded="false">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
     </div>
   </nav>
   <div class="nk-mobile-menu">
-    <a href="index.html">Home</a>
-    <a href="kundli-matching.html">Kundli Matching</a>
-    <a href="pricing.html">Pricing</a>
-    <a href="about.html">About</a>
-    <a href="index.html?auth=signup" class="nk-btn nk-btn-primary">Start Free</a>
+    <a href="index.html" data-i18n="nav.home">Home</a>
+    <a href="kundli-matching.html" data-i18n="nav.kundli">Kundli Matching</a>
+    <a href="pricing.html" data-i18n="nav.pricing">Pricing</a>
+    <a href="about.html" data-i18n="nav.about">About</a>
+    <a href="index.html?auth=signup" class="nk-btn nk-btn-primary" data-i18n="nav.start">Start Free</a>
   </div>
 </header>
 
 <main>
   <div class="wrap">
     
-<div class="demo-banner">⚠️ <span><strong>Demonstration report — this is not a real person.</strong> Every birth detail, name, and result below is fictional sample data, generated the same way a real report is, so you can see exactly what you get before you pay.</span></div>
+<div class="demo-banner" data-i18n-html="sample.banner_html">⚠️ <span><strong>Demonstration report — this is not a real person.</strong> Every birth detail, name, and result below is fictional sample data, generated the same way a real report is, so you can see exactly what you get before you pay.</span></div>
 
-<p class="eyebrow">Sample Report</p>
-<h1 class="page-title">A full report, worked example</h1>
-<p class="lead">Meet "Ananya" — a fictional profile (born 14 March 1996, 6:40 AM, Jaipur) used here to show every section of a real ₹399 report.</p>
+<p class="eyebrow" data-i18n="sample.eyebrow">Sample Report</p>
+<h1 class="page-title" data-i18n="sample.title">A full report, worked example</h1>
+<p class="lead" data-i18n="sample.lead">Meet "Ananya" — a fictional profile (born 14 March 1996, 6:40 AM, Jaipur) used here to show every section of a real ₹399 report.</p>
 
 <!--
   Every placement below (Sun/Moon/Ascendant, the weekly horoscope excerpt, and
@@ -186,91 +193,91 @@ footer.site a:hover { color: var(--gold-bright); }
   consistent with how every other date-relative section on this page works.
 -->
 <section class="block">
-  <h2>Birth chart summary</h2>
+  <h2 data-i18n="sample.s1_heading">Birth chart summary</h2>
   <div class="badge-row">
-    <div class="sign-badge"><div class="lbl">Sun</div><div class="val">Aquarius</div></div>
-    <div class="sign-badge"><div class="lbl">Moon</div><div class="val">Sagittarius</div></div>
-    <div class="sign-badge"><div class="lbl">Ascendant</div><div class="val">Aquarius</div></div>
+    <div class="sign-badge"><div class="lbl" data-i18n="sample.lbl_sun">Sun</div><div class="val" data-i18n="sample.val_aquarius">Aquarius</div></div>
+    <div class="sign-badge"><div class="lbl" data-i18n="sample.lbl_moon">Moon</div><div class="val" data-i18n="sample.val_sagittarius">Sagittarius</div></div>
+    <div class="sign-badge"><div class="lbl" data-i18n="sample.lbl_ascendant">Ascendant</div><div class="val" data-i18n="sample.val_aquarius">Aquarius</div></div>
   </div>
-  <p>Sun in Aquarius: independent, idea-driven, and a little ahead of the room — growth edge is letting one person in past the concept of you. Moon in Sagittarius: expansive, blunt, and always eyeing the horizon — growth edge is finishing what's already in front of you.</p>
-  <p style="font-size:0.85rem;color:var(--text-faint)">How was this calculated? Sun and Moon sign come from real planetary ecliptic longitudes at the birth moment above, computed with Astronomy Engine and converted to the sidereal zodiac using the Lahiri ayanamsa. Ascendant requires the birth time, which is why it's only shown when one is provided. Full method: <a href="how-it-works.html">How It Works</a>.</p>
+  <p data-i18n="sample.s1_desc">Sun in Aquarius: independent, idea-driven, and a little ahead of the room — growth edge is letting one person in past the concept of you. Moon in Sagittarius: expansive, blunt, and always eyeing the horizon — growth edge is finishing what's already in front of you.</p>
+  <p style="font-size:0.85rem;color:var(--text-faint)" data-i18n-html="sample.s1_method_html">How was this calculated? Sun and Moon sign come from real planetary ecliptic longitudes at the birth moment above, computed with Astronomy Engine and converted to the sidereal zodiac using the Lahiri ayanamsa. Ascendant requires the birth time, which is why it's only shown when one is provided. Full method: <a href="how-it-works.html" data-i18n="footer.how">How It Works</a>.</p>
 </section>
 
 <section class="block">
-  <h2>This week's horoscope (excerpt)</h2>
+  <h2 data-i18n="sample.s2_heading">This week's horoscope (excerpt)</h2>
   <div class="card">
-    <h3>Week 39 — Sun in Aquarius, Moon in Sagittarius</h3>
-    <p>This week's Waxing Gibbous finds your Aquarius energy in a fairly assertive mood: independent, idea-driven, and a little ahead of the room.</p>
-    <p>Your inner world (Moon in Sagittarius) and outer style (Sun in Aquarius) are working in an easy rhythm this week — that shows up most in close conversations.</p>
-    <p>One thing worth practicing: letting one person in past the concept of you.</p>
+    <h3 data-i18n="sample.s2_card_title">Week 39 — Sun in Aquarius, Moon in Sagittarius</h3>
+    <p data-i18n="sample.s2_p1">This week's Waxing Gibbous finds your Aquarius energy in a fairly assertive mood: independent, idea-driven, and a little ahead of the room.</p>
+    <p data-i18n="sample.s2_p2">Your inner world (Moon in Sagittarius) and outer style (Sun in Aquarius) are working in an easy rhythm this week — that shows up most in close conversations.</p>
+    <p data-i18n="sample.s2_p3">One thing worth practicing: letting one person in past the concept of you.</p>
   </div>
-  <p style="font-size:0.85rem;color:var(--text-faint)">The full report includes the complete weekly horoscope, refreshed every week — this is one excerpt, not the whole thing.</p>
+  <p style="font-size:0.85rem;color:var(--text-faint)" data-i18n="sample.s2_footnote">The full report includes the complete weekly horoscope, refreshed every week — this is one excerpt, not the whole thing.</p>
 </section>
 
 <section class="block">
-  <h2>Palm reading (photo-assisted, on-device)</h2>
+  <h2 data-i18n="sample.s3_heading">Palm reading (photo-assisted, on-device)</h2>
   <div class="card">
-    <p><strong style="color:var(--text)">Life line — long, sweeping arc toward the wrist:</strong> points to strong physical vitality and a tendency to stay engaged with life at a fairly ambitious pace.</p>
-    <p><strong style="color:var(--text)">Heart line — curved and smooth, starting below the index finger:</strong> starting below the index finger is classically read as idealistic in love — wanting a partner you can genuinely admire, not just get along with. The smooth curve points to expressing affection openly and reading other people's feelings easily.</p>
-    <p style="margin:0"><strong style="color:var(--text)">Jupiter mount — fullest at the base of the index finger:</strong> points to leadership instinct and a natural pull toward ambition and influence.</p>
+    <p data-i18n-html="sample.s3_p1_html"><strong style="color:var(--text)">Life line — long, sweeping arc toward the wrist:</strong> points to strong physical vitality and a tendency to stay engaged with life at a fairly ambitious pace.</p>
+    <p data-i18n-html="sample.s3_p2_html"><strong style="color:var(--text)">Heart line — curved and smooth, starting below the index finger:</strong> starting below the index finger is classically read as idealistic in love — wanting a partner you can genuinely admire, not just get along with. The smooth curve points to expressing affection openly and reading other people's feelings easily.</p>
+    <p style="margin:0" data-i18n-html="sample.s3_p3_html"><strong style="color:var(--text)">Jupiter mount — fullest at the base of the index finger:</strong> points to leadership instinct and a natural pull toward ambition and influence.</p>
   </div>
-  <p style="font-size:0.85rem;color:var(--text-faint)">This comes from a short guided questionnaire about your palm's lines and mounts (optionally photo-assisted for your own reference) — never an uploaded image, and never a biometric identification claim.</p>
+  <p style="font-size:0.85rem;color:var(--text-faint)" data-i18n="sample.s3_footnote">This comes from a short guided questionnaire about your palm's lines and mounts (optionally photo-assisted for your own reference) — never an uploaded image, and never a biometric identification claim.</p>
 </section>
 
 <section class="block">
-  <h2>Love Energy (daily)</h2>
+  <h2 data-i18n="sample.s4_heading">Love Energy (daily)</h2>
   <div class="card">
     <div class="row" style="display:flex;justify-content:space-between;align-items:baseline">
-      <strong style="font-family:'Cinzel',serif;color:var(--gold-bright);font-size:1.3rem">78/100 · Peak</strong>
+      <strong style="font-family:'Cinzel',serif;color:var(--gold-bright);font-size:1.3rem" data-i18n="sample.s4_score">78/100 · Peak</strong>
     </div>
-    <p style="margin-top:8px">Communication flows easily today — a good day to say the honest thing out loud.</p>
+    <p style="margin-top:8px" data-i18n="sample.s4_desc">Communication flows easily today — a good day to say the honest thing out loud.</p>
   </div>
 </section>
 
 <section class="block">
-  <h2>Compatibility (sample)</h2>
-  <p>When you compare charts with someone, Nakshatra measures the real classical aspect between your Suns and Moons — for example, two Suns three signs apart form a <em>Square</em>: "real friction that generates real growth — this pairing rarely stays comfortable, but it rarely stays boring either." The full compatibility report runs this across four angles (Sun-Sun, Moon-Moon, and each person's Sun to the other's Moon) and gives an overall score.</p>
+  <h2 data-i18n="sample.s5_heading">Compatibility (sample)</h2>
+  <p data-i18n-html="sample.s5_desc_html">When you compare charts with someone, Nakshatra measures the real classical aspect between your Suns and Moons — for example, two Suns three signs apart form a <em>Square</em>: "real friction that generates real growth — this pairing rarely stays comfortable, but it rarely stays boring either." The full compatibility report runs this across four angles (Sun-Sun, Moon-Moon, and each person's Sun to the other's Moon) and gives an overall score.</p>
 </section>
 
 <section class="block">
-  <h2>Year Ahead (excerpt)</h2>
+  <h2 data-i18n="sample.s6_heading">Year Ahead (excerpt)</h2>
   <div class="card">
-    <p style="margin-bottom:8px"><strong style="color:var(--gold-bright)">Jupiter:</strong> growth through expansion — bigger conversations, bigger opportunities, and a wider circle.</p>
-    <p style="margin:0"><strong style="color:var(--gold-bright)">Saturn:</strong> a period of tightening up commitments — fewer things, held more seriously.</p>
+    <p style="margin-bottom:8px" data-i18n-html="sample.s6_jupiter_html"><strong style="color:var(--gold-bright)">Jupiter:</strong> growth through expansion — bigger conversations, bigger opportunities, and a wider circle.</p>
+    <p style="margin:0" data-i18n-html="sample.s6_saturn_html"><strong style="color:var(--gold-bright)">Saturn:</strong> a period of tightening up commitments — fewer things, held more seriously.</p>
   </div>
-  <p style="font-size:0.85rem;color:var(--text-faint)">Built from Jupiter and Saturn's real current transiting sign positions, not a static yearly template.</p>
+  <p style="font-size:0.85rem;color:var(--text-faint)" data-i18n="sample.s6_footnote">Built from Jupiter and Saturn's real current transiting sign positions, not a static yearly template.</p>
 </section>
 
 <section class="block">
-  <h2>Free preview vs. the ₹399 full report</h2>
+  <h2 data-i18n="sample.s7_heading">Free preview vs. the ₹399 full report</h2>
   <table>
-    <tr><th>Included</th><th>Free preview</th><th>₹399 full report</th></tr>
-    <tr><td>Sun / Moon / Ascendant summary</td><td>✓</td><td>✓</td></tr>
-    <tr><td>Weekly horoscope</td><td>Limited</td><td>Full, every week</td></tr>
-    <tr><td>Palm reading</td><td>Limited preview</td><td>Full reading</td></tr>
-    <tr><td>Compatibility report</td><td>—</td><td>✓</td></tr>
-    <tr><td>Downloadable PDF</td><td>—</td><td>✓</td></tr>
-    <tr><td>Access</td><td>—</td><td>Permanent, one-time payment</td></tr>
+    <tr><th data-i18n="sample.tbl_included">Included</th><th data-i18n="sample.tbl_free">Free preview</th><th data-i18n="sample.tbl_full">₹399 full report</th></tr>
+    <tr><td data-i18n="sample.tbl_row1">Sun / Moon / Ascendant summary</td><td>✓</td><td>✓</td></tr>
+    <tr><td data-i18n="sample.tbl_row2">Weekly horoscope</td><td data-i18n="sample.tbl_row2_free">Limited</td><td data-i18n="sample.tbl_row2_full">Full, every week</td></tr>
+    <tr><td data-i18n="sample.tbl_row3">Palm reading</td><td data-i18n="sample.tbl_row3_free">Limited preview</td><td data-i18n="sample.tbl_row3_full">Full reading</td></tr>
+    <tr><td data-i18n="sample.tbl_row4">Compatibility report</td><td>—</td><td>✓</td></tr>
+    <tr><td data-i18n="sample.tbl_row5">Downloadable PDF</td><td>—</td><td>✓</td></tr>
+    <tr><td data-i18n="sample.tbl_row6">Access</td><td>—</td><td data-i18n="sample.tbl_row6_full">Permanent, one-time payment</td></tr>
   </table>
 </section>
 
-<div class="callout">This is entertainment and self-reflection content, not professional advice — see <a href="responsible-guidance.html">Responsible Use</a>.</div>
+<div class="callout" data-i18n-html="sample.callout_html">This is entertainment and self-reflection content, not professional advice — see <a href="responsible-guidance.html" data-i18n="footer.responsible">Responsible Use</a>.</div>
 
 <div class="cta-block">
-  <a class="btn" href="index.html">Create My Free Chart →</a>
+  <a class="btn" href="index.html" data-i18n="sample.cta">Create My Free Chart →</a>
 </div>
 
 
     <nav aria-label="More pages" style="margin-top:50px;padding-top:24px;border-top:1px solid var(--border)">
       <ul class="pagenav">
-      <li><a href="how-it-works.html">How It Works</a></li>
-      <li><a href="sample-report.html" class="current">Sample Report</a></li>
-      <li><a href="faq.html">FAQ</a></li>
-      <li><a href="about.html">About</a></li>
-      <li><a href="responsible-guidance.html">Responsible Use</a></li>
-      <li><a href="refund-policy.html">Refund Policy</a></li>
-      <li><a href="terms.html">Terms</a></li>
-      <li><a href="privacy.html">Privacy</a></li>
+      <li><a href="how-it-works.html" data-i18n="footer.how">How It Works</a></li>
+      <li><a href="sample-report.html" class="current" data-i18n="footer.sample">Sample Report</a></li>
+      <li><a href="faq.html" data-i18n="footer.faq">FAQ</a></li>
+      <li><a href="about.html" data-i18n="nav.about">About</a></li>
+      <li><a href="responsible-guidance.html" data-i18n="footer.responsible">Responsible Use</a></li>
+      <li><a href="refund-policy.html" data-i18n="footer.refund">Refund Policy</a></li>
+      <li><a href="terms.html" data-i18n="footer.terms">Terms</a></li>
+      <li><a href="privacy.html" data-i18n="footer.privacy">Privacy</a></li>
       </ul>
     </nav>
   </div>
@@ -278,12 +285,14 @@ footer.site a:hover { color: var(--gold-bright); }
 
 <footer class="site">
   <div class="wrap">
-    <p><a href="how-it-works.html">How It Works</a> &nbsp;·&nbsp; <a href="sample-report.html">Sample Report</a> &nbsp;·&nbsp; <a href="faq.html">FAQ</a> &nbsp;·&nbsp; <a href="about.html">About</a> &nbsp;·&nbsp; <a href="responsible-guidance.html">Responsible Use</a> &nbsp;·&nbsp; <a href="refund-policy.html">Refund Policy</a> &nbsp;·&nbsp; <a href="terms.html">Terms</a> &nbsp;·&nbsp; <a href="privacy.html">Privacy</a></p>
-    <p style="margin-top:10px">Nakshatra is built and operated by Krishna Negi, Delhi, India. Questions or concerns: <a href="mailto:support@nakshatra.ind.in">support@nakshatra.ind.in</a>.</p>
-    <p style="margin-top:10px">Nakshatra provides astrology and palmistry content for entertainment and self-reflection only. It is not medical, legal, financial, or psychological advice.</p>
+    <p><a href="how-it-works.html" data-i18n="footer.how">How It Works</a> &nbsp;·&nbsp; <a href="sample-report.html" data-i18n="footer.sample">Sample Report</a> &nbsp;·&nbsp; <a href="faq.html" data-i18n="footer.faq">FAQ</a> &nbsp;·&nbsp; <a href="about.html" data-i18n="nav.about">About</a> &nbsp;·&nbsp; <a href="responsible-guidance.html" data-i18n="footer.responsible">Responsible Use</a> &nbsp;·&nbsp; <a href="refund-policy.html" data-i18n="footer.refund">Refund Policy</a> &nbsp;·&nbsp; <a href="terms.html" data-i18n="footer.terms">Terms</a> &nbsp;·&nbsp; <a href="privacy.html" data-i18n="footer.privacy">Privacy</a></p>
+    <p style="margin-top:10px" data-i18n-html="footer.credit_html">Nakshatra is built and operated by Krishna Negi, Delhi, India. Questions or concerns: <a href="mailto:support@nakshatra.ind.in">support@nakshatra.ind.in</a>.</p>
+    <p style="margin-top:10px" data-i18n="footer.disclaimer">Nakshatra provides astrology and palmistry content for entertainment and self-reflection only. It is not medical, legal, financial, or psychological advice.</p>
   </div>
 </footer>
 
+<script src="marketing-i18n.js"></script>
 <script src="main.js"></script>
+<script src="marketing-lang.js"></script>
 </body>
 </html>

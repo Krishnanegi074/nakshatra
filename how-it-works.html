@@ -140,91 +140,98 @@ footer.site a:hover { color: var(--gold-bright); }
       <span class="nk-logo-word">NAKSHATRA</span>
     </a>
     <div class="nk-nav-links">
-      <a href="index.html" class="nk-nav-link">Home</a>
-      <a href="kundli-matching.html" class="nk-nav-link">Kundli Matching</a>
-      <a href="pricing.html" class="nk-nav-link">Pricing</a>
-      <a href="about.html" class="nk-nav-link">About</a>
+      <a href="index.html" class="nk-nav-link" data-i18n="nav.home">Home</a>
+      <a href="kundli-matching.html" class="nk-nav-link" data-i18n="nav.kundli">Kundli Matching</a>
+      <a href="pricing.html" class="nk-nav-link" data-i18n="nav.pricing">Pricing</a>
+      <a href="about.html" class="nk-nav-link" data-i18n="nav.about">About</a>
     </div>
     <div class="nk-nav-actions">
-      <a href="index.html?auth=login" class="nk-btn-ghost">Log In</a>
-      <a href="index.html?auth=signup" class="nk-btn nk-btn-primary">Start Free</a>
-      <button class="nk-nav-toggle" type="button" aria-label="Open menu" aria-expanded="false">
+      <a href="index.html?auth=login" class="nk-btn-ghost" data-i18n="nav.login">Log In</a>
+      <a href="index.html?auth=signup" class="nk-btn nk-btn-primary" data-i18n="nav.start">Start Free</a>
+      <div class="nk-lang-toggle-wrap">
+        <button class="nk-lang-toggle" type="button" data-i18n-aria="nav.lang_aria" aria-label="Change language" aria-haspopup="true" aria-expanded="false">&#127760;</button>
+        <div class="nk-lang-menu">
+          <button type="button" data-lang="en">English</button>
+          <button type="button" data-lang="hi">हिन्दी</button>
+        </div>
+      </div>
+      <button class="nk-nav-toggle" type="button" data-i18n-aria="nav.menu_aria" aria-label="Open menu" aria-expanded="false">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
     </div>
   </nav>
   <div class="nk-mobile-menu">
-    <a href="index.html">Home</a>
-    <a href="kundli-matching.html">Kundli Matching</a>
-    <a href="pricing.html">Pricing</a>
-    <a href="about.html">About</a>
-    <a href="index.html?auth=signup" class="nk-btn nk-btn-primary">Start Free</a>
+    <a href="index.html" data-i18n="nav.home">Home</a>
+    <a href="kundli-matching.html" data-i18n="nav.kundli">Kundli Matching</a>
+    <a href="pricing.html" data-i18n="nav.pricing">Pricing</a>
+    <a href="about.html" data-i18n="nav.about">About</a>
+    <a href="index.html?auth=signup" class="nk-btn nk-btn-primary" data-i18n="nav.start">Start Free</a>
   </div>
 </header>
 
 <main>
   <div class="wrap">
     
-<p class="eyebrow">How It Works</p>
-<h1 class="page-title">How Nakshatra actually calculates your reading</h1>
-<p class="lead">No part of your reading is written fresh by an AI model. Every result comes from two real, independently-checkable inputs run through a fixed set of classical rules — the same inputs always produce the same output.</p>
+<p class="eyebrow" data-i18n="how.eyebrow">How It Works</p>
+<h1 class="page-title" data-i18n="how.title">How Nakshatra actually calculates your reading</h1>
+<p class="lead" data-i18n="how.lead">No part of your reading is written fresh by an AI model. Every result comes from two real, independently-checkable inputs run through a fixed set of classical rules — the same inputs always produce the same output.</p>
 
 <section class="block">
-  <h2>The two real inputs</h2>
+  <h2 data-i18n="how.inputs_heading">The two real inputs</h2>
   <div class="card">
-    <h3>1. Your Sun &amp; Moon sign</h3>
-    <p>Computed from real planetary ecliptic longitudes at your exact birth moment, using Astronomy Engine — the same open-source astronomical engine professional astronomy software relies on for planetary positions. Give it a date, time, and place, and it returns real coordinates.</p>
+    <h3 data-i18n="how.input1_title">1. Your Sun &amp; Moon sign</h3>
+    <p data-i18n="how.input1_desc">Computed from real planetary ecliptic longitudes at your exact birth moment, using Astronomy Engine — the same open-source astronomical engine professional astronomy software relies on for planetary positions. Give it a date, time, and place, and it returns real coordinates.</p>
   </div>
   <div class="card">
-    <h3>2. The current real Moon phase</h3>
-    <p>Recalculated every time you open the app — it's today's actual Moon phase, not a stored or invented value.</p>
+    <h3 data-i18n="how.input2_title">2. The current real Moon phase</h3>
+    <p data-i18n="how.input2_desc">Recalculated every time you open the app — it's today's actual Moon phase, not a stored or invented value.</p>
   </div>
-  <p>Those two real inputs pick which pre-written template lines are shown to you. Nothing in your report is generated on the fly by a language model — the underlying rule engine is deterministic by design, not just by default.</p>
+  <p data-i18n="how.inputs_footer">Those two real inputs pick which pre-written template lines are shown to you. Nothing in your report is generated on the fly by a language model — the underlying rule engine is deterministic by design, not just by default.</p>
 </section>
 
 <section class="block">
-  <h2>Sidereal system &amp; the Lahiri ayanamsa</h2>
-  <p>Western tropical astrology measures positions against the seasons (0° Aries is always the spring equinox). Vedic astrology instead uses the <strong>sidereal</strong> system, which measures against the actual fixed background of stars. Over centuries, precession has pulled these two systems apart by roughly 24 degrees today.</p>
-  <p>Nakshatra uses the <strong>Lahiri ayanamsa</strong> — the specific correction value that converts a tropical position into a sidereal one. It's the ayanamsa most widely used in Indian Vedic astrology and the one adopted by the Indian government's own Calendar Reform Committee, which is why your Sun or Moon sign here can come out a sign earlier than what a Western tropical horoscope would tell you for the same birth details. Neither is "wrong" — they're two different reference frames for the same real planetary positions.</p>
+  <h2 data-i18n="how.sidereal_heading">Sidereal system &amp; the Lahiri ayanamsa</h2>
+  <p data-i18n-html="how.sidereal_p1_html">Western tropical astrology measures positions against the seasons (0° Aries is always the spring equinox). Vedic astrology instead uses the <strong>sidereal</strong> system, which measures against the actual fixed background of stars. Over centuries, precession has pulled these two systems apart by roughly 24 degrees today.</p>
+  <p data-i18n-html="how.sidereal_p2_html">Nakshatra uses the <strong>Lahiri ayanamsa</strong> — the specific correction value that converts a tropical position into a sidereal one. It's the ayanamsa most widely used in Indian Vedic astrology and the one adopted by the Indian government's own Calendar Reform Committee, which is why your Sun or Moon sign here can come out a sign earlier than what a Western tropical horoscope would tell you for the same birth details. Neither is "wrong" — they're two different reference frames for the same real planetary positions.</p>
 </section>
 
 <section class="block">
-  <h2>What each feature is actually doing</h2>
+  <h2 data-i18n="how.features_heading">What each feature is actually doing</h2>
   <div class="card">
-    <h3>Birth chart &amp; weekly horoscope</h3>
-    <p>Your Sun sign, Moon sign, and (when you provide an exact birth time) Ascendant, feed a template library keyed to real astronomical facts — sign element, planetary rulership, and the live Moon phase. Two people with the same Sun and Moon sign, checking on the same week, see the same underlying template selection.</p>
+    <h3 data-i18n="how.feat1_title">Birth chart &amp; weekly horoscope</h3>
+    <p data-i18n="how.feat1_desc">Your Sun sign, Moon sign, and (when you provide an exact birth time) Ascendant, feed a template library keyed to real astronomical facts — sign element, planetary rulership, and the live Moon phase. Two people with the same Sun and Moon sign, checking on the same week, see the same underlying template selection.</p>
   </div>
   <div class="card">
-    <h3>Palm reading</h3>
-    <p>This is a photo-<em>assisted</em> classical questionnaire, not biometric analysis. Your photo helps you confirm what your own life, heart, head, and fate lines actually look like — the interpretation itself comes from a fixed classical-palmistry rule table matched to your answers. The photo is processed entirely on your device and is never uploaded anywhere.</p>
+    <h3 data-i18n="how.feat2_title">Palm reading</h3>
+    <p data-i18n-html="how.feat2_desc_html">This is a photo-<em>assisted</em> classical questionnaire, not biometric analysis. Your photo helps you confirm what your own life, heart, head, and fate lines actually look like — the interpretation itself comes from a fixed classical-palmistry rule table matched to your answers. The photo is processed entirely on your device and is never uploaded anywhere.</p>
   </div>
   <div class="card">
-    <h3>Compatibility</h3>
-    <p>Built on real classical astrological aspects — conjunction, sextile, square, trine, opposition, and the minor aspects — calculated from the angular distance between two people's Sun and Moon signs. This is standard classical technique, just computed at the sign level rather than exact degree-to-degree, which is a reasonable simplification for this version of the app.</p>
+    <h3 data-i18n="how.feat3_title">Compatibility</h3>
+    <p data-i18n="how.feat3_desc">Built on real classical astrological aspects — conjunction, sextile, square, trine, opposition, and the minor aspects — calculated from the angular distance between two people's Sun and Moon signs. This is standard classical technique, just computed at the sign level rather than exact degree-to-degree, which is a reasonable simplification for this version of the app.</p>
   </div>
   <div class="card">
-    <h3>Year Ahead</h3>
-    <p>Built from the real current transiting positions of Jupiter and Saturn — recalculated from live astronomical data, not a static yearly template.</p>
+    <h3 data-i18n="how.feat4_title">Year Ahead</h3>
+    <p data-i18n="how.feat4_desc">Built from the real current transiting positions of Jupiter and Saturn — recalculated from live astronomical data, not a static yearly template.</p>
   </div>
 </section>
 
-<div class="callout"><strong>What this doesn't claim:</strong> none of this is presented as scientifically validated prediction. It's a consistent, transparent application of classical astrological technique to real astronomical inputs — useful as a tool for reflection, not as a substitute for professional advice. See our <a href="responsible-guidance.html">Responsible Use</a> page for more on how we think about that line.</div>
+<div class="callout" data-i18n-html="how.callout_html"><strong>What this doesn't claim:</strong> none of this is presented as scientifically validated prediction. It's a consistent, transparent application of classical astrological technique to real astronomical inputs — useful as a tool for reflection, not as a substitute for professional advice. See our <a href="responsible-guidance.html" data-i18n="footer.responsible">Responsible Use</a> page for more on how we think about that line.</div>
 
 <div class="cta-block">
-  <a class="btn" href="sample-report.html">See a Full Sample Report →</a>
+  <a class="btn" href="sample-report.html" data-i18n="how.cta">See a Full Sample Report →</a>
 </div>
 
 
     <nav aria-label="More pages" style="margin-top:50px;padding-top:24px;border-top:1px solid var(--border)">
       <ul class="pagenav">
-      <li><a href="how-it-works.html" class="current">How It Works</a></li>
-      <li><a href="sample-report.html">Sample Report</a></li>
-      <li><a href="faq.html">FAQ</a></li>
-      <li><a href="about.html">About</a></li>
-      <li><a href="responsible-guidance.html">Responsible Use</a></li>
-      <li><a href="refund-policy.html">Refund Policy</a></li>
-      <li><a href="terms.html">Terms</a></li>
-      <li><a href="privacy.html">Privacy</a></li>
+      <li><a href="how-it-works.html" class="current" data-i18n="footer.how">How It Works</a></li>
+      <li><a href="sample-report.html" data-i18n="footer.sample">Sample Report</a></li>
+      <li><a href="faq.html" data-i18n="footer.faq">FAQ</a></li>
+      <li><a href="about.html" data-i18n="nav.about">About</a></li>
+      <li><a href="responsible-guidance.html" data-i18n="footer.responsible">Responsible Use</a></li>
+      <li><a href="refund-policy.html" data-i18n="footer.refund">Refund Policy</a></li>
+      <li><a href="terms.html" data-i18n="footer.terms">Terms</a></li>
+      <li><a href="privacy.html" data-i18n="footer.privacy">Privacy</a></li>
       </ul>
     </nav>
   </div>
@@ -232,12 +239,14 @@ footer.site a:hover { color: var(--gold-bright); }
 
 <footer class="site">
   <div class="wrap">
-    <p><a href="how-it-works.html">How It Works</a> &nbsp;·&nbsp; <a href="sample-report.html">Sample Report</a> &nbsp;·&nbsp; <a href="faq.html">FAQ</a> &nbsp;·&nbsp; <a href="about.html">About</a> &nbsp;·&nbsp; <a href="responsible-guidance.html">Responsible Use</a> &nbsp;·&nbsp; <a href="refund-policy.html">Refund Policy</a> &nbsp;·&nbsp; <a href="terms.html">Terms</a> &nbsp;·&nbsp; <a href="privacy.html">Privacy</a></p>
-    <p style="margin-top:10px">Nakshatra is built and operated by Krishna Negi, Delhi, India. Questions or concerns: <a href="mailto:support@nakshatra.ind.in">support@nakshatra.ind.in</a>.</p>
-    <p style="margin-top:10px">Nakshatra provides astrology and palmistry content for entertainment and self-reflection only. It is not medical, legal, financial, or psychological advice.</p>
+    <p><a href="how-it-works.html" data-i18n="footer.how">How It Works</a> &nbsp;·&nbsp; <a href="sample-report.html" data-i18n="footer.sample">Sample Report</a> &nbsp;·&nbsp; <a href="faq.html" data-i18n="footer.faq">FAQ</a> &nbsp;·&nbsp; <a href="about.html" data-i18n="nav.about">About</a> &nbsp;·&nbsp; <a href="responsible-guidance.html" data-i18n="footer.responsible">Responsible Use</a> &nbsp;·&nbsp; <a href="refund-policy.html" data-i18n="footer.refund">Refund Policy</a> &nbsp;·&nbsp; <a href="terms.html" data-i18n="footer.terms">Terms</a> &nbsp;·&nbsp; <a href="privacy.html" data-i18n="footer.privacy">Privacy</a></p>
+    <p style="margin-top:10px" data-i18n-html="footer.credit_html">Nakshatra is built and operated by Krishna Negi, Delhi, India. Questions or concerns: <a href="mailto:support@nakshatra.ind.in">support@nakshatra.ind.in</a>.</p>
+    <p style="margin-top:10px" data-i18n="footer.disclaimer">Nakshatra provides astrology and palmistry content for entertainment and self-reflection only. It is not medical, legal, financial, or psychological advice.</p>
   </div>
 </footer>
 
+<script src="marketing-i18n.js"></script>
 <script src="main.js"></script>
+<script src="marketing-lang.js"></script>
 </body>
 </html>

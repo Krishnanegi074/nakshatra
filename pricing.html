@@ -30,25 +30,32 @@
       <span class="nk-logo-word">NAKSHATRA</span>
     </a>
     <div class="nk-nav-links">
-      <a href="index.html" class="nk-nav-link">Home</a>
-      <a href="kundli-matching.html" class="nk-nav-link">Kundli Matching</a>
-      <a href="pricing.html" class="nk-nav-link" aria-current="page">Pricing</a>
-      <a href="about.html" class="nk-nav-link">About</a>
+      <a href="index.html" class="nk-nav-link" data-i18n="nav.home">Home</a>
+      <a href="kundli-matching.html" class="nk-nav-link" data-i18n="nav.kundli">Kundli Matching</a>
+      <a href="pricing.html" class="nk-nav-link" aria-current="page" data-i18n="nav.pricing">Pricing</a>
+      <a href="about.html" class="nk-nav-link" data-i18n="nav.about">About</a>
     </div>
     <div class="nk-nav-actions">
-      <a href="index.html?auth=login" class="nk-btn-ghost">Log In</a>
-      <a href="index.html?auth=signup" class="nk-btn nk-btn-primary">Start Free</a>
-      <button class="nk-nav-toggle" type="button" aria-label="Open menu" aria-expanded="false">
+      <a href="index.html?auth=login" class="nk-btn-ghost" data-i18n="nav.login">Log In</a>
+      <a href="index.html?auth=signup" class="nk-btn nk-btn-primary" data-i18n="nav.start">Start Free</a>
+      <div class="nk-lang-toggle-wrap">
+        <button class="nk-lang-toggle" type="button" data-i18n-aria="nav.lang_aria" aria-label="Change language" aria-haspopup="true" aria-expanded="false">&#127760;</button>
+        <div class="nk-lang-menu">
+          <button type="button" data-lang="en">English</button>
+          <button type="button" data-lang="hi">हिन्दी</button>
+        </div>
+      </div>
+      <button class="nk-nav-toggle" type="button" data-i18n-aria="nav.menu_aria" aria-label="Open menu" aria-expanded="false">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
     </div>
   </nav>
   <div class="nk-mobile-menu">
-    <a href="index.html">Home</a>
-    <a href="kundli-matching.html">Kundli Matching</a>
-    <a href="pricing.html" aria-current="page">Pricing</a>
-    <a href="about.html">About</a>
-    <a href="index.html?auth=signup" class="nk-btn nk-btn-primary">Start Free</a>
+    <a href="index.html" data-i18n="nav.home">Home</a>
+    <a href="kundli-matching.html" data-i18n="nav.kundli">Kundli Matching</a>
+    <a href="pricing.html" aria-current="page" data-i18n="nav.pricing">Pricing</a>
+    <a href="about.html" data-i18n="nav.about">About</a>
+    <a href="index.html?auth=signup" class="nk-btn nk-btn-primary" data-i18n="nav.start">Start Free</a>
   </div>
 </header>
 
@@ -57,9 +64,9 @@
   <!-- ================= HERO ================= -->
   <section class="nk-pr-hero">
     <div class="nk-wrap">
-      <div class="nk-eyebrow">Pricing</div>
-      <h1 class="nk-pr-title">One honest price.<br>Every single time.</h1>
-      <p class="nk-pr-sub">No hidden subscriptions. No upsells buried in fine print. You'll know the full cost before you begin — never after a conversation runs long.</p>
+      <div class="nk-eyebrow" data-i18n="pricing.eyebrow">Pricing</div>
+      <h1 class="nk-pr-title" data-i18n-html="pricing.hero_title_html">One honest price.<br>Every single time.</h1>
+      <p class="nk-pr-sub" data-i18n="pricing.hero_sub">No hidden subscriptions. No upsells buried in fine print. You'll know the full cost before you begin — never after a conversation runs long.</p>
     </div>
   </section>
 
@@ -67,24 +74,24 @@
   <section class="nk-section-tight">
     <div class="nk-wrap nk-pr-compare">
       <div class="nk-card nk-pr-compare-card nk-pr-compare-card--dim">
-        <div class="nk-pr-compare-label">Elsewhere in this space</div>
+        <div class="nk-pr-compare-label" data-i18n="pricing.compare_left_label">Elsewhere in this space</div>
         <svg width="86" height="86" viewBox="0 0 86 86" class="nk-pr-compare-icon" aria-hidden="true">
           <circle cx="43" cy="43" r="38" stroke="#8478a0" stroke-width="1.4" fill="none" opacity="0.6"/>
           <line x1="43" y1="43" x2="43" y2="16" stroke="#8478a0" stroke-width="2" stroke-linecap="round"/>
           <line x1="43" y1="43" x2="63" y2="55" stroke="#8478a0" stroke-width="2" stroke-linecap="round"/>
           <circle cx="43" cy="43" r="3" fill="#8478a0"/>
         </svg>
-        <h3 class="nk-pr-compare-title nk-pr-compare-title--dim">Billed by the minute</h3>
-        <p class="nk-pr-compare-desc">Consultation apps in this category disclose typical spend of ₹500–1,500 <em>per session</em> — a running total that stays invisible until the call ends.</p>
+        <h3 class="nk-pr-compare-title nk-pr-compare-title--dim" data-i18n="pricing.compare_left_title">Billed by the minute</h3>
+        <p class="nk-pr-compare-desc" data-i18n-html="pricing.compare_left_desc_html">Consultation apps in this category disclose typical spend of ₹500–1,500 <em>per session</em> — a running total that stays invisible until the call ends.</p>
       </div>
       <div class="nk-card nk-pr-compare-card nk-pr-compare-card--gold">
-        <div class="nk-pr-compare-label nk-pr-compare-label--gold">On Nakshatra</div>
+        <div class="nk-pr-compare-label nk-pr-compare-label--gold" data-i18n="pricing.compare_right_label">On Nakshatra</div>
         <svg width="86" height="86" viewBox="0 0 86 86" class="nk-pr-compare-icon" aria-hidden="true">
           <path d="M10 40 40 10h34a4 4 0 0 1 4 4v34l-38 38a3 3 0 0 1-4.2 0L10 55.2a3 3 0 0 1 0-4.2Z" stroke="#e8c687" stroke-width="1.6" fill="none"/>
           <circle cx="60" cy="30" r="3.4" fill="#e8c687"/>
         </svg>
-        <h3 class="nk-pr-compare-title">One number, up front</h3>
-        <p class="nk-pr-compare-desc nk-pr-compare-desc--bright">₹399. See it before you start, pay it once, done. No clock, no surprise, no reason to rush a reading that's about you.</p>
+        <h3 class="nk-pr-compare-title" data-i18n="pricing.compare_right_title">One number, up front</h3>
+        <p class="nk-pr-compare-desc nk-pr-compare-desc--bright" data-i18n="pricing.compare_right_desc">₹399. See it before you start, pay it once, done. No clock, no surprise, no reason to rush a reading that's about you.</p>
       </div>
     </div>
   </section>
@@ -93,31 +100,31 @@
   <section class="nk-section nk-section-bordered">
     <div class="nk-wrap nk-pr-tiers-wrap">
       <div class="nk-pr-tiers-head">
-        <div class="nk-eyebrow">Choose Your Vedic Astrology Reading</div>
-        <h2 class="nk-h2">Three plans. Zero fine print.</h2>
+        <div class="nk-eyebrow" data-i18n="pricing.tiers_eyebrow">Choose Your Vedic Astrology Reading</div>
+        <h2 class="nk-h2" data-i18n="pricing.tiers_title">Three plans. Zero fine print.</h2>
       </div>
 
       <div class="nk-pr-tiers">
         <div class="nk-card nk-pr-tier">
-          <h3 class="nk-pr-tier-name">Horoscope Access Pass</h3>
+          <h3 class="nk-pr-tier-name" data-i18n="pricing.tier1_name">Horoscope Access Pass</h3>
           <div class="nk-pr-tier-price">₹299</div>
-          <p class="nk-pr-tier-desc">Your weekly horoscope, gently kept current as the sky moves.</p>
-          <a href="index.html?tier=subscription&amp;auth=signup" class="nk-btn nk-btn-secondary nk-pr-tier-btn">Choose Plan</a>
+          <p class="nk-pr-tier-desc" data-i18n="pricing.tier1_desc">Your weekly horoscope, gently kept current as the sky moves.</p>
+          <a href="index.html?tier=subscription&amp;auth=signup" class="nk-btn nk-btn-secondary nk-pr-tier-btn" data-i18n="pricing.tier_btn">Choose Plan</a>
         </div>
 
         <div class="nk-card nk-pr-tier nk-pr-tier--featured">
-          <span class="nk-pr-tier-badge">Most Popular</span>
-          <h3 class="nk-pr-tier-name nk-pr-tier-name--featured">Premium Bundle</h3>
+          <span class="nk-pr-tier-badge" data-i18n="pricing.tier2_badge">Most Popular</span>
+          <h3 class="nk-pr-tier-name nk-pr-tier-name--featured" data-i18n="pricing.tier2_name">Premium Bundle</h3>
           <div class="nk-pr-tier-price nk-pr-tier-price--featured">₹599</div>
-          <p class="nk-pr-tier-desc nk-pr-tier-desc--bright">Everything in the One-Time Report, plus your Future Partner Report — the complete picture.</p>
-          <a href="index.html?tier=bundle&amp;auth=signup" class="nk-btn nk-btn-primary nk-pr-tier-btn">Choose Plan</a>
+          <p class="nk-pr-tier-desc nk-pr-tier-desc--bright" data-i18n="pricing.tier2_desc">Everything in the One-Time Report, plus your Future Partner Report — the complete picture.</p>
+          <a href="index.html?tier=bundle&amp;auth=signup" class="nk-btn nk-btn-primary nk-pr-tier-btn" data-i18n="pricing.tier_btn">Choose Plan</a>
         </div>
 
         <div class="nk-card nk-pr-tier">
-          <h3 class="nk-pr-tier-name">One-Time Report</h3>
+          <h3 class="nk-pr-tier-name" data-i18n="pricing.tier3_name">One-Time Report</h3>
           <div class="nk-pr-tier-price">₹399</div>
-          <p class="nk-pr-tier-desc">Your complete janam kundli — birth chart, personality, and what's ahead.</p>
-          <a href="index.html?tier=onetime&amp;auth=signup" class="nk-btn nk-btn-secondary nk-pr-tier-btn">Choose Plan</a>
+          <p class="nk-pr-tier-desc" data-i18n="pricing.tier3_desc">Your complete janam kundli — birth chart, personality, and what's ahead.</p>
+          <a href="index.html?tier=onetime&amp;auth=signup" class="nk-btn nk-btn-secondary nk-pr-tier-btn" data-i18n="pricing.tier_btn">Choose Plan</a>
         </div>
       </div>
     </div>
@@ -140,19 +147,21 @@
       <span class="nk-logo-word" style="font-size:15px">NAKSHATRA</span>
     </a>
     <div class="nk-footer-links">
-      <a href="how-it-works.html">How It Works</a>
-      <a href="sample-report.html">Sample Report</a>
-      <a href="faq.html">FAQ</a>
-      <a href="about.html">About</a>
-      <a href="responsible-guidance.html">Responsible Use</a>
-      <a href="refund-policy.html">Refund Policy</a>
-      <a href="terms.html">Terms</a>
-      <a href="privacy.html">Privacy</a>
+      <a href="how-it-works.html" data-i18n="footer.how">How It Works</a>
+      <a href="sample-report.html" data-i18n="footer.sample">Sample Report</a>
+      <a href="faq.html" data-i18n="footer.faq">FAQ</a>
+      <a href="about.html" data-i18n="footer.about">About</a>
+      <a href="responsible-guidance.html" data-i18n="footer.responsible">Responsible Use</a>
+      <a href="refund-policy.html" data-i18n="footer.refund">Refund Policy</a>
+      <a href="terms.html" data-i18n="footer.terms">Terms</a>
+      <a href="privacy.html" data-i18n="footer.privacy">Privacy</a>
     </div>
-    <div class="nk-footer-fine">nakshatra.ind.in · © 2026 Nakshatra. Real calculations, honestly priced. · Questions: <a href="mailto:support@nakshatra.ind.in">support@nakshatra.ind.in</a></div>
+    <div class="nk-footer-fine" data-i18n-html="footer.fine_html">nakshatra.ind.in · © 2026 Nakshatra. Real calculations, honestly priced. · Questions: <a href="mailto:support@nakshatra.ind.in">support@nakshatra.ind.in</a></div>
   </div>
 </footer>
 
+<script src="marketing-i18n.js"></script>
 <script src="main.js"></script>
+<script src="marketing-lang.js"></script>
 </body>
 </html>

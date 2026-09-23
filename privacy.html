@@ -104,89 +104,96 @@ footer.site a:hover { color: var(--gold-bright); }
       <span class="nk-logo-word">NAKSHATRA</span>
     </a>
     <div class="nk-nav-links">
-      <a href="index.html" class="nk-nav-link">Home</a>
-      <a href="kundli-matching.html" class="nk-nav-link">Kundli Matching</a>
-      <a href="pricing.html" class="nk-nav-link">Pricing</a>
-      <a href="about.html" class="nk-nav-link">About</a>
+      <a href="index.html" class="nk-nav-link" data-i18n="nav.home">Home</a>
+      <a href="kundli-matching.html" class="nk-nav-link" data-i18n="nav.kundli">Kundli Matching</a>
+      <a href="pricing.html" class="nk-nav-link" data-i18n="nav.pricing">Pricing</a>
+      <a href="about.html" class="nk-nav-link" data-i18n="nav.about">About</a>
     </div>
     <div class="nk-nav-actions">
-      <a href="index.html?auth=login" class="nk-btn-ghost">Log In</a>
-      <a href="index.html?auth=signup" class="nk-btn nk-btn-primary">Start Free</a>
-      <button class="nk-nav-toggle" type="button" aria-label="Open menu" aria-expanded="false">
+      <a href="index.html?auth=login" class="nk-btn-ghost" data-i18n="nav.login">Log In</a>
+      <a href="index.html?auth=signup" class="nk-btn nk-btn-primary" data-i18n="nav.start">Start Free</a>
+      <div class="nk-lang-toggle-wrap">
+        <button class="nk-lang-toggle" type="button" data-i18n-aria="nav.lang_aria" aria-label="Change language" aria-haspopup="true" aria-expanded="false">&#127760;</button>
+        <div class="nk-lang-menu">
+          <button type="button" data-lang="en">English</button>
+          <button type="button" data-lang="hi">हिन्दी</button>
+        </div>
+      </div>
+      <button class="nk-nav-toggle" type="button" data-i18n-aria="nav.menu_aria" aria-label="Open menu" aria-expanded="false">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
     </div>
   </nav>
   <div class="nk-mobile-menu">
-    <a href="index.html">Home</a>
-    <a href="kundli-matching.html">Kundli Matching</a>
-    <a href="pricing.html">Pricing</a>
-    <a href="about.html">About</a>
-    <a href="index.html?auth=signup" class="nk-btn nk-btn-primary">Start Free</a>
+    <a href="index.html" data-i18n="nav.home">Home</a>
+    <a href="kundli-matching.html" data-i18n="nav.kundli">Kundli Matching</a>
+    <a href="pricing.html" data-i18n="nav.pricing">Pricing</a>
+    <a href="about.html" data-i18n="nav.about">About</a>
+    <a href="index.html?auth=signup" class="nk-btn nk-btn-primary" data-i18n="nav.start">Start Free</a>
   </div>
 </header>
 
 <main>
   <div class="wrap">
 
-<p class="eyebrow">Legal</p>
-<h1 class="page-title">Privacy Policy</h1>
-<p class="lead">Last updated: 23 September 2026 · Provided in English only.</p>
+<p class="eyebrow" data-i18n="legal.eyebrow">Legal</p>
+<h1 class="page-title" data-i18n="privacy.title">Privacy Policy</h1>
+<p class="lead" data-i18n="privacy.updated">Last updated: 23 September 2026 · Provided in English only.</p>
 
 <div class="card">
-  <h3>Who we are</h3>
-  <p>Nakshatra ("we", "us", "the app") provides astrology and palmistry content for entertainment and self-reflection. This policy explains what information we collect when you use the app, how we use it, and the choices you have.</p>
+  <h3 data-i18n="privacy.h_who">Who we are</h3>
+  <p data-i18n="privacy.p_who">Nakshatra ("we", "us", "the app") provides astrology and palmistry content for entertainment and self-reflection. This policy explains what information we collect when you use the app, how we use it, and the choices you have.</p>
 
-  <h3>Information we collect</h3>
+  <h3 data-i18n="privacy.h_info">Information we collect</h3>
   <ul>
-    <li><strong>Account details</strong> — your name, email address, and password. Your password is handled by our authentication provider and is never stored by us in plain text.</li>
-    <li><strong>Birth details</strong> — the date, time (if you provide it), and place of birth you enter, used only to calculate your birth chart.</li>
-    <li><strong>Palm reading answers</strong> — your responses to the palmistry questionnaire. If you use the photo-assisted option, the photo is analyzed on your own device only — it is never uploaded to or stored on our servers.</li>
-    <li><strong>Content you create</strong> — messages sent through the in-app astrologer chat, community posts and likes, and gift messages.</li>
-    <li><strong>Purchase records</strong> — which tier you bought or were gifted, and the payment method selected.</li>
+    <li data-i18n-html="privacy.li_account_html"><strong>Account details</strong> — your name, email address, and password. Your password is handled by our authentication provider and is never stored by us in plain text.</li>
+    <li data-i18n-html="privacy.li_birth_html"><strong>Birth details</strong> — the date, time (if you provide it), and place of birth you enter, used only to calculate your birth chart.</li>
+    <li data-i18n-html="privacy.li_palm_html"><strong>Palm reading answers</strong> — your responses to the palmistry questionnaire. If you use the photo-assisted option, the photo is analyzed on your own device only — it is never uploaded to or stored on our servers.</li>
+    <li data-i18n-html="privacy.li_content_html"><strong>Content you create</strong> — messages sent through the in-app astrologer chat, community posts and likes, and gift messages.</li>
+    <li data-i18n-html="privacy.li_purchase_html"><strong>Purchase records</strong> — which tier you bought or were gifted, and the payment method selected.</li>
   </ul>
 
-  <h3>How we use this information</h3>
+  <h3 data-i18n="privacy.h_use">How we use this information</h3>
   <ul>
-    <li>To calculate and display your birth chart, horoscope, palm reading, compatibility, and other reports.</li>
-    <li>To let you sign back in and see your saved chart and reports on any device.</li>
-    <li>To operate features you choose to use, like gifting a report to someone else or posting to the community feed.</li>
+    <li data-i18n="privacy.li_use1">To calculate and display your birth chart, horoscope, palm reading, compatibility, and other reports.</li>
+    <li data-i18n="privacy.li_use2">To let you sign back in and see your saved chart and reports on any device.</li>
+    <li data-i18n="privacy.li_use3">To operate features you choose to use, like gifting a report to someone else or posting to the community feed.</li>
   </ul>
-  <p>We do not sell your personal information. We do not use your data to train AI models — every piece of astrology and palmistry content in this app comes from fixed calculation and content rules, not from an AI reading your personal data.</p>
+  <p data-i18n="privacy.p_nosell">We do not sell your personal information. We do not use your data to train AI models — every piece of astrology and palmistry content in this app comes from fixed calculation and content rules, not from an AI reading your personal data.</p>
 
-  <h3>Where your data is stored</h3>
-  <p>Your data is stored with our database provider, Supabase, behind access controls (Row Level Security) that stop any other app account from reading or writing your rows in the database. Your login session is kept in your browser's local storage so you stay signed in between visits.</p>
+  <h3 data-i18n="privacy.h_stored">Where your data is stored</h3>
+  <p data-i18n="privacy.p_stored">Your data is stored with our database provider, Supabase, behind access controls (Row Level Security) that stop any other app account from reading or writing your rows in the database. Your login session is kept in your browser's local storage so you stay signed in between visits.</p>
 
-  <h3>Third parties</h3>
-  <p>We currently share data with Supabase as part of running the app's backend. Payments are processed by Razorpay, our payment gateway — Razorpay handles and stores your card, UPI, or bank details directly; we never see or store them ourselves. We only receive confirmation that a payment succeeded and the tier it was for.</p>
+  <h3 data-i18n="privacy.h_third">Third parties</h3>
+  <p data-i18n="privacy.p_third">We currently share data with Supabase as part of running the app's backend. Payments are processed by Razorpay, our payment gateway — Razorpay handles and stores your card, UPI, or bank details directly; we never see or store them ourselves. We only receive confirmation that a payment succeeded and the tier it was for.</p>
 
-  <h3>Your choices</h3>
+  <h3 data-i18n="privacy.h_choices">Your choices</h3>
   <ul>
-    <li>You can update your birth details at any time by re-entering them.</li>
-    <li>You can permanently delete your account and all associated data from <strong>Settings → Delete My Account</strong>. This cannot be undone.</li>
-    <li>You can contact us with any privacy question or request at the address below.</li>
+    <li data-i18n="privacy.li_choice1">You can update your birth details at any time by re-entering them.</li>
+    <li data-i18n-html="privacy.li_choice2_html">You can permanently delete your account and all associated data from <strong>Settings → Delete My Account</strong>. This cannot be undone.</li>
+    <li data-i18n="privacy.li_choice3">You can contact us with any privacy question or request at the address below.</li>
   </ul>
 
-  <h3>Children's privacy</h3>
-  <p>Nakshatra is not directed at children. You must be at least 18 years old, or the age of majority where you live, to create an account.</p>
+  <h3 data-i18n="privacy.h_children">Children's privacy</h3>
+  <p data-i18n="privacy.p_children">Nakshatra is not directed at children. You must be at least 18 years old, or the age of majority where you live, to create an account.</p>
 
-  <h3>Changes to this policy</h3>
-  <p>We may update this policy as the app changes. The "Last updated" date above will reflect the most recent revision.</p>
+  <h3 data-i18n="privacy.h_changes">Changes to this policy</h3>
+  <p data-i18n="privacy.p_changes">We may update this policy as the app changes. The "Last updated" date above will reflect the most recent revision.</p>
 
-  <h3>Contact</h3>
-  <p style="margin:0">For any privacy question or request, email <a href="mailto:support@nakshatra.ind.in">support@nakshatra.ind.in</a>.</p>
+  <h3 data-i18n="privacy.hcontact">Contact</h3>
+  <p style="margin:0" data-i18n-html="privacy.pcontact_html">For any privacy question or request, email <a href="mailto:support@nakshatra.ind.in">support@nakshatra.ind.in</a>.</p>
 </div>
 
     <nav aria-label="More pages" style="margin-top:50px;padding-top:24px;border-top:1px solid var(--border)">
       <ul class="pagenav">
-      <li><a href="how-it-works.html">How It Works</a></li>
-      <li><a href="sample-report.html">Sample Report</a></li>
-      <li><a href="faq.html">FAQ</a></li>
-      <li><a href="about.html">About</a></li>
-      <li><a href="responsible-guidance.html">Responsible Use</a></li>
-      <li><a href="refund-policy.html">Refund Policy</a></li>
-      <li><a href="terms.html">Terms</a></li>
-      <li><a href="privacy.html" class="current">Privacy</a></li>
+      <li><a href="how-it-works.html" data-i18n="footer.how">How It Works</a></li>
+      <li><a href="sample-report.html" data-i18n="footer.sample">Sample Report</a></li>
+      <li><a href="faq.html" data-i18n="footer.faq">FAQ</a></li>
+      <li><a href="about.html" data-i18n="nav.about">About</a></li>
+      <li><a href="responsible-guidance.html" data-i18n="footer.responsible">Responsible Use</a></li>
+      <li><a href="refund-policy.html" data-i18n="footer.refund">Refund Policy</a></li>
+      <li><a href="terms.html" data-i18n="footer.terms">Terms</a></li>
+      <li><a href="privacy.html" class="current" data-i18n="footer.privacy">Privacy</a></li>
       </ul>
     </nav>
   </div>
@@ -194,12 +201,14 @@ footer.site a:hover { color: var(--gold-bright); }
 
 <footer class="site">
   <div class="wrap">
-    <p><a href="how-it-works.html">How It Works</a> &nbsp;·&nbsp; <a href="sample-report.html">Sample Report</a> &nbsp;·&nbsp; <a href="faq.html">FAQ</a> &nbsp;·&nbsp; <a href="about.html">About</a> &nbsp;·&nbsp; <a href="responsible-guidance.html">Responsible Use</a> &nbsp;·&nbsp; <a href="refund-policy.html">Refund Policy</a> &nbsp;·&nbsp; <a href="terms.html">Terms</a> &nbsp;·&nbsp; <a href="privacy.html">Privacy</a></p>
-    <p style="margin-top:10px">Nakshatra is built and operated by Krishna Negi, Delhi, India. Questions or concerns: <a href="mailto:support@nakshatra.ind.in">support@nakshatra.ind.in</a>.</p>
-    <p style="margin-top:10px">Nakshatra provides astrology and palmistry content for entertainment and self-reflection only. It is not medical, legal, financial, or psychological advice.</p>
+    <p><a href="how-it-works.html" data-i18n="footer.how">How It Works</a> &nbsp;·&nbsp; <a href="sample-report.html" data-i18n="footer.sample">Sample Report</a> &nbsp;·&nbsp; <a href="faq.html" data-i18n="footer.faq">FAQ</a> &nbsp;·&nbsp; <a href="about.html" data-i18n="nav.about">About</a> &nbsp;·&nbsp; <a href="responsible-guidance.html" data-i18n="footer.responsible">Responsible Use</a> &nbsp;·&nbsp; <a href="refund-policy.html" data-i18n="footer.refund">Refund Policy</a> &nbsp;·&nbsp; <a href="terms.html" data-i18n="footer.terms">Terms</a> &nbsp;·&nbsp; <a href="privacy.html" data-i18n="footer.privacy">Privacy</a></p>
+    <p style="margin-top:10px" data-i18n-html="footer.credit_html">Nakshatra is built and operated by Krishna Negi, Delhi, India. Questions or concerns: <a href="mailto:support@nakshatra.ind.in">support@nakshatra.ind.in</a>.</p>
+    <p style="margin-top:10px" data-i18n="footer.disclaimer">Nakshatra provides astrology and palmistry content for entertainment and self-reflection only. It is not medical, legal, financial, or psychological advice.</p>
   </div>
 </footer>
 
+<script src="marketing-i18n.js"></script>
 <script src="main.js"></script>
+<script src="marketing-lang.js"></script>
 </body>
 </html>

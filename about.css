@@ -22,6 +22,16 @@
   float: left; line-height: 0.8; margin: 8px 10px 0 0;
 }
 
+/* The illuminated-letter effect above only makes sense for a Latin
+   first letter ("Here's" -> big "H"). In Devanagari, ::first-letter
+   grabs a full grapheme cluster (e.g. "ज्या" out of "ज्यादातर"), which
+   floats out a chunk from the MIDDLE of a word rather than a whole
+   first letter or word — it reads as a rendering glitch, not a design
+   flourish. Switch it off entirely when the page is showing Hindi. */
+html[lang="hi"] .nk-ab-dropcap::first-letter {
+  all: unset;
+}
+
 /* ---------- What real means here ---------- */
 
 .nk-ab-real { text-align: center; }
