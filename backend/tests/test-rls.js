@@ -50,6 +50,19 @@ async function asUser(c, userId, fn) {
   }
 }
 
+// Run `fn` as the anon role (a not-signed-in visitor — no user id at all,
+// matching how the public Kundli Matching waitlist form is hit before
+// anyone has an account) in its own transaction.
+async function asAnon(c, fn) {
+  await c.query("begin");
+  try {
+    await c.query("set local role anon");
+    return await fn();
+  } finally {
+    await c.query("commit").catch(() => c.query("rollback"));
+  }
+}
+
 async function expectError(promise, label) {
   try {
     await promise;
@@ -291,6 +304,34 @@ async function expectError(promise, label) {
     await expectError(
       asUser(c, ALICE, () => c.query("select public.complete_razorpay_order('does-not-matter', 'does-not-matter', 'upi')")),
       "A logged-in user (authenticated role) cannot call complete_razorpay_order() directly — PUBLIC's execute was explicitly revoked"
+    );
+  }
+
+  console.log("\n== Group 9: kundli_waitlist — anon can join, nobody can read addresses back ==");
+  {
+    // The public Kundli Matching page's "Join the Waitlist" form runs with
+    // no logged-in user at all — this is the one table in the whole schema
+    // a bare `anon` role (not `authenticated`) needs write access to.
+    await asAnon(c, () => c.query(
+      "insert into public.kundli_waitlist (email) values ($1)", ["rlstest-waitlist@example.com"]
+    ));
+    check("anon can insert into kundli_waitlist (join the waitlist while signed out)", true);
+
+    await expectError(
+      asAnon(c, () => c.query(
+        "insert into public.kundli_waitlist (email) values ($1)", ["RLSTest-Waitlist@example.com"]
+      )),
+      "A duplicate email (different case) is rejected by the case-insensitive unique index"
+    );
+
+    await expectError(
+      asAnon(c, () => c.query("select * from public.kundli_waitlist")),
+      "anon cannot SELECT from kundli_waitlist — collected addresses are never readable from the client"
+    );
+
+    await expectError(
+      asUser(c, ALICE, () => c.query("select * from public.kundli_waitlist")),
+      "...and a logged-in (authenticated) user can't read it either — no policy grants it to anyone but service_role"
     );
   }
 

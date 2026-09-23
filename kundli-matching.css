@@ -43,7 +43,15 @@
   padding: 15px 22px; color: var(--text); font-family: inherit; font-size: 14.5px; width: 280px; max-width: 100%;
 }
 .nk-km-waitlist input::placeholder { color: var(--text-quiet); }
-.nk-km-note { color: var(--text-quiet); font-size: 12.5px; margin-top: 16px; }
+.nk-km-waitlist input:disabled, .nk-km-waitlist button:disabled { opacity: 0.6; cursor: default; }
+.nk-km-note { color: var(--text-quiet); font-size: 12.5px; margin-top: 16px; transition: color 0.2s ease; }
+/* Loading/success/error states for the waitlist form's live status region
+   (see kundli-waitlist.js). --success is defined in style.css's :root;
+   the error color literal matches app/app.css's --danger (#ef7f7f) — kept
+   as a literal here since this page's shared :root (style.css) doesn't
+   define one. */
+.nk-km-note--success { color: var(--success); }
+.nk-km-note--error { color: #ef7f7f; }
 
 /* ---------- The 8 kootas ---------- */
 

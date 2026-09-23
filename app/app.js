@@ -1,6 +1,12 @@
 (function () {
 "use strict";
 
+// Shared production domain — single source of truth so it can't drift out
+// of sync the way "nakshatra.app" (an old, wrong domain) did on the
+// downloadable gift/share cards. Used anywhere the app needs to print its
+// own public URL into generated content (canvas share cards, etc.).
+const SITE_DOMAIN = "nakshatra.ind.in";
+
 // ================= STATE =================
 const state = {
   user: null,
@@ -1506,7 +1512,7 @@ function drawGiftCard() {
   ctx.fillText(code, W / 2, 900);
 
   ctx.fillStyle = "#8478a0"; ctx.font = "24px Poppins, sans-serif"; ctx.textAlign = "center";
-  ctx.fillText("Entertainment purposes only · Redeem at nakshatra.app", W / 2, 1280);
+  ctx.fillText("Entertainment purposes only · Redeem at " + SITE_DOMAIN, W / 2, 1280);
 }
 
 function initGiftSend() {
@@ -2026,7 +2032,7 @@ function drawShareCard() {
   }
 
   ctx.fillStyle = "#8478a0"; ctx.font = "24px Poppins, sans-serif"; ctx.textAlign = "center";
-  ctx.fillText("Entertainment purposes only · Get your reading at nakshatra.app", W / 2, 1830);
+  ctx.fillText("Entertainment purposes only · Get your reading at " + SITE_DOMAIN, W / 2, 1830);
 }
 
 function roundRect(ctx, x, y, w, h, r) {

@@ -14,7 +14,8 @@ truncate table
   public.unlocks,
   public.purchases,
   public.palm_reports,
-  public.birth_data
+  public.birth_data,
+  public.kundli_waitlist
 cascade;
 
 -- Fixture for test-rls.js Group 5 (gift redemption flow). Inserted as the

@@ -74,7 +74,7 @@ const I18N = {
     "landing.step3.title": "Unlock the full report",
     "landing.step3.desc": "Like what you see? Unlock your complete detailed report for a one-time ₹399 — no subscription unless you choose one.",
     "landing.pricing-note": "Free to preview. <strong>Pay once, only if you want your full report.</strong>",
-    "landing.legal-footer": "By continuing, you agree to our <a href=\"javascript:void(0)\" id=\"link-landing-terms\">Terms of Service</a> and <a href=\"javascript:void(0)\" id=\"link-landing-privacy\">Privacy Policy</a>.",
+    "landing.legal-footer": "By continuing, you agree to our <button type=\"button\" class=\"link-btn\" id=\"link-landing-terms\">Terms of Service</button> and <button type=\"button\" class=\"link-btn\" id=\"link-landing-privacy\">Privacy Policy</button>.",
 
     "settings.title": "Settings",
     "settings.legal.heading": "Legal",
@@ -379,7 +379,7 @@ const I18N = {
     "landing.step3.title": "पूरी रिपोर्ट अनलॉक करें",
     "landing.step3.desc": "जो देखा वह पसंद आया? अपनी पूरी विस्तृत रिपोर्ट को एक बार के ₹399 में अनलॉक करें — जब तक आप खुद न चुनें, कोई सदस्यता नहीं।",
     "landing.pricing-note": "झलक देखना मुफ़्त है। <strong>केवल तभी भुगतान करें जब आपको अपनी पूरी रिपोर्ट चाहिए।</strong>",
-    "landing.legal-footer": "जारी रखकर, आप हमारी <a href=\"javascript:void(0)\" id=\"link-landing-terms\">सेवा शर्तों</a> और <a href=\"javascript:void(0)\" id=\"link-landing-privacy\">गोपनीयता नीति</a> से सहमत होते हैं।",
+    "landing.legal-footer": "जारी रखकर, आप हमारी <button type=\"button\" class=\"link-btn\" id=\"link-landing-terms\">सेवा शर्तों</button> और <button type=\"button\" class=\"link-btn\" id=\"link-landing-privacy\">गोपनीयता नीति</button> से सहमत होते हैं।",
 
     "settings.title": "सेटिंग्स",
     "settings.legal.heading": "कानूनी",

@@ -70,12 +70,12 @@
       <div class="nk-eyebrow">Coming to Nakshatra</div>
       <h1 class="nk-km-title">Real Kundli Matching,<br>gently done in full.</h1>
       <p class="nk-km-sub">The traditional Ashtakoot Guna Milan for marriage compatibility — the same 36-point, 8-koota system a family astrologer would use, calculated from real planetary positions, never estimated.</p>
-      <form class="nk-km-waitlist" onsubmit="return false;">
+      <form class="nk-km-waitlist" id="waitlist-form">
         <label class="sr-only" for="waitlist-email">Email address</label>
-        <input id="waitlist-email" type="email" placeholder="you@email.com" required>
-        <button type="submit" class="nk-btn nk-btn-primary">Join the Waitlist</button>
+        <input id="waitlist-email" name="email" type="email" placeholder="you@email.com" required autocomplete="email" aria-describedby="waitlist-status">
+        <button type="submit" class="nk-btn nk-btn-primary" id="waitlist-submit">Join the Waitlist</button>
       </form>
-      <p class="nk-km-note">Still being built, with care — no date promised yet. We'll email you the moment it's ready.</p>
+      <p class="nk-km-note" id="waitlist-status" role="status" aria-live="polite">Still being built, with care — no date promised yet. We'll email you the moment it's ready.</p>
     </div>
   </section>
 
@@ -182,17 +182,21 @@
       <span class="nk-logo-word" style="font-size:15px">NAKSHATRA</span>
     </a>
     <div class="nk-footer-links">
-      <a href="index.html#how-it-works">How It Works</a>
-      <a href="index.html#sample-report">Sample Report</a>
+      <a href="how-it-works.html">How It Works</a>
+      <a href="sample-report.html">Sample Report</a>
       <a href="faq.html">FAQ</a>
       <a href="about.html">About</a>
       <a href="responsible-guidance.html">Responsible Use</a>
       <a href="refund-policy.html">Refund Policy</a>
+      <a href="terms.html">Terms</a>
+      <a href="privacy.html">Privacy</a>
     </div>
-    <div class="nk-footer-fine">nakshatra.ind.in · © 2026 Nakshatra. Real calculations, honestly priced.</div>
+    <div class="nk-footer-fine">nakshatra.ind.in · © 2026 Nakshatra. Real calculations, honestly priced. · Questions: <a href="mailto:support@nakshatra.ind.in">support@nakshatra.ind.in</a></div>
   </div>
 </footer>
 
 <script src="main.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="kundli-waitlist.js"></script>
 </body>
 </html>

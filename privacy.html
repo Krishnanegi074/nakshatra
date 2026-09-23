@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>How Nakshatra Calculates Your Reading — Nakshatra</title>
-<meta name="description" content="How Nakshatra's birth chart, palm reading, and compatibility reports are actually calculated — real astronomy, classical rules, no AI-generated text.">
-<link rel="canonical" href="https://nakshatra.ind.in/how-it-works.html">
+<title>Privacy Policy — Nakshatra</title>
+<meta name="description" content="Nakshatra's Privacy Policy: what data we collect, how it's used, where it's stored, and your choices — including account deletion.">
+<link rel="canonical" href="https://nakshatra.ind.in/privacy.html">
 <meta name="robots" content="index, follow">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -53,10 +53,6 @@ header.top .wrap { display: flex; align-items: center; justify-content: space-be
 .back-link { font-size: 0.85rem; color: var(--text-dim); text-decoration: none; display: flex; align-items: center; gap: 6px; }
 .back-link:hover { color: var(--gold-bright); }
 
-/* Matches the ~96px/56px desktop/mobile hero clearance used on
-   about.html / pricing.html / kundli-matching.html, so every page
-   opens with the same breathing room below the nav instead of this
-   set feeling noticeably more cramped. */
 main { padding: 96px 0 32px; }
 @media (max-width: 900px) {
   main { padding: 56px 0 24px; }
@@ -70,37 +66,12 @@ p.lead { color: var(--text-dim); font-size: 16px; max-width: 640px; }
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
   padding: 22px 24px; margin: 18px 0;
 }
-.card h3 { font-size: 1.05rem; color: var(--gold-bright); font-family: 'Poppins', sans-serif; font-weight: 600; margin-bottom: 6px; }
+.card h3 { font-size: 1.05rem; color: var(--gold-bright); font-family: 'Poppins', sans-serif; font-weight: 600; margin: 22px 0 6px; }
+.card h3:first-child { margin-top: 0; }
 .card + .card { margin-top: 14px; }
-
-section.block { margin: 40px 0; }
-section.block h2 { font-size: 1.4rem; margin-bottom: 14px; }
-
-.demo-banner {
-  background: rgba(240,197,107,0.10); border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm); padding: 14px 18px; margin: 0 0 28px;
-  color: var(--gold-bright); font-size: 0.92rem; font-weight: 500;
-  display: flex; align-items: center; gap: 10px;
-}
-
-.badge-row { display: flex; gap: 10px; flex-wrap: wrap; margin: 4px 0 18px; }
-.sign-badge {
-  background: var(--surface-2); border: 1px solid var(--border); border-radius: 14px;
-  padding: 10px 16px; min-width: 130px;
-}
-.sign-badge .lbl { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-faint); }
-.sign-badge .val { font-family: 'Cinzel', serif; color: var(--gold-bright); font-size: 1.05rem; margin-top: 2px; }
-
-.faq-item { border-bottom: 1px solid var(--border); padding: 18px 0; }
-.faq-item:last-child { border-bottom: none; }
-.faq-item h3 { color: var(--text); font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 1rem; margin-bottom: 6px; }
-
-table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 0.92rem; }
-th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
-th { color: var(--gold-bright); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; }
-
-.callout { border-left: 3px solid var(--gold); background: rgba(201,161,95,0.07); border-radius: 0 12px 12px 0; padding: 14px 18px; margin: 20px 0; font-size: 0.92rem; }
-.callout strong { color: var(--gold-bright); }
+.card ul { padding-left: 20px; color: var(--text-dim); }
+.card li { margin-bottom: 8px; }
+.card li:last-child { margin-bottom: 0; }
 
 .pagenav { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 10px 18px; }
 .pagenav a { font-size: 0.85rem; text-decoration: none; color: var(--text-dim); }
@@ -113,13 +84,6 @@ footer.site {
 }
 footer.site a { color: var(--text-dim); }
 footer.site a:hover { color: var(--gold-bright); }
-
-.cta-block { text-align: center; margin: 44px 0 8px; }
-.btn {
-  display: inline-block; background: linear-gradient(135deg, var(--gold-bright), var(--gold));
-  color: #2a1b0a; font-weight: 700; font-family: 'Cinzel', serif; font-size: 0.95rem;
-  padding: 14px 30px; border-radius: 999px; text-decoration: none;
-}
 </style>
 </head>
 <body>
@@ -164,67 +128,65 @@ footer.site a:hover { color: var(--gold-bright); }
 
 <main>
   <div class="wrap">
-    
-<p class="eyebrow">How It Works</p>
-<h1 class="page-title">How Nakshatra actually calculates your reading</h1>
-<p class="lead">No part of your reading is written fresh by an AI model. Every result comes from two real, independently-checkable inputs run through a fixed set of classical rules — the same inputs always produce the same output.</p>
 
-<section class="block">
-  <h2>The two real inputs</h2>
-  <div class="card">
-    <h3>1. Your Sun &amp; Moon sign</h3>
-    <p>Computed from real planetary ecliptic longitudes at your exact birth moment, using Astronomy Engine — the same open-source astronomical engine professional astronomy software relies on for planetary positions. Give it a date, time, and place, and it returns real coordinates.</p>
-  </div>
-  <div class="card">
-    <h3>2. The current real Moon phase</h3>
-    <p>Recalculated every time you open the app — it's today's actual Moon phase, not a stored or invented value.</p>
-  </div>
-  <p>Those two real inputs pick which pre-written template lines are shown to you. Nothing in your report is generated on the fly by a language model — the underlying rule engine is deterministic by design, not just by default.</p>
-</section>
+<p class="eyebrow">Legal</p>
+<h1 class="page-title">Privacy Policy</h1>
+<p class="lead">Last updated: 23 September 2026 · Provided in English only.</p>
 
-<section class="block">
-  <h2>Sidereal system &amp; the Lahiri ayanamsa</h2>
-  <p>Western tropical astrology measures positions against the seasons (0° Aries is always the spring equinox). Vedic astrology instead uses the <strong>sidereal</strong> system, which measures against the actual fixed background of stars. Over centuries, precession has pulled these two systems apart by roughly 24 degrees today.</p>
-  <p>Nakshatra uses the <strong>Lahiri ayanamsa</strong> — the specific correction value that converts a tropical position into a sidereal one. It's the ayanamsa most widely used in Indian Vedic astrology and the one adopted by the Indian government's own Calendar Reform Committee, which is why your Sun or Moon sign here can come out a sign earlier than what a Western tropical horoscope would tell you for the same birth details. Neither is "wrong" — they're two different reference frames for the same real planetary positions.</p>
-</section>
+<div class="card">
+  <h3>Who we are</h3>
+  <p>Nakshatra ("we", "us", "the app") provides astrology and palmistry content for entertainment and self-reflection. This policy explains what information we collect when you use the app, how we use it, and the choices you have.</p>
 
-<section class="block">
-  <h2>What each feature is actually doing</h2>
-  <div class="card">
-    <h3>Birth chart &amp; weekly horoscope</h3>
-    <p>Your Sun sign, Moon sign, and (when you provide an exact birth time) Ascendant, feed a template library keyed to real astronomical facts — sign element, planetary rulership, and the live Moon phase. Two people with the same Sun and Moon sign, checking on the same week, see the same underlying template selection.</p>
-  </div>
-  <div class="card">
-    <h3>Palm reading</h3>
-    <p>This is a photo-<em>assisted</em> classical questionnaire, not biometric analysis. Your photo helps you confirm what your own life, heart, head, and fate lines actually look like — the interpretation itself comes from a fixed classical-palmistry rule table matched to your answers. The photo is processed entirely on your device and is never uploaded anywhere.</p>
-  </div>
-  <div class="card">
-    <h3>Compatibility</h3>
-    <p>Built on real classical astrological aspects — conjunction, sextile, square, trine, opposition, and the minor aspects — calculated from the angular distance between two people's Sun and Moon signs. This is standard classical technique, just computed at the sign level rather than exact degree-to-degree, which is a reasonable simplification for this version of the app.</p>
-  </div>
-  <div class="card">
-    <h3>Year Ahead</h3>
-    <p>Built from the real current transiting positions of Jupiter and Saturn — recalculated from live astronomical data, not a static yearly template.</p>
-  </div>
-</section>
+  <h3>Information we collect</h3>
+  <ul>
+    <li><strong>Account details</strong> — your name, email address, and password. Your password is handled by our authentication provider and is never stored by us in plain text.</li>
+    <li><strong>Birth details</strong> — the date, time (if you provide it), and place of birth you enter, used only to calculate your birth chart.</li>
+    <li><strong>Palm reading answers</strong> — your responses to the palmistry questionnaire. If you use the photo-assisted option, the photo is analyzed on your own device only — it is never uploaded to or stored on our servers.</li>
+    <li><strong>Content you create</strong> — messages sent through the in-app astrologer chat, community posts and likes, and gift messages.</li>
+    <li><strong>Purchase records</strong> — which tier you bought or were gifted, and the payment method selected.</li>
+  </ul>
 
-<div class="callout"><strong>What this doesn't claim:</strong> none of this is presented as scientifically validated prediction. It's a consistent, transparent application of classical astrological technique to real astronomical inputs — useful as a tool for reflection, not as a substitute for professional advice. See our <a href="responsible-guidance.html">Responsible Use</a> page for more on how we think about that line.</div>
+  <h3>How we use this information</h3>
+  <ul>
+    <li>To calculate and display your birth chart, horoscope, palm reading, compatibility, and other reports.</li>
+    <li>To let you sign back in and see your saved chart and reports on any device.</li>
+    <li>To operate features you choose to use, like gifting a report to someone else or posting to the community feed.</li>
+  </ul>
+  <p>We do not sell your personal information. We do not use your data to train AI models — every piece of astrology and palmistry content in this app comes from fixed calculation and content rules, not from an AI reading your personal data.</p>
 
-<div class="cta-block">
-  <a class="btn" href="sample-report.html">See a Full Sample Report →</a>
+  <h3>Where your data is stored</h3>
+  <p>Your data is stored with our database provider, Supabase, behind access controls (Row Level Security) that stop any other app account from reading or writing your rows in the database. Your login session is kept in your browser's local storage so you stay signed in between visits.</p>
+
+  <h3>Third parties</h3>
+  <p>We currently share data with Supabase as part of running the app's backend. Payments are processed by Razorpay, our payment gateway — Razorpay handles and stores your card, UPI, or bank details directly; we never see or store them ourselves. We only receive confirmation that a payment succeeded and the tier it was for.</p>
+
+  <h3>Your choices</h3>
+  <ul>
+    <li>You can update your birth details at any time by re-entering them.</li>
+    <li>You can permanently delete your account and all associated data from <strong>Settings → Delete My Account</strong>. This cannot be undone.</li>
+    <li>You can contact us with any privacy question or request at the address below.</li>
+  </ul>
+
+  <h3>Children's privacy</h3>
+  <p>Nakshatra is not directed at children. You must be at least 18 years old, or the age of majority where you live, to create an account.</p>
+
+  <h3>Changes to this policy</h3>
+  <p>We may update this policy as the app changes. The "Last updated" date above will reflect the most recent revision.</p>
+
+  <h3>Contact</h3>
+  <p style="margin:0">For any privacy question or request, email <a href="mailto:support@nakshatra.ind.in">support@nakshatra.ind.in</a>.</p>
 </div>
-
 
     <nav aria-label="More pages" style="margin-top:50px;padding-top:24px;border-top:1px solid var(--border)">
       <ul class="pagenav">
-      <li><a href="how-it-works.html" class="current">How It Works</a></li>
+      <li><a href="how-it-works.html">How It Works</a></li>
       <li><a href="sample-report.html">Sample Report</a></li>
       <li><a href="faq.html">FAQ</a></li>
       <li><a href="about.html">About</a></li>
       <li><a href="responsible-guidance.html">Responsible Use</a></li>
       <li><a href="refund-policy.html">Refund Policy</a></li>
       <li><a href="terms.html">Terms</a></li>
-      <li><a href="privacy.html">Privacy</a></li>
+      <li><a href="privacy.html" class="current">Privacy</a></li>
       </ul>
     </nav>
   </div>
