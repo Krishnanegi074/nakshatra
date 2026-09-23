@@ -138,6 +138,8 @@ header, main, footer { position: relative; z-index: 1; }
   display: flex;
   align-items: center;
   justify-content: space-between;
+  max-width: var(--wrap-max);
+  margin: 0 auto;
   padding: 22px 40px;
   border-bottom: 1px solid rgba(232, 198, 135, 0.14);
 }
