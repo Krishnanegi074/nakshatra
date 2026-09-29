@@ -49,6 +49,12 @@ const state = {
   giftInProgress: null,
   lastGiftCode: null,
   giftTier: "bundle",
+  // The customer's currently-open real expert session (screen-expert-session)
+  // — { id, expertName, expertSpecialty } once paid for and matched, else
+  // null. Reset on logout, same as giftInProgress — not persisted client-side
+  // beyond that; a reload re-derives it via loadActiveExpertSession() (see
+  // initExpertChat() in app.js) rather than trusting stale local state.
+  activeExpertSession: null,
   // Every gift code this signed-in user has ever sent (recipient name, tier,
   // code, redeemed status), fetched fresh from the backend — see
   // loadSentGiftsList()/renderSentGiftsList() and supabase-client.js's
@@ -86,6 +92,12 @@ const TIER_INFO = {
   // this repo. Display copy must never say "/mo", "monthly", or "every month".
   subscription: { name: "Horoscope Access Pass", price: 299, label: "₹299" },
 };
+
+// Flat fee for one real-expert chat session — PLACEHOLDER, kept in sync
+// manually with EXPERT_SESSION_PRICE_PAISE in backend/supabase/functions/
+// create-expert-session-order/index.ts (the actual price authority; this
+// is display-only, never trusted for the real charge).
+const EXPERT_SESSION_PRICE = { paise: 19900, label: "₹199" };
 
 // The login/signup/forgot-password/reset-password screens all share the
 // desktop split-panel treatment (see .auth-active in app.css) — showScreen()
@@ -456,6 +468,8 @@ document.addEventListener("click", (e) => {
 
 // ================= AUTH =================
 function initAuth() {
+  $("#btn-splash-start").addEventListener("click", () => { state.authMode = "signup"; syncAuthTabs(); showScreen("screen-auth"); });
+  $("#btn-splash-login").addEventListener("click", () => { state.authMode = "login"; syncAuthTabs(); showScreen("screen-auth"); });
   $("#btn-landing-start").addEventListener("click", () => { state.authMode = "signup"; syncAuthTabs(); showScreen("screen-auth"); });
   $("#btn-landing-start-bottom").addEventListener("click", () => { state.authMode = "signup"; syncAuthTabs(); showScreen("screen-auth"); });
   $("#btn-navbar-start").addEventListener("click", () => { state.authMode = "signup"; syncAuthTabs(); showScreen("screen-auth"); });
@@ -759,7 +773,7 @@ function buildOnbSummary() {
   const b = state.birth;
   const dateStr = b.year ? `${b.day}/${b.month}/${b.year}` : "—";
   const timeStr = b.unknownTime ? tr("onb.summary.tob-unknown") : `${String(b.hour).padStart(2, "0")}:${String(b.minute).padStart(2, "0")}`;
-  const cityStr = b.city ? `${b.city.name}, ${b.city.country}` : "—";
+  const cityStr = b.city ? cityLabel(b.city) : "—";
   $("#onb-summary").innerHTML = `
     <div class="row between"><span class="muted">${tr("onb.summary.dob")}</span><strong>${dateStr}</strong></div>
     <div class="row between"><span class="muted">${tr("onb.summary.tob")}</span><strong>${timeStr}</strong></div>
@@ -818,6 +832,12 @@ function initOnboarding() {
   });
 
   $("#input-city").addEventListener("click", () => openCitySheet("birth"));
+  // Some Android WebView builds show the on-screen keyboard for a readonly
+  // input anyway (inputmode="none" on the element is the first line of
+  // defense — see index.template.html — this is the fallback): blur it the
+  // instant it takes focus so the keyboard never gets a chance to animate
+  // in, then open the sheet exactly as the click handler above does.
+  $("#input-city").addEventListener("focus", () => { $("#input-city").blur(); openCitySheet("birth"); });
   $("#city-search").addEventListener("input", renderCityList);
   $("#sheet-city-backdrop").addEventListener("click", (e) => { if (e.target.id === "sheet-city-backdrop") closeCitySheet(); });
 }
@@ -830,21 +850,29 @@ let citySheetTarget = "birth";
 function openCitySheet(target) { citySheetTarget = target || "birth"; $("#sheet-city-backdrop").classList.add("visible"); renderCityList(); $("#city-search").focus(); }
 function closeCitySheet() { $("#sheet-city-backdrop").classList.remove("visible"); }
 
+// "City, State, Country" when a city carries a state (see city-data.js —
+// currently only added where needed to tell a same-named place apart),
+// else the old "City, Country". Used everywhere a picked city is displayed.
+function cityLabel(c) { return c.state ? `${c.name}, ${c.state}, ${c.country}` : `${c.name}, ${c.country}`; }
+// Same idea, but just the part after the city name — for the muted second
+// column in the picker list, where the name already has its own span.
+function cityMeta(c) { return c.state ? `${c.state}, ${c.country}` : c.country; }
+
 function renderCityList() {
   const q = $("#city-search").value.trim().toLowerCase();
-  const list = CITIES.filter(c => c.name.toLowerCase().includes(q) || c.country.toLowerCase().includes(q)).slice(0, 40);
+  const list = CITIES.filter(c => c.name.toLowerCase().includes(q) || c.country.toLowerCase().includes(q) || (c.state && c.state.toLowerCase().includes(q))).slice(0, 40);
   $("#city-list").innerHTML = list.map((c, i) =>
-    `<div class="city-item" data-city="${CITIES.indexOf(c)}"><span>${c.name}</span><span class="muted">${c.country}</span></div>`
+    `<div class="city-item" data-city="${CITIES.indexOf(c)}"><span>${c.name}</span><span class="muted">${cityMeta(c)}</span></div>`
   ).join("") || `<p class="muted center" style="padding:20px 0">No cities found — try a nearby major city.</p>`;
   $all(".city-item").forEach(el => el.addEventListener("click", () => {
     const c = CITIES[Number(el.dataset.city)];
     if (citySheetTarget === "compat") {
       state.compatPartnerCity = c;
-      $("#compat-city").value = `${c.name}, ${c.country}`;
+      $("#compat-city").value = cityLabel(c);
       const evt = new Event("input"); $("#compat-city").dispatchEvent(evt); // let initCompat()'s validity check re-run
     } else {
       state.birth.city = c;
-      $("#input-city").value = `${c.name}, ${c.country}`;
+      $("#input-city").value = cityLabel(c);
     }
     closeCitySheet();
   }));
@@ -920,7 +948,9 @@ function resetLocalSessionState() {
     selectedTier: "onetime", payMethod: "upi", compatResult: null, compatPartnerCity: null,
     giftInProgress: null, lastGiftCode: null, giftTier: "bundle", sentGifts: [],
     chats: {}, activeChatId: null,
+    activeExpertSession: null,
   });
+  stopExpertSessionRealtime();
   resetPalmUI();
   $("#compat-name").value = ""; $("#compat-dob").value = ""; $("#compat-tob").value = ""; $("#compat-city").value = "";
   $("#btn-compat-generate").disabled = true;
@@ -1259,14 +1289,21 @@ function initPalmUpload() {
     $("#palm-file-input").value = "";
     cropRect = null;
   });
-  $("#btn-palm-generate").addEventListener("click", async () => {
-    state.palmReport = generatePalmReport(state.palmAnswers);
-    renderPalmScreen();
-    const dbInstance = backendDb();
-    if (dbInstance) {
-      const { error } = await backendCall(dbInstance.savePalmReport(state.palmAnswers, state.palmReport), "savePalmReport");
-      if (error) toast("Palm reading saved for now, but couldn't sync — it may not be there next time you log in.");
-    }
+  $("#btn-palm-generate").addEventListener("click", () => {
+    // Brief loading beat (ported from the tap-through prototype's
+    // screen-calc-palm) before showing the result — generatePalmReport()
+    // itself is instant local computation, so this is purely a UX pause,
+    // same pattern as runChartCalculation()'s screen-calculating above.
+    showScreen("screen-calc-palm", { silent: true });
+    setTimeout(async () => {
+      state.palmReport = generatePalmReport(state.palmAnswers);
+      showScreen("screen-palm");
+      const dbInstance = backendDb();
+      if (dbInstance) {
+        const { error } = await backendCall(dbInstance.savePalmReport(state.palmAnswers, state.palmReport), "savePalmReport");
+        if (error) toast("Palm reading saved for now, but couldn't sync — it may not be there next time you log in.");
+      }
+    }, 1400);
   });
 }
 
@@ -1326,6 +1363,9 @@ function initCompat() {
   $("#compat-dob").addEventListener("input", checkFormValid);
   $("#compat-city").addEventListener("input", checkFormValid); // fired manually by renderCityList() on selection
   $("#compat-city").addEventListener("click", () => openCitySheet("compat"));
+  // See the matching #input-city focus handler in initOnboarding() — same
+  // Android WebView keyboard-on-readonly-input fallback.
+  $("#compat-city").addEventListener("focus", () => { $("#compat-city").blur(); openCitySheet("compat"); });
   const todayStr = new Date().toISOString().slice(0, 10);
   $("#compat-dob").setAttribute("max", todayStr);
   $("#compat-dob").setAttribute("min", "1900-01-01");
@@ -1339,22 +1379,29 @@ function initCompat() {
     const chosen = new Date(Date.UTC(y, m - 1, d));
     const todayUTC = new Date(Date.UTC(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()));
     if (chosen > todayUTC) return toast("That date of birth is in the future");
-    const tobStr = $("#compat-tob").value;
-    let hour = 12, minute = 0;
-    if (tobStr) { const [h, mi] = tobStr.split(":").map(Number); hour = h; minute = mi; }
-    // THE FIX: convert using the PARTNER's own city/timezone, not the
-    // logged-in user's — state.compatPartnerCity, never state.birth.city.
-    const utc = birthLocalToUtc(state.compatPartnerCity, { year: y, month: m, day: d, hour, minute });
-    const partnerSun = getSunSign(utc);
-    const partnerMoon = getMoonSign(utc);
-    const c = state.computed;
-    state.compatResult = {
-      name,
-      sunIdx: partnerSun,
-      moonIdx: partnerMoon,
-      synastry: generateSynastry(state.user ? state.user.name.split(" ")[0] : "You", c.sunIdx, c.moonIdx, name, partnerSun, partnerMoon),
-    };
-    renderCompatScreen();
+    // Brief loading beat (ported from the tap-through prototype's
+    // screen-calc-generic) before showing the result — the synastry
+    // computation below is instant local computation, so this is purely a
+    // UX pause, same pattern as screen-calc-palm above.
+    showScreen("screen-calc-generic", { silent: true });
+    setTimeout(() => {
+      const tobStr = $("#compat-tob").value;
+      let hour = 12, minute = 0;
+      if (tobStr) { const [h, mi] = tobStr.split(":").map(Number); hour = h; minute = mi; }
+      // THE FIX: convert using the PARTNER's own city/timezone, not the
+      // logged-in user's — state.compatPartnerCity, never state.birth.city.
+      const utc = birthLocalToUtc(state.compatPartnerCity, { year: y, month: m, day: d, hour, minute });
+      const partnerSun = getSunSign(utc);
+      const partnerMoon = getMoonSign(utc);
+      const c = state.computed;
+      state.compatResult = {
+        name,
+        sunIdx: partnerSun,
+        moonIdx: partnerMoon,
+        synastry: generateSynastry(state.user ? state.user.name.split(" ")[0] : "You", c.sunIdx, c.moonIdx, name, partnerSun, partnerMoon),
+      };
+      showScreen("screen-compat");
+    }, 1400);
   });
 
   $("#btn-compat-reset").addEventListener("click", () => {
@@ -1946,6 +1993,207 @@ function initChat() {
   $("#chat-input").addEventListener("keydown", (e) => { if (e.key === "Enter") sendChatMessage(); });
 }
 
+// ================= EXPERT CHAT (real) =================
+// Alongside the demo chat above, not replacing it — see the build plan's
+// explicit swap-over condition (a real expert actually able to go online).
+// No "pick your expert" list: onTalkToExpertClick() below is the entire
+// matching UI from the customer's side — pay, and whoever's free connects.
+// Live via Supabase Realtime (Phase 4 of the build plan; this used to poll
+// every 4s, same as expert/index.html's own dashboard did until its
+// matching Phase 4 pass) — subscribeToSessionMessages()/
+// subscribeToSessionStatus() (supabase-client.js) are what this now talks
+// to instead of a setInterval.
+let stopExpertMessagesRealtime = null;
+let stopExpertStatusRealtime = null;
+
+function stopExpertSessionRealtime() {
+  if (stopExpertMessagesRealtime) { stopExpertMessagesRealtime(); stopExpertMessagesRealtime = null; }
+  if (stopExpertStatusRealtime) { stopExpertStatusRealtime(); stopExpertStatusRealtime = null; }
+}
+
+async function onTalkToExpertClick() {
+  const dbInstance = backendDb();
+  if (!dbInstance) return toast("Please check your connection and try again.");
+
+  // Resume an already-paid session instead of charging a second time —
+  // covers a reload or navigating away mid-chat. The expert who was
+  // matched might have gone offline since (loadExpertPublicInfo works
+  // regardless — it's keyed by id, not is_online).
+  const { data: existing } = await backendCall(dbInstance.loadActiveExpertSession(), "loadActiveExpertSession");
+  if (existing) {
+    const { data: expertInfo } = await backendCall(dbInstance.loadExpertPublicInfo(existing.expert_id), "loadExpertPublicInfo");
+    openExpertSession(existing.id, (expertInfo && expertInfo.name) || tr("expert.session.fallback-name"), (expertInfo && expertInfo.specialty) || "");
+    return;
+  }
+
+  const { data: online, error } = await backendCall(dbInstance.loadOnlineExperts(), "loadOnlineExperts");
+  if (error) return toast(tr("expert.toast.check-failed"));
+  if (!online || !online.length) return toast(tr("expert.toast.none-online"));
+
+  showScreen("screen-expert-paywall");
+}
+
+function initExpertChat() {
+  $("#btn-talk-to-expert").addEventListener("click", onTalkToExpertClick);
+
+  // Same Razorpay Checkout pattern as initCheckout() (report tiers), just a
+  // flat fee instead of a selected tier, and a different pair of Edge
+  // Functions (create-expert-session-order / verify-expert-session-payment
+  // — see backend/sql/009_expert_chat.sql). On success this lands straight
+  // in the live chat rather than a separate "Payment Successful" screen —
+  // arriving already connected to a named expert IS the confirmation, and
+  // it avoids branching screen-success's existing report-purchase-specific
+  // copy/continue-button logic for an unrelated flow.
+  $("#btn-expert-pay-submit").addEventListener("click", async () => {
+    const dbInstance = backendDb();
+    if (!dbInstance) return toast("Payments aren't available right now — please check your connection.");
+    if (typeof Razorpay === "undefined") return toast("Payment couldn't load — please check your connection and try again.");
+
+    const submitBtn = $("#btn-expert-pay-submit");
+    submitBtn.disabled = true;
+    const { data: orderData, error: orderErr } = await backendCall(dbInstance.createExpertSessionOrder(), "createExpertSessionOrder");
+    submitBtn.disabled = false;
+    if (orderErr || !orderData || orderData.error) {
+      return toast((orderData && orderData.error) || "Couldn't start the payment — please try again.");
+    }
+
+    const rzp = new Razorpay({
+      key: orderData.key_id,
+      order_id: orderData.order_id,
+      amount: orderData.amount,
+      currency: orderData.currency,
+      name: "Nakshatra",
+      description: "Expert chat session",
+      theme: { color: "#e8c687" },
+      prefill: state.user ? { name: state.user.name, email: state.user.email } : {},
+      handler: async function (response) {
+        showScreen("screen-processing", { silent: true });
+        const { data: verifyData, error: verifyErr } = await backendCall(dbInstance.verifyExpertSessionPayment(response), "verifyExpertSessionPayment");
+        if (verifyErr || !verifyData || verifyData.error) {
+          // Covers both a genuine verification failure and the
+          // NO_EXPERT_AVAILABLE-refund path (verify-expert-session-payment/
+          // index.ts returns a specific, already-customer-facing message
+          // for that one) — either way, back to the paywall, not stuck on
+          // the spinner.
+          toast((verifyData && verifyData.error) || ("Payment succeeded but couldn't be confirmed — please contact support with your payment ID: " + (response.razorpay_payment_id || "")));
+          showScreen("screen-expert-paywall", { silent: true });
+          return;
+        }
+        openExpertSession(verifyData.session_id, verifyData.expert_name, verifyData.expert_specialty);
+      },
+    });
+    rzp.on("payment.failed", function () {
+      toast("Payment failed — please try again.");
+    });
+    rzp.open();
+  });
+
+  $("#btn-expert-session-send").addEventListener("click", sendExpertSessionMessage);
+  $("#expert-session-input").addEventListener("keydown", (e) => { if (e.key === "Enter") sendExpertSessionMessage(); });
+
+  // No confirmation step, deliberately — unlike account deletion
+  // (resetSettingsDeleteUI()'s confirm/cancel pair), ending a session loses
+  // nothing: the conversation stays in history, and the customer already
+  // got what they paid for. A stray tap just means reopening the same
+  // session again costs nothing (onTalkToExpertClick() above resumes it
+  // for free right up until this fires).
+  $("#btn-expert-session-end").addEventListener("click", endExpertSessionClicked);
+}
+
+async function openExpertSession(sessionId, expertName, expertSpecialty) {
+  state.activeExpertSession = { id: sessionId, expertName, expertSpecialty, ended: false };
+  $("#expert-session-name").textContent = expertName;
+  $("#expert-session-specialty").textContent = expertSpecialty || "";
+  setExpertSessionInputEnabled(true);
+  showScreen("screen-expert-session", { silent: true });
+
+  const dbInstance = backendDb();
+  const { data, error } = dbInstance
+    ? await backendCall(dbInstance.loadSessionMessages(sessionId), "loadSessionMessages")
+    : { data: [], error: null };
+  renderExpertSessionMessages(error ? [] : (data || []));
+
+  stopExpertSessionRealtime();
+  if (dbInstance) {
+    stopExpertMessagesRealtime = dbInstance.subscribeToSessionMessages(sessionId, (m) => {
+      // Guards a slow-arriving event from a session the customer has since
+      // switched away from or ended — same idea as the expert dashboard's
+      // equivalent check.
+      if (state.activeExpertSession && state.activeExpertSession.id === sessionId) appendExpertMessage(m);
+    });
+    stopExpertStatusRealtime = dbInstance.subscribeToSessionStatus(sessionId, (row) => {
+      if (state.activeExpertSession && state.activeExpertSession.id === sessionId) handleExpertSessionStatusUpdate(row);
+    });
+  }
+}
+
+// "Match status" (build plan, Phase 4) — most notably the expert ending the
+// session from their dashboard, which the customer would otherwise only
+// discover the next time they tried (and failed) to send a message.
+function handleExpertSessionStatusUpdate(row) {
+  if (row.status !== "ended" || state.activeExpertSession.ended) return; // already handled — a duplicate/retried event is a no-op, not a second toast
+  state.activeExpertSession.ended = true;
+  setExpertSessionInputEnabled(false);
+  toast(tr("expert.session.ended-by-other-side"));
+}
+
+function setExpertSessionInputEnabled(enabled) {
+  $("#expert-session-input").disabled = !enabled;
+  $("#btn-expert-session-send").disabled = !enabled;
+}
+
+function renderExpertSessionMessages(messages) {
+  const box = $("#expert-session-messages");
+  box.innerHTML = messages.length
+    ? messages.map(m => `<div class="chat-bubble ${m.sender === "user" ? "user" : "astro"}">${escapeHtml(m.text)}</div>`).join("")
+    : `<p class="muted center" style="margin-top:20px" data-i18n="expert.session.empty">Say hello — your expert will reply shortly.</p>`;
+  box.scrollTop = box.scrollHeight;
+}
+
+// Appends ONE message without re-rendering the whole list — both a reply
+// from the expert AND this customer's own just-sent message (see
+// sendExpertSessionMessage() below, which no longer renders anything
+// itself) arrive through this same realtime subscription.
+function appendExpertMessage(m) {
+  const box = $("#expert-session-messages");
+  const wasNearBottom = box.scrollTop + box.clientHeight >= box.scrollHeight - 20;
+  const emptyState = box.querySelector("p"); // the "Say hello..." placeholder — only ever present when there are zero messages
+  if (emptyState) box.innerHTML = "";
+  const bubble = document.createElement("div");
+  bubble.className = "chat-bubble " + (m.sender === "user" ? "user" : "astro");
+  bubble.textContent = m.text;
+  box.appendChild(bubble);
+  if (wasNearBottom || emptyState) box.scrollTop = box.scrollHeight;
+}
+
+async function sendExpertSessionMessage() {
+  const session = state.activeExpertSession;
+  if (!session || session.ended) return;
+  const input = $("#expert-session-input");
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = "";
+  const dbInstance = backendDb();
+  if (dbInstance) {
+    // No local render here, deliberately — the realtime subscription in
+    // openExpertSession() above renders this same insert once it comes
+    // back through, the same path the expert's own reply takes. Rendering
+    // it here too would double it up.
+    const { error } = await backendCall(dbInstance.sendSessionMessage(session.id, text), "sendSessionMessage");
+    if (error) { toast("Couldn't send — please try again."); input.value = text; return; }
+  }
+}
+
+async function endExpertSessionClicked() {
+  const session = state.activeExpertSession;
+  stopExpertSessionRealtime();
+  state.activeExpertSession = null;
+  showScreen("screen-dashboard");
+  if (!session) return;
+  const dbInstance = backendDb();
+  if (dbInstance) await backendCall(dbInstance.endExpertSession(session.id), "endExpertSession");
+}
+
 // ================= COMMUNITY FEED (Phase 4) =================
 // Seed posts (COMMUNITY_SEED, in rules.js) are fixed, hand-written example
 // content from fictional accounts, kept purely for flavor so the feed is
@@ -2335,6 +2583,14 @@ function initMethodology() {
 
 // ================= INIT =================
 document.addEventListener("DOMContentLoaded", () => {
+  // Packaged-app launches (Capacitor injects window.Capacitor) start on the
+  // splash screen instead of the marketing landing screen — its navbar links
+  // to sibling marketing pages (about.html, pricing.html, ...) that only
+  // exist on the live website, not inside the app bundle. A browser visitor
+  // still lands on screen-landing as before (isNativeApp stays false there).
+  const isNativeApp = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+  if (isNativeApp) showScreen("screen-splash", { silent: true });
+
   // Apply the detected/default language FIRST — it innerHTML-replaces a couple of
   // elements that contain nested interactive children (the methodology "Details"
   // toggle, the gift-code redeem opener). Running this before the init*() calls
@@ -2370,6 +2626,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initGiftSend();
   initGiftRedeem();
   initChat();
+  initExpertChat();
   initCommunity();
   initSettings();
   renderOnbStep();

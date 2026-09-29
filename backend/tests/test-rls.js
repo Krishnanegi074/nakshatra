@@ -18,6 +18,9 @@ const { Client } = require("pg");
 
 const ALICE = "11111111-1111-1111-1111-111111111111";
 const BOB = "22222222-2222-2222-2222-222222222222";
+const EXPERT = "44444444-4444-4444-4444-444444444444";
+// Pre-seeded by run-rls-tests.sh: Alice<->Expert, status='ended'.
+const FIXTURE_SESSION = "99999999-9999-9999-9999-999999999999";
 
 const results = [];
 function check(label, cond) {
@@ -286,7 +289,11 @@ async function expectError(promise, label) {
     const bobReadsAliceChat = await asUser(c, BOB, () => c.query("select * from public.chat_messages where user_id = $1", [ALICE]));
     check("Bob cannot read Alice's chat history", bobReadsAliceChat.rows.length === 0);
 
-    const aliceOwnChat = await asUser(c, ALICE, () => c.query("select * from public.chat_messages where user_id = $1 order by created_at", [ALICE]));
+    // Scoped to astrologer_id = 'priya' (this demo conversation specifically),
+    // not just user_id = Alice — Alice also owns the real-session fixture
+    // messages Group 11 checks further down (sql/009_expert_chat.sql), and
+    // a plain user_id filter would count those too.
+    const aliceOwnChat = await asUser(c, ALICE, () => c.query("select * from public.chat_messages where user_id = $1 and astrologer_id = 'priya' order by created_at", [ALICE]));
     check("Alice sees her own full 2-message conversation", aliceOwnChat.rows.length === 2);
   }
 
@@ -366,6 +373,169 @@ async function expectError(promise, label) {
     // this group changed so a repeat run of this script sees the same 'en'
     // starting point this group itself assumed.
     await asUser(c, ALICE, () => c.query("update public.profiles set preferred_lang = 'en' where id = $1", [ALICE]));
+  }
+
+  console.log("\n== Group 11: experts/chat_sessions/chat_messages(session) — sql/009_expert_chat.sql ==");
+  {
+    // experts_public: any authenticated user can see who's online — this is
+    // new territory (every table above this line is strictly own-row-only)
+    // and is exactly what the customer-side "Talk to an Expert" flow needs
+    // to check before paying.
+    const bobReadsPublicView = await asUser(c, BOB, () => c.query("select name, is_online from public.experts_public where id = $1", [EXPERT]));
+    check("Any authenticated user (Bob) can read the Expert's row via experts_public", bobReadsPublicView.rows[0]?.name === "Test Expert");
+
+    // ...but NOT the raw experts table for someone else's row — the view is
+    // the only broad-read surface; experts itself stays own-row-only, same
+    // as every other table in the schema.
+    const bobReadsRawExperts = await asUser(c, BOB, () => c.query("select * from public.experts where id = $1", [EXPERT]));
+    check("Bob CANNOT read the raw experts table for Expert's row (only experts_public exposes it)", bobReadsRawExperts.rows.length === 0);
+
+    // The online/offline toggle: an expert can flip their own is_online...
+    await asUser(c, EXPERT, () => c.query("update public.experts set is_online = false where id = $1", [EXPERT]));
+    const expertAfterToggle = await asUser(c, EXPERT, () => c.query("select is_online from public.experts where id = $1", [EXPERT]));
+    check("Expert can toggle their own is_online off", expertAfterToggle.rows[0].is_online === false);
+    // ...restore it (run-rls-tests.sh's complete_expert_session_order()
+    // checks, further down this same test run, need Expert online again).
+    await asUser(c, EXPERT, () => c.query("update public.experts set is_online = true where id = $1", [EXPERT]));
+
+    // ...but Bob cannot flip a DIFFERENT expert's toggle.
+    await asUser(c, BOB, () => c.query("update public.experts set is_online = false where id = $1", [EXPERT]));
+    const expertUnaffected = await asUser(c, EXPERT, () => c.query("select is_online from public.experts where id = $1", [EXPERT]));
+    check("Bob's UPDATE targeting Expert's is_online did not change it (RLS filtered it to 0 rows)", expertUnaffected.rows[0].is_online === true);
+
+    // chat_sessions rows are created ONLY by complete_expert_session_order()
+    // (tested functionally in run-rls-tests.sh, as the postgres superuser
+    // standing in for service_role) — no insert grant to authenticated at
+    // all, mirroring gift_codes since 004_razorpay_payments.sql.
+    await expectError(
+      asUser(c, ALICE, () => c.query(
+        "insert into public.chat_sessions (user_id, expert_id, amount_paise) values ($1, $2, 19900)", [ALICE, EXPERT]
+      )),
+      "A logged-in user cannot INSERT into chat_sessions directly (no grant — only complete_expert_session_order() can create one)"
+    );
+
+    // SELECT boundaries on the pre-seeded fixture session (Alice<->Expert):
+    // both sides of the conversation can see it, a third party cannot.
+    const aliceSeesSession = await asUser(c, ALICE, () => c.query("select * from public.chat_sessions where id = $1", [FIXTURE_SESSION]));
+    check("Alice (the customer) can see her own chat_sessions row", aliceSeesSession.rows.length === 1);
+    const expertSeesSession = await asUser(c, EXPERT, () => c.query("select * from public.chat_sessions where id = $1", [FIXTURE_SESSION]));
+    check("Expert (the assigned expert) can see the same chat_sessions row", expertSeesSession.rows.length === 1);
+    const bobSeesSession = await asUser(c, BOB, () => c.query("select * from public.chat_sessions where id = $1", [FIXTURE_SESSION]));
+    check("Bob (a third party, neither customer nor assigned expert) cannot see it", bobSeesSession.rows.length === 0);
+
+    // UPDATE: either side can end/re-open their own session (status/
+    // ended_at — the "End Session" button)...
+    await asUser(c, ALICE, () => c.query("update public.chat_sessions set status = 'active' where id = $1", [FIXTURE_SESSION]));
+    const aliceReopened = await asUser(c, ALICE, () => c.query("select status from public.chat_sessions where id = $1", [FIXTURE_SESSION]));
+    check("Alice can update her own session's status", aliceReopened.rows[0].status === "active");
+    await asUser(c, EXPERT, () => c.query("update public.chat_sessions set status = 'ended', ended_at = now() where id = $1", [FIXTURE_SESSION]));
+
+    // ...but Bob (neither side of this conversation) cannot touch it at all.
+    await asUser(c, BOB, () => c.query("update public.chat_sessions set status = 'active' where id = $1", [FIXTURE_SESSION]));
+    const stillEnded = await asUser(c, ALICE, () => c.query("select status from public.chat_sessions where id = $1", [FIXTURE_SESSION]));
+    check("Bob's UPDATE on someone else's session did not change it (RLS filtered it to 0 rows)", stillEnded.rows[0].status === "ended");
+
+    // ...and even Alice, on her OWN session, cannot rewrite amount_paise or
+    // reassign expert_id — those columns were never granted UPDATE at all
+    // (RLS's USING/WITH CHECK govern which ROWS an update can touch, not
+    // which COLUMNS within them; that boundary is enforced by the
+    // column-level grant in 009_expert_chat.sql, which this proves is
+    // actually working, not just correct on paper).
+    await expectError(
+      asUser(c, ALICE, () => c.query("update public.chat_sessions set amount_paise = 1 where id = $1", [FIXTURE_SESSION])),
+      "Alice cannot rewrite her own session's amount_paise (column not granted UPDATE — only status/ended_at are)"
+    );
+
+    // chat_messages via session_id: the new policy this whole feature
+    // hinges on — a real second user (Expert) reading/writing into a
+    // conversation that isn't "their own" by the original user_id rule.
+    const expertReadsMessages = await asUser(c, EXPERT, () => c.query("select * from public.chat_messages where session_id = $1 order by created_at", [FIXTURE_SESSION]));
+    check("Expert can read the fixture session's messages (both the customer's and the earlier astro reply)", expertReadsMessages.rows.length === 2);
+    const bobReadsMessages = await asUser(c, BOB, () => c.query("select * from public.chat_messages where session_id = $1", [FIXTURE_SESSION]));
+    check("Bob (not part of this session) cannot read its messages", bobReadsMessages.rows.length === 0);
+
+    // Expert can reply...
+    await asUser(c, EXPERT, () => c.query(
+      "insert into public.chat_messages (user_id, session_id, sender, text) values ($1, $2, 'astro', 'Sure — go ahead.')", [ALICE, FIXTURE_SESSION]
+    ));
+    const afterReply = await asUser(c, ALICE, () => c.query("select * from public.chat_messages where session_id = $1", [FIXTURE_SESSION]));
+    check("Expert's reply was written and Alice (the customer) can see it", afterReply.rows.length === 3);
+
+    // ...but Bob, who is neither side of this conversation, cannot insert
+    // into it at all — not as 'user', not as 'astro'.
+    await expectError(
+      asUser(c, BOB, () => c.query(
+        "insert into public.chat_messages (user_id, session_id, sender, text) values ($1, $2, 'astro', 'Butting in')", [ALICE, FIXTURE_SESSION]
+      )),
+      "Bob cannot insert an 'astro' reply into someone else's session (he isn't its assigned expert)"
+    );
+
+    // Nobody can impersonate the other side of a conversation they ARE
+    // part of, either: Alice can't write a fake 'astro' reply to her own
+    // session (unlike the DEMO chat, which relies on exactly that to
+    // simulate both sides — this is the one place real-session behavior is
+    // deliberately stricter), and Expert can't write a fake 'user' message.
+    await expectError(
+      asUser(c, ALICE, () => c.query(
+        "insert into public.chat_messages (user_id, session_id, sender, text) values ($1, $2, 'astro', 'Pretending to be the expert')", [ALICE, FIXTURE_SESSION]
+      )),
+      "Alice cannot insert a sender='astro' row into her own real session (only its assigned expert can)"
+    );
+    await expectError(
+      asUser(c, EXPERT, () => c.query(
+        "insert into public.chat_messages (user_id, session_id, sender, text) values ($1, $2, 'user', 'Pretending to be the customer')", [ALICE, FIXTURE_SESSION]
+      )),
+      "Expert cannot insert a sender='user' row into a session (only the customer side can)"
+    );
+
+    // Alice, correctly sending as herself (sender='user', matching her real
+    // role) but with the row's user_id set to BOB instead of her own id —
+    // this specifically targets the WITH CHECK's `chat_messages.user_id =
+    // cs.user_id` comparison. That comparison MUST be fully qualified on
+    // both sides: chat_sessions (aliased cs) has its own user_id column, so
+    // an unqualified left-hand side there resolves to cs.user_id too,
+    // silently collapsing the whole check into an always-true tautology
+    // that lets a real participant misattribute a message to anyone.
+    await expectError(
+      asUser(c, ALICE, () => c.query(
+        "insert into public.chat_messages (user_id, session_id, sender, text) values ($1, $2, 'user', 'Attributed to someone else')", [BOB, FIXTURE_SESSION]
+      )),
+      "Alice cannot insert a message into her own session with user_id forged to Bob's id, even sending as herself"
+    );
+
+    // complete_expert_session_order() must be as unreachable to a logged-in
+    // client as complete_razorpay_order() is (Group 8) — same reasoning,
+    // same explicit revoke in 009_expert_chat.sql.
+    await expectError(
+      asUser(c, ALICE, () => c.query("select public.complete_expert_session_order('does-not-matter', 'does-not-matter', 'upi')")),
+      "A logged-in user cannot call complete_expert_session_order() directly either — PUBLIC's execute was explicitly revoked"
+    );
+  }
+
+  console.log("\n== Group 12: expert_customer_names — sql/010_expert_customer_name.sql ==");
+  {
+    // Closes the gap Group 11 left: an expert can now see the NAME of the
+    // customer on a session actually assigned to them (previously nothing
+    // exposed this — profiles is strictly own-row-only), scoped precisely
+    // to their own sessions, nothing broader.
+    const expertSeesName = await asUser(c, EXPERT, () => c.query(
+      "select customer_name from public.expert_customer_names where session_id = $1", [FIXTURE_SESSION]
+    ));
+    check("Expert can see Alice's name for the fixture session they're assigned to", expertSeesName.rows[0]?.customer_name === "Alice");
+
+    // Bob is neither this session's customer nor its expert — sees nothing.
+    const bobSeesNothing = await asUser(c, BOB, () => c.query(
+      "select customer_name from public.expert_customer_names where session_id = $1", [FIXTURE_SESSION]
+    ));
+    check("Bob (unrelated to this session) sees no row via expert_customer_names", bobSeesNothing.rows.length === 0);
+
+    // Alice is the session's CUSTOMER, not its expert — this view is the
+    // expert-facing direction only (she already knows her own name from
+    // her own profiles row; this isn't where she'd look it up anyway).
+    const aliceSeesNothing = await asUser(c, ALICE, () => c.query(
+      "select customer_name from public.expert_customer_names where session_id = $1", [FIXTURE_SESSION]
+    ));
+    check("Alice (the customer, not the expert, on this session) sees no row via expert_customer_names either", aliceSeesNothing.rows.length === 0);
   }
 
   await c.end();
