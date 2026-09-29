@@ -17,11 +17,43 @@
 
 <div id="app-root" class="landing-active">
 
+  <!-- ============ SPLASH ============
+       Native-app-only entry screen, shown in front of the landing screen
+       before a browser visitor ever sees it — see the isNativeApp check
+       around bootstrapSession() in app.js. Ported over from the Android
+       tap-through prototype's screen-splash. -->
+  <section id="screen-splash" class="screen no-nav">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center">
+      <svg width="54" height="54" viewBox="0 0 56 56" aria-hidden="true">
+        <defs><linearGradient id="splashGold" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#e8c687"/><stop offset="100%" stop-color="#c9a15f"/></linearGradient>
+        <mask id="splashMask"><rect width="56" height="56" fill="white"/><circle cx="32" cy="20" r="15" fill="black"/></mask></defs>
+        <circle cx="24" cy="23" r="17" fill="url(#splashGold)" mask="url(#splashMask)"/>
+        <circle cx="44" cy="38" r="3" fill="url(#splashGold)"/><circle cx="50" cy="30" r="1.8" fill="url(#splashGold)"/>
+        <line x1="44" y1="38" x2="50" y2="30" stroke="#e8c687" stroke-width="1.2" opacity=".6"/>
+      </svg>
+      <div style="font-family:'Cinzel',serif;letter-spacing:.22em;font-size:1.15rem;color:var(--gold-bright)">NAKSHATRA</div>
+      <p class="eyebrow" style="font-weight:500" data-i18n="splash.eyebrow">Rule-Based Cosmic Guidance</p>
+      <h2 style="font-size:1.3rem;line-height:1.35;max-width:250px" data-i18n-html="landing.h1">Your palm and your <br class="h1-break">birth chart, decoded.</h2>
+      <p class="muted" style="max-width:250px" data-i18n-html="landing.sub">Real astronomical calculations, classical palmistry rules —<br>no vague AI guesses, ever.</p>
+      <div style="width:100%;display:flex;flex-direction:column;gap:10px;margin-top:8px">
+        <button class="btn btn-primary" id="btn-splash-start" data-i18n="landing.cta.start">Begin Your Reading →</button>
+        <button class="btn btn-secondary" id="btn-splash-login" data-i18n="landing.cta.login">I already have an account</button>
+      </div>
+      <div class="row" style="justify-content:center;gap:14px;margin-top:6px">
+        <div class="center"><div style="font-family:Cinzel,serif;color:var(--gold-bright);font-weight:700">100%</div><div class="muted" data-i18n="splash.stat.rulebased">Rule-based</div></div>
+        <div style="width:1px;height:24px;background:var(--border)"></div>
+        <div class="center"><div style="font-family:Cinzel,serif;color:var(--gold-bright);font-weight:700" data-i18n="splash.stat.ephemeris.value">Real</div><div class="muted" data-i18n="splash.stat.ephemeris.label">Ephemeris data</div></div>
+        <div style="width:1px;height:24px;background:var(--border)"></div>
+        <div class="center"><div style="font-family:Cinzel,serif;color:var(--gold-bright);font-weight:700">0</div><div class="muted" data-i18n="splash.stat.ai">AI guesswork</div></div>
+      </div>
+    </div>
+  </section>
+
   <!-- ============ LANDING ============ -->
   <section id="screen-landing" class="screen active no-nav">
     <div class="landing-navbar">
       <div class="landing-navbar-inner">
-        <a href="index.html" class="landing-navbar-brand" aria-label="Nakshatra home">
+        <a href="https://nakshatra.ind.in/" class="landing-navbar-brand" aria-label="Nakshatra home">
           <svg width="30" height="30" viewBox="0 0 56 56" aria-hidden="true">
             <defs>
               <linearGradient id="landingNavGold" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#e8c687"/><stop offset="100%" stop-color="#c9a15f"/></linearGradient>
@@ -34,10 +66,10 @@
           <span class="landing-navbar-word">NAKSHATRA</span>
         </a>
         <nav class="landing-navbar-links" aria-label="Primary navigation">
-          <a href="index.html" aria-current="page" data-i18n="landing.nav.home">Home</a>
-          <a href="kundli-matching.html" data-i18n="landing.nav.kundli">Kundli Matching</a>
-          <a href="pricing.html" data-i18n="landing.nav.pricing">Pricing</a>
-          <a href="about.html" data-i18n="landing.nav.about">About</a>
+          <a href="https://nakshatra.ind.in/" aria-current="page" data-i18n="landing.nav.home">Home</a>
+          <a href="https://nakshatra.ind.in/kundli-matching.html" data-i18n="landing.nav.kundli">Kundli Matching</a>
+          <a href="https://nakshatra.ind.in/pricing.html" data-i18n="landing.nav.pricing">Pricing</a>
+          <a href="https://nakshatra.ind.in/about.html" data-i18n="landing.nav.about">About</a>
         </nav>
         <div class="landing-navbar-actions">
           <button class="btn btn-ghost btn-sm" id="btn-navbar-login" data-i18n="landing.navbar.login">Log In</button>
@@ -49,10 +81,10 @@
         </div>
       </div>
       <nav class="landing-mobile-menu" id="landing-mobile-menu" aria-label="Mobile navigation">
-        <a href="index.html" aria-current="page" data-i18n="landing.nav.home">Home</a>
-        <a href="kundli-matching.html" data-i18n="landing.nav.kundli">Kundli Matching</a>
-        <a href="pricing.html" data-i18n="landing.nav.pricing">Pricing</a>
-        <a href="about.html" data-i18n="landing.nav.about">About</a>
+        <a href="https://nakshatra.ind.in/" aria-current="page" data-i18n="landing.nav.home">Home</a>
+        <a href="https://nakshatra.ind.in/kundli-matching.html" data-i18n="landing.nav.kundli">Kundli Matching</a>
+        <a href="https://nakshatra.ind.in/pricing.html" data-i18n="landing.nav.pricing">Pricing</a>
+        <a href="https://nakshatra.ind.in/about.html" data-i18n="landing.nav.about">About</a>
         <button type="button" id="btn-navbar-mobile-login" data-i18n="landing.navbar.login">Log In</button>
         <button type="button" id="btn-lang-toggle-mobile">🌐 <span data-i18n="landing.nav.language">Language</span></button>
         <button class="btn btn-primary" type="button" id="btn-navbar-mobile-start" data-i18n="landing.navbar.start">Start Free</button>
@@ -371,7 +403,7 @@
       <p class="muted" data-i18n="onb.muted.2">City-level location is enough — this sets your time zone for the chart.</p>
       <div class="field">
         <label data-i18n="onb.label.city">Birth place</label>
-        <input type="text" id="input-city" placeholder="Search city..." readonly data-i18n-ph="onb.ph.city">
+        <input type="text" id="input-city" placeholder="Search city..." readonly inputmode="none" data-i18n-ph="onb.ph.city">
       </div>
     </div>
 
@@ -393,6 +425,31 @@
       <div class="center">
         <h2 data-i18n="calc.h2">Reading the sky...</h2>
         <p class="muted" id="calc-status">Locating planetary positions for your birth moment</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CALC: PALM (ported from the tap-through prototype's
+       screen-calc-palm — a brief per-feature loading beat, same pattern
+       as CALCULATING above) ============ -->
+  <section id="screen-calc-palm" class="screen no-nav">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px">
+      <div class="spinner"></div>
+      <div class="center">
+        <h2 data-i18n="calc.palm.h2">Reading your palm...</h2>
+        <p class="muted" data-i18n="calc.palm.status">Matching your lines against classical Samudrika Shastra rules</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CALC: COMPATIBILITY (ported from screen-calc-generic)
+       ============ -->
+  <section id="screen-calc-generic" class="screen no-nav">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px">
+      <div class="spinner"></div>
+      <div class="center">
+        <h2 data-i18n="calc.compat.h2">Crunching the numbers...</h2>
+        <p class="muted" data-i18n="calc.compat.status">Comparing your chart with theirs</p>
       </div>
     </div>
   </section>
@@ -467,6 +524,17 @@
       <div class="card" data-nav="screen-chat-picker" style="cursor:pointer">
         <div class="row between">
           <div class="row"><div class="zodiac-badge sm">💬</div><div><strong data-i18n="dash.card.chat.title">Chat with an Astrologer</strong><div class="muted" data-i18n="dash.card.chat.desc">Demo — simulated replies, not a real person</div></div></div>
+          <span>›</span>
+        </div>
+      </div>
+      <!-- The real thing, alongside the demo above rather than replacing it
+           — see the build plan: swap-over only happens once a real expert
+           can actually go online. id (not data-nav) since this needs an
+           async online-check before navigating anywhere — see
+           initExpertChat() in app.js. -->
+      <div class="card" id="btn-talk-to-expert" style="cursor:pointer">
+        <div class="row between">
+          <div class="row"><div class="zodiac-badge sm">🧑‍🔮</div><div><strong data-i18n="dash.card.expert.title">Talk to a Real Expert</strong><div class="muted" data-i18n="dash.card.expert.desc">Live chat, real person — paid per session</div></div></div>
           <span>›</span>
         </div>
       </div>
@@ -599,7 +667,7 @@
       <div class="card stack">
         <div class="field"><label data-i18n="compat.label.name">Their name</label><input type="text" id="compat-name" placeholder="e.g. Rohan Verma"></div>
         <div class="field"><label data-i18n="compat.label.dob">Their date of birth</label><input type="date" id="compat-dob"></div>
-        <div class="field"><label data-i18n="compat.label.city">Their birth city</label><input type="text" id="compat-city" placeholder="Search for their birth city..." readonly data-i18n-ph="onb.ph.city"></div>
+        <div class="field"><label data-i18n="compat.label.city">Their birth city</label><input type="text" id="compat-city" placeholder="Search for their birth city..." readonly inputmode="none" data-i18n-ph="onb.ph.city"></div>
         <div class="field"><label data-i18n="compat.label.tob">Their birth time</label> <span class="muted" data-i18n="compat.tob.optional">(optional — improves accuracy)</span><input type="time" id="compat-tob"></div>
       </div>
       <p class="field-hint" data-i18n="compat.hint">We use their own birth city's time zone (not yours) to compute their chart, so it's calculated correctly no matter where they were born.</p>
@@ -759,6 +827,51 @@
     <div class="row chat-bar">
       <input type="text" id="chat-input" class="chat-input" placeholder="Type a message..." data-i18n-ph="chat.ph.message">
       <button class="btn btn-primary" id="btn-chat-send" style="width:auto;padding:12px 18px;flex-shrink:0" data-i18n="chat.btn.send">Send</button>
+    </div>
+  </section>
+
+  <!-- ============ EXPERT SESSION — PAYWALL ============
+       No "pick your expert" list — see the build plan. Reached only after
+       initExpertChat() has already confirmed someone's online; this screen
+       is just the flat-fee payment confirmation. -->
+  <section id="screen-expert-paywall" class="screen no-nav">
+    <div class="topbar"><button class="icon-btn" data-back="screen-dashboard">←</button><h2 data-i18n="expert.paywall.title">Talk to a Real Expert</h2></div>
+    <div class="card center">
+      <div style="font-size:1.8rem">🧑‍🔮✨</div>
+      <h2 style="margin-top:8px" data-i18n="expert.paywall.h2">Connect with an expert now</h2>
+      <p class="muted" data-i18n="expert.paywall.desc">A one-on-one live chat with a real expert, matched instantly. Flat fee, no subscription — pay once, chat until you're done.</p>
+    </div>
+    <div class="card row between" style="margin-top:16px">
+      <div><strong data-i18n="expert.paywall.session-label">One expert session</strong></div>
+      <div class="tier-price">₹199</div>
+    </div>
+    <div style="flex:1"></div>
+    <button class="btn btn-primary btn-block" id="btn-expert-pay-submit"><span data-i18n="expert.paywall.btn.pay">Pay &amp; Connect</span> <span id="btn-expert-pay-amount">₹199</span></button>
+    <p class="muted center" style="margin-top:10px" data-i18n="expert.paywall.disclaimer">For entertainment &amp; self-reflection purposes only. Not a substitute for professional advice.</p>
+  </section>
+
+  <!-- ============ EXPERT SESSION — LIVE CHAT ============
+       Real messages, real person — same .chat-messages/.chat-bubble
+       styling as the demo chat above (screen-chat), but wired to
+       session_id instead of astrologer_id (loadSessionMessages/
+       sendSessionMessage — see supabase-client.js and
+       backend/sql/009_expert_chat.sql). No Realtime yet (Phase 4 in the
+       build plan) — see POLL_MS in initExpertChat(). -->
+  <section id="screen-expert-session" class="screen no-nav">
+    <div class="topbar">
+      <div class="row" style="gap:10px;flex:1;min-width:0">
+        <div class="zodiac-badge sm">🧑‍🔮</div>
+        <div style="min-width:0">
+          <h2 style="margin:0;font-size:0.95rem" id="expert-session-name">Expert</h2>
+          <div class="muted" style="font-size:0.72rem" id="expert-session-specialty"></div>
+        </div>
+      </div>
+      <button class="icon-btn" id="btn-expert-session-end" aria-label="End session" title="End session">⎋</button>
+    </div>
+    <div id="expert-session-messages" class="chat-messages"></div>
+    <div class="row chat-bar">
+      <input type="text" id="expert-session-input" class="chat-input" placeholder="Type a message..." data-i18n-ph="chat.ph.message">
+      <button class="btn btn-primary" id="btn-expert-session-send" style="width:auto;padding:12px 18px;flex-shrink:0" data-i18n="chat.btn.send">Send</button>
     </div>
   </section>
 
@@ -944,7 +1057,7 @@
       <p>The "chat with an astrologer" feature is simulated: replies are selected from pre-written, rule-based responses. They are not generated by a real person or by an AI system, and are not written specifically for you.</p>
 
       <h3>5. Purchases and gifting</h3>
-      <p>Where a report tier requires payment, pricing is shown to you at checkout before you pay. Reports unlock immediately after a successful payment, so once a tier has unlocked we generally don't offer a refund — you've already received what you paid for. We will refund you in full if: Razorpay deducted payment but your report or tier never unlocked because of a technical error on our end; you were charged more than once for the same purchase; or your account was compromised and someone else made the purchase without your permission. To request a refund, email <a href="mailto:support@nakshatra.ind.in">support@nakshatra.ind.in</a> within 7 days of the charge with the email address on your account and your Razorpay payment ID. See our full <a href="/refund-policy.html">Refund Policy</a> for details. This doesn't limit any refund right you have under Indian consumer protection law. Gift codes you send can be redeemed once by their recipient, and cannot be redeemed by the account that sent them.</p>
+      <p>Where a report tier requires payment, pricing is shown to you at checkout before you pay. Reports unlock immediately after a successful payment, so once a tier has unlocked we generally don't offer a refund — you've already received what you paid for. We will refund you in full if: Razorpay deducted payment but your report or tier never unlocked because of a technical error on our end; you were charged more than once for the same purchase; or your account was compromised and someone else made the purchase without your permission. To request a refund, email <a href="mailto:support@nakshatra.ind.in">support@nakshatra.ind.in</a> within 7 days of the charge with the email address on your account and your Razorpay payment ID. See our full <a href="https://nakshatra.ind.in/refund-policy.html">Refund Policy</a> for details. This doesn't limit any refund right you have under Indian consumer protection law. Gift codes you send can be redeemed once by their recipient, and cannot be redeemed by the account that sent them.</p>
 
       <h3>6. Community content</h3>
       <p>Posts and captions you share to the community feed are visible to other signed-in users. Don't share anything there you wouldn't want other users to see, and don't post anyone else's personal information without their consent.</p>

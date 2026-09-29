@@ -184,6 +184,71 @@
         });
       },
 
+      // ==================== EXPERT CHAT (real) ====================
+      // Same two-step pattern as the report-tier payment above, via two
+      // separate Edge Functions (backend/sql/009_expert_chat.sql /
+      // 010_expert_customer_name.sql) — kept apart from the report-tier
+      // ones rather than folding a second price into them.
+      async createExpertSessionOrder() {
+        return supabase.functions.invoke("create-expert-session-order", { body: {} });
+      },
+
+      // razorpayResponse: same shape as verifyRazorpayPayment's. Resolves
+      // to { data: { session_id, expert_name, expert_specialty } } on
+      // success — see verify-expert-session-payment/index.ts for the
+      // NO_EXPERT_AVAILABLE-and-refund path this can also surface as an
+      // error.
+      async verifyExpertSessionPayment(razorpayResponse) {
+        return supabase.functions.invoke("verify-expert-session-payment", {
+          body: razorpayResponse,
+        });
+      },
+
+      // Whether at least one real expert is online right now — checked
+      // before even offering the "Talk to an Expert" payment flow (see
+      // initExpertChat() in app.js). experts_public (009_expert_chat.sql)
+      // is the one broad-read exception in this schema, deliberately
+      // narrow: id/name/specialty/is_online only, no email.
+      async loadOnlineExperts() {
+        return supabase.from("experts_public").select("id, name, specialty").eq("is_online", true);
+      },
+
+      // Name/specialty for one specific expert, regardless of online status
+      // or assignment — used to resume an already-paid session (see
+      // loadActiveExpertSession() below), where the expert who was matched
+      // might have since gone offline but the session itself is still
+      // active. experts_public is readable broadly by design (any
+      // authenticated user, not just this expert's own customers), so this
+      // is just a narrower-by-id version of loadOnlineExperts() above.
+      async loadExpertPublicInfo(expertId) {
+        return supabase.from("experts_public").select("name, specialty").eq("id", expertId).maybeSingle();
+      },
+
+      // Resumes an already-paid-for session across a reload — mirrors
+      // bootstrapSession()'s own "don't lose where they were" behavior for
+      // birth chart data. At most one row: complete_expert_session_order()
+      // never lets a customer hold two active sessions at once (there's
+      // nothing stopping them from paying for a second one today, but
+      // nothing in this schema yet limits ONE customer to one concurrent
+      // session either way — this just picks the newest if that ever
+      // happens).
+      async loadActiveExpertSession() {
+        return supabase
+          .from("chat_sessions")
+          .select("id, expert_id")
+          .eq("status", "active")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+      },
+
+      async endExpertSession(sessionId) {
+        return supabase
+          .from("chat_sessions")
+          .update({ status: "ended", ended_at: new Date().toISOString() })
+          .eq("id", sessionId);
+      },
+
       // ==================== GIFTING ====================
       // NOTE: sending a gift is a real purchase now — see createRazorpayOrder
       // above with a `gift` argument. This direct insert is left here only
@@ -224,6 +289,70 @@
 
       async sendChatMessage(astrologerId, sender, text) {
         return supabase.from("chat_messages").insert({ astrologer_id: astrologerId, sender, text });
+      },
+
+      // Real-session counterpart to the two functions above — keyed by
+      // session_id instead of astrologer_id, and always sender='user' since
+      // this is only ever called from the customer's own side (the expert
+      // dashboard, a separate page/script entirely, writes sender='astro'
+      // replies directly). chat_messages_session_participants'
+      // (009_expert_chat.sql) WITH CHECK requires user_id to be exactly the
+      // session's own customer id — supabase.auth session default already
+      // makes that true here without passing it explicitly, same as every
+      // other owner-id column in this file.
+      async loadSessionMessages(sessionId) {
+        return supabase
+          .from("chat_messages")
+          .select("sender, text, created_at")
+          .eq("session_id", sessionId)
+          .order("created_at", { ascending: true });
+      },
+
+      async sendSessionMessage(sessionId, text) {
+        return supabase.from("chat_messages").insert({ session_id: sessionId, sender: "user", text });
+      },
+
+      // Live delivery for a session's messages and its own status (Phase 4
+      // of the build plan — replaces polling on both this side and the
+      // expert dashboard's equivalent). Both return a plain unsubscribe
+      // function rather than the raw channel object, so call sites never
+      // need to reach for `supabase` directly — same reasoning as every
+      // other function in this file (see the header comment).
+      //
+      // Messages arrive via Broadcast-from-Database, NOT postgres_changes:
+      // Realtime's postgres_changes authorization couldn't evaluate
+      // chat_messages_session_participants (a correlated subquery), so
+      // nothing was delivered. Instead a trigger (backend/sql/
+      // 011_chat_broadcast.sql) broadcasts each new message to the private
+      // topic "session:<id>", and an RLS policy on realtime.messages limits
+      // that topic to the session's customer and expert. Private channels
+      // need the user's JWT on the Realtime socket BEFORE joining, hence
+      // setAuth() first — which is async, so the unsubscribe function
+      // returned synchronously must also cancel a not-yet-started join.
+      subscribeToSessionMessages(sessionId, onInsert) {
+        let channel = null;
+        let cancelled = false;
+        (async () => {
+          await supabase.realtime.setAuth();
+          if (cancelled) return;
+          channel = supabase
+            .channel("session:" + sessionId, { config: { private: true } })
+            .on("broadcast", { event: "INSERT" }, (msg) => onInsert(msg.payload.record))
+            .subscribe();
+        })();
+        return () => { cancelled = true; if (channel) supabase.removeChannel(channel); };
+      },
+
+      // "Match status" — the session's own chat_sessions row changing,
+      // most notably status flipping to 'ended' (e.g. the expert ending it
+      // from their dashboard) so the customer's screen reflects that live
+      // instead of them typing into a conversation nobody's reading.
+      subscribeToSessionStatus(sessionId, onUpdate) {
+        const channel = supabase
+          .channel("session-status-" + sessionId)
+          .on("postgres_changes", { event: "UPDATE", schema: "public", table: "chat_sessions", filter: `id=eq.${sessionId}` }, (payload) => onUpdate(payload.new))
+          .subscribe();
+        return () => supabase.removeChannel(channel);
       },
 
       // ==================== COMMUNITY ====================

@@ -41,11 +41,20 @@ rigorously as that constraint allows.
   signups auto-get a profile row via a trigger; owner-id columns correctly
   default to the caller's own id when the client omits them.
 - **`supabase-client.js`** — the data-access layer the frontend calls.
-  Tested with 31 checks (`node tests/test-data-layer.js`) against a fake
-  Supabase client that records every call — verifies every table name,
-  column name, RPC name/parameter, and upsert conflict target matches the
-  schema exactly, and that read functions correctly short-circuit (no
-  network call) when nobody's logged in.
+  Tested with 52 checks (`node tests/test-data-layer.js`, 31 original + 17
+  for the Phase 3 expert-chat functions below + 4 from the fake client
+  gaining `.limit()` support, which those needed) against a fake Supabase
+  client that records every call — verifies every table name, column name,
+  RPC name/parameter, and upsert conflict target matches the schema
+  exactly, and that read functions correctly short-circuit (no network
+  call) when nobody's logged in. Adding the new checks caught a real,
+  unrelated regression: an existing check that greps supabase-client.js's
+  source text between two hardcoded markers to confirm createRazorpayOrder/
+  verifyRazorpayPayment never touch tables directly broke the instant the
+  new expert-chat functions were added between those same two markers —
+  fixed by making that check's boundary self-contained (ends at
+  verifyRazorpayPayment's own closing brace) instead of chasing a marker
+  name, so it can't happen again regardless of what gets added nearby next.
 - **The actual app wiring in `app.js`** — signup/login, session restore on
   page load, saving the birth chart + palm report, the real Razorpay
   checkout flow (self-purchase and gift, both the "Razorpay itself declined
@@ -85,21 +94,179 @@ rigorously as that constraint allows.
   with zero errors beyond the expected "cannot find module" for the
   `esm.sh` import, which only a real Deno/Supabase Edge Function runtime can
   resolve.
+- **`create-expert-session-order/index.ts` and
+  `verify-expert-session-payment/index.ts`** (Phase 3, the customer-side
+  connect/pay flow) — type-checked the same way, plus this time an ambient
+  `declare module "https://esm.sh/@supabase/supabase-js@2"` in the shim so
+  even that one expected error goes away: all four Edge Functions (the two
+  new ones alongside the two existing report-payment ones, to make sure the
+  shim itself wasn't just accidentally lenient) type-check with zero errors
+  under `strict: true`.
+
+- **The Phase 3 client-side wiring itself** (`app/index.template.html`,
+  `app/app.js`, `app/i18n.js` — the "Talk to a Real Expert" entry point,
+  paywall, and live session screens, alongside the demo chat rather than
+  replacing it) — no live backend to click through in this environment, so
+  verified structurally instead: `node build.js` assembles cleanly, and
+  every single `$("#...")` id app.js references (193 across the *whole*
+  file, not just the new code) and every `showScreen()` target (24) was
+  cross-checked against the built template with none missing. Every new
+  key referenced via `data-i18n`/`tr()` has both an English and a Hindi
+  translation (12 keys, matching this project's existing bilingual
+  standard — see `i18n.js`'s own header on why that scope is deliberate).
 
 All these suites are re-runnable any time:
 `bash tests/run-rls-tests.sh`, `node tests/test-data-layer.js` (both in
 `backend/`), and `node tests-backend/test-backend-integration.js`
 (in `app/`, plus the existing `test-*.js` files there).
 
+- **`sql/009_expert_chat.sql`** (real expert chat, schema phase) — `experts`
+  + `experts_public`, `chat_sessions`, `chat_messages.session_id` (extending
+  the existing table rather than replacing it — the demo chat is untouched),
+  and `complete_expert_session_order()`'s locked expert-matching. Covered by
+  new checks in `tests/test-rls.js` (Group 11, 19 checks: `experts_public`'s
+  broad read vs. `experts`' own-row-only real table, `chat_sessions`'
+  no-direct-insert + column-restricted update, and — the policy this feature
+  actually hinges on — a real second user (the assigned expert) reading and
+  replying into a conversation that isn't "their own" by the original
+  `chat_messages` rule, including that neither side can impersonate the
+  other or forge whose conversation a message belongs to) and in
+  `tests/run-rls-tests.sh` (7 more: `complete_expert_session_order()`'s
+  matching, idempotency, wrong-order-type/not-found errors, and — the one
+  genuinely new kind of check in this whole suite — a real concurrency
+  test: two customers paying at the same instant with exactly one free
+  expert slot between them, fired as two truly-parallel processes, proving
+  the locked matching loop resolves it correctly — one match, one clean
+  `NO_EXPERT_AVAILABLE` — instead of double-booking). **Run for real**,
+  against a real local Postgres instance (see below): 84/84 checks passed,
+  after fixing four real bugs the run surfaced that code review alone had
+  missed (three in the SQL/tests, one a genuine gap in this file):
+  1. `chat_messages_all_own` (002_schema.sql) is a blanket "you own this
+     row, do anything" policy that predates `session_id` — left as-is, it
+     silently overrode the new policy's sender-impersonation check, because
+     Postgres ORs every applicable permissive policy together and a
+     customer's own session rows always carry their own `user_id`. Fixed by
+     re-scoping that policy to demo rows only.
+  2. `CREATE PUBLICATION ... IF NOT EXISTS` isn't valid Postgres syntax —
+     the local shim's attempt to stub out Supabase's `supabase_realtime`
+     publication failed with a syntax error, which (since a single `-c`/`-f`
+     call runs as one implicit transaction) silently rolled back *all* of
+     001_local_shim.sql, cascading failures through every migration after
+     it. Fixed with a proper existence check.
+  3. Alice/Bob never actually got a `public.profiles` row locally:
+     `handle_new_user()`'s trigger only fires for auth.users rows inserted
+     *after* it exists, but 001_local_shim.sql's Alice/Bob insert has to run
+     *before* 002_schema.sql (which creates both the trigger and the table
+     the FK points at). Carol never had this problem — she's inserted fresh
+     specifically to test the trigger. Fixed with an explicit backfill.
+  4. The concurrent-matching race test's own assertion was too weak — it
+     only checked that the two results were non-empty and different from
+     each other, which would have also accepted "one succeeded, one hit an
+     unrelated error" as a pass. Tightened to the actual invariant: exactly
+     one of the two matches the one genuinely free expert, the other gets a
+     clean `NO_EXPERT_AVAILABLE`.
+
+- **`sql/010_expert_customer_name.sql`** — `expert_customer_names`, a
+  narrow view (just `session_id`/`customer_name`) letting an expert see the
+  name of the customer on a session actually assigned to them, closing a
+  gap Phase 1 left (profiles is otherwise strictly own-row-only, and
+  nothing let an expert see anything about their customer beyond a raw
+  id). A separate migration from 009 on purpose, so 009's already-verified
+  84 checks never had to be touched. Also run for real, on top of the same
+  verified state (3 new checks in `tests/test-rls.js`'s Group 12: the
+  assigned expert sees the name, an unrelated user sees nothing, and —
+  worth calling out specifically — the session's own *customer* sees
+  nothing via this view either, since it's the expert-facing direction
+  only). Combined total after this migration: 87/87 checks passed
+  (70 in `test-rls.js` + 17 functional/concurrency checks).
+
+- **Phase 4 — Supabase Realtime**, replacing the 4-second polling on both
+  `expert/index.html` (incoming session queue, chat messages) and the
+  customer-side live session screen (chat messages, and "match status" —
+  the session's own `chat_sessions` row changing, e.g. the other side
+  ending it) with `postgres_changes` subscriptions. No new migration and no
+  RLS policy changes: `chat_messages`/`chat_sessions` were already added to
+  the `supabase_realtime` publication in `009_expert_chat.sql`, and
+  Realtime's own authorization for `postgres_changes` evaluates each row
+  against the table's normal SELECT policies before delivering an event —
+  `chat_sessions_select_customer`/`_select_expert` and
+  `chat_messages_session_participants` already scoped exactly the right
+  rows to the right subscriber; the `filter` a channel subscribes with is a
+  server-side optimization on top of that, not what actually keeps it
+  private. Two new `supabase-client.js` functions
+  (`subscribeToSessionMessages`/`subscribeToSessionStatus`) keep the actual
+  `supabase.channel()` calls confined to that one file, same as every
+  other function there, rather than `app.js` or `expert/index.html`
+  reaching for the client directly.
+  Verified with 11 new checks in `tests/test-data-layer.js` (a fake
+  realtime channel that records exactly what `event`/`table`/`filter` each
+  subscription actually asked for, and that `payload.new` — not the raw
+  event envelope — is what reaches the caller's callback) — **combined
+  total 63/63**. Re-ran the full `test-rls.js` + functional-checks pass
+  too, unchanged at 87/87, confirming this phase's code-only changes
+  (no `.sql` files touched) didn't regress anything underneath.
+
+  **The one thing this environment genuinely cannot verify**: whether
+  Supabase's real Realtime *service* — a separate piece of infrastructure
+  from Postgres itself, which this sandbox has no way to stand up — 
+  actually delivers events correctly for `chat_messages_session_participants`
+  specifically. That policy's `USING` clause is a subquery (`exists (select
+  ... from chat_sessions cs where ...)`), not a plain column comparison —
+  a documented, supported pattern for `postgres_changes` authorization, and
+  the same shape Supabase's own examples for this kind of "two-party
+  conversation" access pattern use, but not something a local Postgres
+  install + a fake client can exercise for real, since that authorization
+  check happens inside Realtime's own service, not in Postgres itself.
+  Confirm this ONE specific case — an expert's subscription actually
+  receiving a customer's new message, and vice versa — against a real
+  project before relying on it.
+
 ## What was NOT verified (and can't be, from here)
 
 Anything that requires an actual live request to Supabase's real Auth/REST
 API: real signup emails, real password login against a real project, and
 the RLS policies behaving the same way through real PostgREST as they did
-through raw `psql` and the faithful-but-not-real fake client (they should —
-the policies are plain SQL, and the fake client's behavior was modeled
-directly off the schema — but "should" isn't "verified against the real
-thing").
+through raw `psql`/`pg` and the faithful-but-not-real fake client (they
+should — the policies are plain SQL, and the fake client's behavior was
+modeled directly off the schema — but "should" isn't "verified against the
+real thing").
+
+## Bootstrapping the local test harness (`nakshatra_test` + `app_test_login`)
+
+This file's own testing sections above assume a working local Postgres
+already exists, but never actually say how to create one — a real gap, not
+just an omission for brevity; reconstructing it (below) is what surfaced bug
+#3 above. One-time setup, in order:
+
+1. **Postgres itself.** Any real local Postgres works. This was actually
+   verified against a bare, unmodified `postgres`/`initdb`/`pg_ctl` triplet
+   (no Homebrew, no Docker, no system install — an `@embedded-postgres`
+   npm package's bundled binaries were used, run standalone from a scratch
+   data directory: `initdb -D <dir> -U postgres -A trust`, then `pg_ctl -D
+   <dir> -o "-p 5432 -c unix_socket_directories=''" start`). `trust` auth
+   and TCP-only (no Unix socket) are fine for a disposable local test
+   cluster and sidestep needing an OS-level `postgres` user/`sudo` at all —
+   `tests/run-rls-tests.sh`'s own `sudo -u postgres psql` calls assume that
+   OS-level setup exists (true on whatever Linux box this repo's test
+   harness was first built against), which a plain macOS install won't have
+   by default; adjust those calls (or however you connect as the cluster's
+   superuser) to match whatever your own Postgres setup actually looks like.
+2. **Database + roles**, connected as that superuser:
+   ```sql
+   create database nakshatra_test;
+   \c nakshatra_test
+   create role anon nologin;
+   create role authenticated nologin;
+   create role service_role nologin bypassrls;
+   create role app_test_login login password 'testpass123';
+   grant anon, authenticated, service_role to app_test_login;
+   ```
+3. **Run every `sql/NNN_*.sql` file in numeric order**, starting with
+   `001_local_shim.sql`, against `nakshatra_test`, as the superuser.
+4. From here on, `bash tests/run-rls-tests.sh` (fixtures + `node
+   tests/test-rls.js` + the functional checks) is re-runnable any time
+   without redoing 1–3 — it only truncates/reseeds the tables that need it
+   per run.
 
 ## Setting up the real project
 
@@ -254,3 +421,16 @@ genuinely verified" section above for the exact check counts.
 - **Turning on email confirmation** in Supabase Auth (Authentication ->
   Providers -> Email) before any real public signups — see step 3 above;
   it's deliberately off right now for faster testing.
+
+## 011 — Broadcast-from-Database for chat messages
+
+`postgres_changes` on `chat_messages` delivered nothing on the live project
+(Realtime couldn't evaluate `chat_messages_session_participants`' subquery).
+`sql/011_chat_broadcast.sql` replaces it for messages: an AFTER INSERT trigger
+calls `realtime.broadcast_changes()` on private topic `session:<id>`, and an RLS
+policy on `realtime.messages` limits that topic to the session's customer and
+expert. Clients call `supabase.realtime.setAuth()` then join with
+`{ config: { private: true } }`. Not runnable on the local shim (no `realtime`
+schema) — verify with `node tests/realtime-test.js` against the live project
+after applying. `chat_sessions` status/queue subscriptions still use
+`postgres_changes`.

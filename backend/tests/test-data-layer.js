@@ -28,6 +28,7 @@ class FakeQueryBuilder {
   delete() { return this._push(["delete"]); }
   eq(col, val) { return this._push(["eq", col, val]); }
   order(col, opts) { return this._push(["order", col, opts]); }
+  limit(n) { return this._push(["limit", n]); }
   _finish() {
     this.log.push({ table: this.table, calls: this.calls });
     const key = this.table;
@@ -38,14 +39,46 @@ class FakeQueryBuilder {
   then(resolve, reject) { return this._finish().then(resolve, reject); }
 }
 
+// Fake realtime channel for subscribeToSessionMessages/subscribeToSessionStatus
+// (Phase 4 — see supabase-client.js) — records what .on("postgres_changes",
+// {event, schema, table, filter}, cb) was actually asked to subscribe to.
+// This can't (and isn't trying to) prove a live realtime connection works —
+// only this sandbox's usual class of bug: a wrong table name, a wrong event
+// type, or a filter that doesn't match the column the RLS policy actually
+// scopes on.
+class FakeChannel {
+  constructor(name, log, opts) {
+    this.name = name;
+    this.opts = opts;
+    this.log = log;
+    this.subs = [];
+  }
+  on(type, opts, cb) {
+    this.subs.push({ type, opts, cb });
+    return this;
+  }
+  subscribe() {
+    this.log.push({ name: this.name, subs: this.subs, opts: this.opts });
+    return this;
+  }
+}
+
+const fake_setAuthCalls = { n: 0 };
 function makeFakeSupabase({ userId = "user-123", results = {}, rpcResults = {}, functionResults = {} } = {}) {
   const log = [];
   const rpcLog = [];
   const functionsLog = [];
+  const channelLog = [];
+  const removedChannels = [];
   return {
     log,
     rpcLog,
     functionsLog,
+    channelLog,
+    removedChannels,
+    channel(name, opts) { return new FakeChannel(name, channelLog, opts); },
+    realtime: { setAuth: async () => { fake_setAuthCalls.n++; } },
+    removeChannel(ch) { removedChannels.push(ch.name); },
     functions: {
       invoke: async (name, opts) => {
         functionsLog.push({ name, opts });
@@ -187,9 +220,18 @@ const { createDb } = require("../../app/supabase-client.js");
 
     const src2 = require("fs").readFileSync(require("path").join(__dirname, "../../app/supabase-client.js"), "utf8");
     const startIdx = src2.indexOf("async createRazorpayOrder");
-    const endIdx = src2.indexOf("// ==================== GIFTING", startIdx);
+    const verifyIdx = src2.indexOf("async verifyRazorpayPayment", startIdx);
+    // Ends exactly at verifyRazorpayPayment's OWN closing "}," rather than
+    // at a hardcoded next-section marker name — a marker-name boundary
+    // silently starts including whatever gets inserted between these two
+    // functions and that marker in the future (caught for real: Expert
+    // Chat's functions landed right after verifyRazorpayPayment, ahead of
+    // the old "GIFTING" marker, and their own legitimate .from() calls
+    // started failing this check). Self-contained to these two functions'
+    // bodies instead, regardless of what's added around them later.
+    const endIdx = src2.indexOf("},", verifyIdx) + 2;
     const realPaymentsSection = src2.slice(startIdx, endIdx);
-    check("createRazorpayOrder/verifyRazorpayPayment never touch purchases/user_entitlements/gift_codes directly — only the Edge Functions do (via complete_razorpay_order)", startIdx !== -1 && endIdx !== -1 && !realPaymentsSection.includes(".from("));
+    check("createRazorpayOrder/verifyRazorpayPayment never touch purchases/user_entitlements/gift_codes directly — only the Edge Functions do (via complete_razorpay_order)", startIdx !== -1 && verifyIdx !== -1 && !realPaymentsSection.includes(".from("));
   }
 
   console.log("\n== Gifting ==");
@@ -243,6 +285,91 @@ const { createDb } = require("../../app/supabase-client.js");
     await db.unlikePost("post-1");
     const unlikeEntry = fake.log.filter(l => l.table === "community_likes").pop();
     check("unlikePost deletes filtered by both post_id and user_id (can't accidentally delete someone else's like row shape-wise)", !!unlikeEntry.calls.find(c => c[0] === "eq" && c[1] === "post_id") && !!unlikeEntry.calls.find(c => c[0] === "eq" && c[1] === "user_id"));
+  }
+
+  console.log("\n== Expert chat (real) — backend/sql/009_expert_chat.sql / 010_expert_customer_name.sql ==");
+  {
+    const fake = makeFakeSupabase();
+    const db = createDb(fake);
+
+    await db.createExpertSessionOrder();
+    const orderCall = fake.functionsLog.find(l => l.name === "create-expert-session-order");
+    check("createExpertSessionOrder invokes the create-expert-session-order Edge Function", !!orderCall);
+
+    const razorpayResponse = { razorpay_order_id: "order_x", razorpay_payment_id: "pay_x", razorpay_signature: "sig_x" };
+    await db.verifyExpertSessionPayment(razorpayResponse);
+    const verifyCall = fake.functionsLog.find(l => l.name === "verify-expert-session-payment");
+    check("verifyExpertSessionPayment invokes verify-expert-session-payment with the razorpayResponse as the body", !!verifyCall && verifyCall.opts.body === razorpayResponse);
+
+    await db.loadOnlineExperts();
+    const onlineEntry = fake.log.filter(l => l.table === "experts_public").pop();
+    check("loadOnlineExperts reads experts_public (the narrow view — never the raw experts table)", !!onlineEntry);
+    check("loadOnlineExperts filters by eq('is_online', true)", !!onlineEntry.calls.find(c => c[0] === "eq" && c[1] === "is_online" && c[2] === true));
+
+    await db.loadExpertPublicInfo("expert-1");
+    const infoEntry = fake.log.filter(l => l.table === "experts_public").pop();
+    check("loadExpertPublicInfo also reads experts_public, filtered by id (not is_online — works even if that expert has since gone offline)", !!infoEntry.calls.find(c => c[0] === "eq" && c[1] === "id" && c[2] === "expert-1"));
+    check("loadExpertPublicInfo calls maybeSingle()", !!infoEntry.calls.find(c => c[0] === "maybeSingle"));
+
+    await db.loadActiveExpertSession();
+    const activeEntry = fake.log.filter(l => l.table === "chat_sessions").pop();
+    check("loadActiveExpertSession reads chat_sessions filtered by status='active'", !!activeEntry.calls.find(c => c[0] === "eq" && c[1] === "status" && c[2] === "active"));
+    check("...ordered newest-first and limited to 1 (at most one row even if a customer somehow holds two)", !!activeEntry.calls.find(c => c[0] === "order" && c[2].ascending === false) && !!activeEntry.calls.find(c => c[0] === "limit" && c[1] === 1));
+    check("...and calls maybeSingle(), not single() (0 rows — no active session — is a normal, expected state, not an error)", !!activeEntry.calls.find(c => c[0] === "maybeSingle"));
+
+    await db.endExpertSession("session-1");
+    const endEntry = fake.log.filter(l => l.table === "chat_sessions").pop();
+    const updateCall = endEntry.calls.find(c => c[0] === "update");
+    check("endExpertSession updates status/ended_at only (the two columns 009_expert_chat.sql actually grants UPDATE on)", updateCall[1].status === "ended" && "ended_at" in updateCall[1]);
+    check("...filtered to the one session by id", !!endEntry.calls.find(c => c[0] === "eq" && c[1] === "id" && c[2] === "session-1"));
+
+    await db.loadSessionMessages("session-1");
+    const msgLoadEntry = fake.log.filter(l => l.table === "chat_messages").pop();
+    check("loadSessionMessages filters chat_messages by session_id (not astrologer_id — the real-session shape, not the demo's)", !!msgLoadEntry.calls.find(c => c[0] === "eq" && c[1] === "session_id" && c[2] === "session-1"));
+    check("loadSessionMessages orders by created_at ascending, same as the demo's loadChatMessages", !!msgLoadEntry.calls.find(c => c[0] === "order" && c[1] === "created_at" && c[2].ascending === true));
+
+    await db.sendSessionMessage("session-1", "Hello!");
+    const msgSendEntry = fake.log.filter(l => l.table === "chat_messages").pop();
+    const sendInsertCall = msgSendEntry.calls.find(c => c[0] === "insert");
+    check("sendSessionMessage inserts session_id + sender='user' + text", sendInsertCall[1].session_id === "session-1" && sendInsertCall[1].sender === "user" && sendInsertCall[1].text === "Hello!");
+    check("...and does NOT send user_id (defaults to auth.uid(), same convention as postToCommunity/likePost above — required to equal the session's own customer id, which is exactly what the default gives it)", !("user_id" in sendInsertCall[1]));
+
+    // Phase 4 — Realtime subscriptions, replacing what used to be polling
+    // on both this side and the expert dashboard.
+    const msgCalls = [];
+    const unsubMessages = db.subscribeToSessionMessages("session-1", (m) => msgCalls.push(m));
+    await new Promise(r => setImmediate(r)); // subscription starts after the async realtime.setAuth()
+    check("subscribeToSessionMessages calls realtime.setAuth() before joining (private channels need the JWT on the socket)", fake_setAuthCalls.n >= 1);
+    const msgChannelEntry = fake.channelLog.find(c => c.name === "session:session-1");
+    check("subscribeToSessionMessages joins the topic session:<id> (matches the realtime.messages RLS policy in 011_chat_broadcast.sql)", !!msgChannelEntry);
+    check("...as a PRIVATE channel", !!msgChannelEntry && msgChannelEntry.opts && msgChannelEntry.opts.config && msgChannelEntry.opts.config.private === true);
+    const msgSub = msgChannelEntry && msgChannelEntry.subs[0];
+    check("...subscribes to broadcast events", !!msgSub && msgSub.type === "broadcast");
+    check("...on the INSERT event only (messages are append-only)", msgSub.opts.event === "INSERT");
+    msgSub.cb({ payload: { record: { sender: "astro", text: "Hi there" } } });
+    check("the onInsert callback receives payload.record (not the raw broadcast envelope)", msgCalls.length === 1 && msgCalls[0].text === "Hi there");
+    check("subscribeToSessionMessages returns an unsubscribe function", typeof unsubMessages === "function");
+    unsubMessages();
+    check("...which calls removeChannel() on exactly that channel", fake.removedChannels.includes("session:session-1"));
+
+    // Unsubscribing BEFORE setAuth() resolves must cancel the pending join
+    // (otherwise a channel would leak that nothing can ever remove).
+    const before = fake.channelLog.length;
+    const unsubEarly = db.subscribeToSessionMessages("session-2", () => {});
+    unsubEarly();
+    await new Promise(r => setImmediate(r));
+    check("unsubscribing before setAuth() resolves cancels the join (no leaked channel)", fake.channelLog.length === before);
+
+    const statusCalls = [];
+    const unsubStatus = db.subscribeToSessionStatus("session-1", (row) => statusCalls.push(row));
+    const statusChannelEntry = fake.channelLog.find(c => c.name === "session-status-session-1");
+    const statusSub = statusChannelEntry && statusChannelEntry.subs[0];
+    check("subscribeToSessionStatus subscribes to UPDATE (status flipping to 'ended' is the one this exists for)", !!statusSub && statusSub.opts.event === "UPDATE");
+    check("...on chat_sessions, filtered by id (not session_id — chat_sessions' own primary key column, unlike chat_messages' foreign key)", statusSub.opts.table === "chat_sessions" && statusSub.opts.filter === "id=eq.session-1");
+    statusSub.cb({ new: { id: "session-1", status: "ended" } });
+    check("the onUpdate callback receives payload.new", statusCalls.length === 1 && statusCalls[0].status === "ended");
+    unsubStatus();
+    check("subscribeToSessionStatus's unsubscribe also calls removeChannel() on its own (different-named) channel", fake.removedChannels.includes("session-status-session-1"));
   }
 
   console.log(`\n=== RESULT: ${results.filter(r => r.pass).length} / ${results.length} checks passed ===`);
