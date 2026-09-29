@@ -26,6 +26,22 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// API keys: prefer the current key system (SUPABASE_SECRET_KEYS /
+// SUPABASE_PUBLISHABLE_KEYS — JSON dictionaries keyed by key name, "default"
+// unless you add a dedicated key), falling back to the legacy JWT-based
+// SUPABASE_SERVICE_ROLE_KEY / SUPABASE_ANON_KEY, which Supabase keeps
+// injecting unchanged. The fallback lets this deploy BEFORE the legacy keys
+// are disabled and roll back cleanly if they're re-enabled; once the legacy
+// keys are off, only the dictionary path is used. Names read here must
+// match the dashboard's key names.
+function apiKey(dictVar: string, name: string, legacyVar: string): string {
+  try {
+    const dict = JSON.parse(Deno.env.get(dictVar) ?? "{}");
+    if (dict[name]) return dict[name];
+  } catch (_) { /* malformed/missing — fall through to legacy */ }
+  return Deno.env.get(legacyVar)!;
+}
+
 // Flat fee for one expert-chat session, in paise (₹1 = 100 paise).
 // PLACEHOLDER — ₹199, chosen as a reasonable starting point, not a
 // researched number. Update this before taking real payments; nothing else
@@ -52,7 +68,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const SECRET_KEY = apiKey("SUPABASE_SECRET_KEYS", "default", "SUPABASE_SERVICE_ROLE_KEY");
     const RAZORPAY_KEY_ID = Deno.env.get("RAZORPAY_KEY_ID");
     const RAZORPAY_KEY_SECRET = Deno.env.get("RAZORPAY_KEY_SECRET");
     if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
@@ -61,7 +77,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const authHeader = req.headers.get("Authorization") ?? "";
-    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+    const userClient = createClient(SUPABASE_URL, apiKey("SUPABASE_PUBLISHABLE_KEYS", "default", "SUPABASE_ANON_KEY"), {
       global: { headers: { Authorization: authHeader } },
     });
     const { data: userData, error: userErr } = await userClient.auth.getUser();
@@ -70,7 +86,7 @@ Deno.serve(async (req: Request) => {
     }
     const user = userData.user;
 
-    const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+    const adminClient = createClient(SUPABASE_URL, SECRET_KEY);
 
     // Courtesy pre-check — see the file header. Uses the service_role
     // client (not userClient) purely so this works the same regardless of

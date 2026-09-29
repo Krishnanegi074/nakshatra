@@ -13,11 +13,27 @@
 // -> name it exactly "create-razorpay-order" -> Via Editor -> paste this
 // whole file -> Deploy. Then Edge Functions -> Manage secrets, add
 // RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET (from your Razorpay dashboard ->
-// Settings -> API Keys). SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are
+// Settings -> API Keys). SUPABASE_URL, SUPABASE_SECRET_KEYS and SUPABASE_PUBLISHABLE_KEYS are
 // already available to every Edge Function automatically — nothing to add
 // for those.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+// API keys: prefer the current key system (SUPABASE_SECRET_KEYS /
+// SUPABASE_PUBLISHABLE_KEYS — JSON dictionaries keyed by key name, "default"
+// unless you add a dedicated key), falling back to the legacy JWT-based
+// SUPABASE_SERVICE_ROLE_KEY / SUPABASE_ANON_KEY, which Supabase keeps
+// injecting unchanged. The fallback lets this deploy BEFORE the legacy keys
+// are disabled and roll back cleanly if they're re-enabled; once the legacy
+// keys are off, only the dictionary path is used. Names read here must
+// match the dashboard's key names.
+function apiKey(dictVar: string, name: string, legacyVar: string): string {
+  try {
+    const dict = JSON.parse(Deno.env.get(dictVar) ?? "{}");
+    if (dict[name]) return dict[name];
+  } catch (_) { /* malformed/missing — fall through to legacy */ }
+  return Deno.env.get(legacyVar)!;
+}
 
 // Real prices, in paise (₹1 = 100 paise). Deliberately hard-coded here
 // rather than trusting anything the browser sends — this is the one place
@@ -47,7 +63,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const SECRET_KEY = apiKey("SUPABASE_SECRET_KEYS", "default", "SUPABASE_SERVICE_ROLE_KEY");
     const RAZORPAY_KEY_ID = Deno.env.get("RAZORPAY_KEY_ID");
     const RAZORPAY_KEY_SECRET = Deno.env.get("RAZORPAY_KEY_SECRET");
     if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
@@ -59,7 +75,7 @@ Deno.serve(async (req: Request) => {
     // supabase.functions.invoke) — this is who the order, and any resulting
     // purchase/unlock, belongs to. Never take a user id from the request body.
     const authHeader = req.headers.get("Authorization") ?? "";
-    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+    const userClient = createClient(SUPABASE_URL, apiKey("SUPABASE_PUBLISHABLE_KEYS", "default", "SUPABASE_ANON_KEY"), {
       global: { headers: { Authorization: authHeader } },
     });
     const { data: userData, error: userErr } = await userClient.auth.getUser();
@@ -110,7 +126,7 @@ Deno.serve(async (req: Request) => {
     // by design (see the comment on razorpay_orders in
     // sql/004_razorpay_payments.sql); this table has no client-facing
     // grants at all.
-    const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+    const adminClient = createClient(SUPABASE_URL, SECRET_KEY);
     const { error: insertErr } = await adminClient.from("razorpay_orders").insert({
       order_id: order.id,
       user_id: user.id,
