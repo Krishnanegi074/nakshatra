@@ -35,3 +35,4 @@ Last updated: 2026-09-30
 - Critical vulnerability fixed: four SECURITY DEFINER functions were callable by any authenticated user, allowing free paid-tier access — fixed in `backend/sql/012_lock_down_functions.sql`, committed and pushed as `8a4b5db`.
 - Production bug fixed: `birth_data.city_tz` column was missing (migration 006 never applied), silently breaking chart saves for every new signup — applied via SQL Editor, verified end to end including RLS.
 - Card redesign fully designed (competitive research, three directions, final direction chosen and refined to real brand fonts/colors) and implemented in the canvas-based `drawShareCard()`.
+- Fixed a paywall bypass: the bottom-nav Report tab reached screen-fullreport with no entitlement check. Added a single guard in showScreen() covering every path in, plus entitlementsLoadFailed tracking so a failed entitlements fetch doesn't send a paying user toward checkout.
