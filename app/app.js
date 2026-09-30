@@ -1583,6 +1583,7 @@ function renderCheckout() {
 // anything. See supabase/functions/*.ts and sql/004_razorpay_payments.sql.
 function initCheckout() {
   $("#btn-pay-submit").addEventListener("click", async () => {
+    if (window.NAKSHATRA_BETA) return toast("Report and gift purchases are turned off in the private beta — try the expert chat instead.");
     const dbInstance = backendDb();
     if (!dbInstance) return toast("Payments aren't available right now — please check your connection.");
     if (typeof Razorpay === "undefined") return toast("Payment couldn't load — please check your connection and try again.");

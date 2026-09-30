@@ -191,6 +191,10 @@
       // report as a gift for someone else instead of unlocking it for
       // yourself; the server-side function returns the redeemable code.
       async createRazorpayOrder(tier, gift) {
+        // Private-beta build: report/gift checkout uses LIVE Razorpay keys, so it is off.
+        if (typeof window !== "undefined" && window.NAKSHATRA_BETA) {
+          return { data: { error: "Report and gift purchases are disabled in the private beta." }, error: null };
+        }
         return supabase.functions.invoke("create-razorpay-order", {
           body: gift ? { tier, gift } : { tier },
         });
