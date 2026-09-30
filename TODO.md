@@ -9,7 +9,7 @@ Last updated: 2026-09-30
   2. Card redesign: `drawShareCard()` rewrite in `app.js` (5-chip placement row, Moon Nakshatra hero panel, insight line from `generateWeeklyHoroscope(...).paragraphs[0]`, ring-style love-energy metric), plus the font-loading fix (`document.fonts.load` + async gating on Download/Post to Community), the Google Fonts italic Poppins addition in `index.template.html`, and the love-energy blurb overflow fix. Verified via mock canvas and a real browser screenshot.
   - Nothing here touches root `index.html` or `app/index.html` — both stay as they were left earlier tonight (deliberately not pushed live).
 
-- [ ] Rotate the password on the expert test account (`krishnanegikdp@gmail.com`). Its session was still active during tonight's card preview testing, which is a sign it's overdue.
+- [x] Rotate the password on the expert test account (`krishnanegikdp@gmail.com`). Its session was still active during tonight's card preview testing, which is a sign it's overdue. Done 2026-09-30: new random password set, old one rejected, all sessions revoked, `EXPERT_PASSWORD` in `~/.nakshatra-realtime-test.env` updated (file also tightened to mode 600).
 
 ## Soon
 
@@ -29,6 +29,7 @@ Last updated: 2026-09-30
 - [ ] Localize the "Couldn't verify your access — please try again" toast (currently a hardcoded English string in showScreen's paywall guard) — add proper keys to `I18N.en` and `I18N.hi` in `i18n.js` if/when it's worth translating a rare failure-path message.
 - [ ] Consider automatic retry for a failed entitlements fetch. Right now, on failure the user just gets redirected to the dashboard with a toast — no retry happens on its own, they have to reload or renavigate to trigger a fresh `loadUserDataFromBackend()` call.
 - [ ] Get a native Hindi speaker to review the strings added with the Today score and Current Dasha work (`e7a7c20`): `fr.section.today`, `fr.section.dasha`, `fr.dasha.mahadasha`, `fr.dasha.antardasha`, `fr.today-recovery`, `fr.dasha-recovery`, `fr.time-approx`, plus the "आज की रीडिंग, वर्तमान दशा" addition to the Hindi `content.hi-note` sentence. Written without a native check; needs one before this ships for real.
+- [ ] Decide how real experts are staffed and onboarded once there is more than one expert. Today there is exactly one ("Test Expert"), so this is deliberately deferred. Open questions for then: who the experts are and how each is added (an auth user plus a `public.experts` row, by hand for now), how experts keep their online/offline toggle honest (there is no presence check or session timeout, so an expert who leaves a tab "online" gets matched to paying customers), and that matching gives each expert one live session at a time.
 
 ## Done tonight (2026-09-30), for reference
 
