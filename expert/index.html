@@ -218,6 +218,7 @@ let sessions = [];           // this expert's active chat_sessions
 let activeSessionId = null;
 let queueChannel = null;
 let messagesChannel = null;
+let openSessionSeq = 0;   // bumped per openSession() so a stale timer can't redraw over a newer one
 
 function showScreen(id) {
   $("#screen-login").classList.toggle("hidden", id !== "login");
@@ -439,33 +440,59 @@ async function openSession(sessionId) {
   $("#chat-session-label").textContent = customerLabel(sessionId);
   $("#chat-session-started").textContent = s ? "Started " + new Date(s.created_at).toLocaleString() : "";
 
-  await refreshMessages();
+  // WHY THIS IS SHAPED THE WAY IT IS (same reasoning as openExpertSession()
+  // in app.js): live messages only reach a subscriber some time after the
+  // channel reports SUBSCRIBED, and history is a one-time read, so a message
+  // inserted around opening a session can fall between the two. Keep ONE map
+  // of every message known (by id), fed by history reads and live events, and
+  // re-read history when the channel joins, again shortly after, and again
+  // whenever it re-joins after a disconnect.
   // Private channels need the JWT on the Realtime socket before joining.
   await sb.realtime.setAuth();
   if (activeSessionId !== sessionId) return; // switched sessions while awaiting
+  const seq = ++openSessionSeq;
+  const isCurrent = () => seq === openSessionSeq && activeSessionId === sessionId;
+  const known = new Map();
+  let drawn = false;
+  const byTime = (x, y) => (Date.parse(x.created_at) - Date.parse(y.created_at)) || (x.id < y.id ? -1 : 1);
+  const redraw = () => { renderMessages([...known.values()].sort(byTime)); drawn = true; };
+  const learn = (rows) => { let added = false; rows.forEach((m) => { if (m && m.id && !known.has(m.id)) { known.set(m.id, m); added = true; } }); return added; };
+  const syncHistory = async () => {
+    const rows = await fetchMessages(sessionId);
+    if (!isCurrent() || !rows) return;
+    if (learn(rows) || !drawn) redraw();
+  };
   messagesChannel = sb
     .channel("session:" + sessionId, { config: { private: true } })
     .on("broadcast", { event: "INSERT" }, (msg) => {
       // Guards a slow event arriving after the expert already switched to
       // a different session (or closed this one) — same idea as app.js's
       // equivalent check on the customer side.
-      if (activeSessionId === sessionId) appendMessage(msg.payload.record);
+      const m = msg.payload.record;
+      if (!isCurrent() || !m || !m.id || known.has(m.id)) return;
+      const isNewest = ![...known.values()].some((k) => byTime(k, m) > 0);
+      known.set(m.id, m);
+      if (!drawn) return; // the first history read draws everything
+      if (isNewest) appendMessage(m); else redraw();
     })
-    .subscribe();
+    .subscribe((status) => {
+      if (status === "SUBSCRIBED") { syncHistory(); setTimeout(syncHistory, 1500); setTimeout(syncHistory, 5000); }
+    });
+  // A channel that never joins must not leave the chat blank.
+  setTimeout(() => { if (isCurrent() && !drawn) syncHistory(); }, 4000);
 }
 
 function stopMessagesRealtime() {
   if (messagesChannel) { sb.removeChannel(messagesChannel); messagesChannel = null; }
 }
 
-async function refreshMessages() {
+async function fetchMessages(sessionId) {
   const { data, error } = await sb
     .from("chat_messages")
-    .select("sender, text, created_at")
-    .eq("session_id", activeSessionId)
+    .select("id, sender, text, created_at")
+    .eq("session_id", sessionId)
     .order("created_at", { ascending: true });
-  if (error) return;
-  renderMessages(data || []);
+  return error ? null : (data || []);
 }
 
 function renderMessages(messages) {

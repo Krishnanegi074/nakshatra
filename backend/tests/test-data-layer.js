@@ -57,8 +57,8 @@ class FakeChannel {
     this.subs.push({ type, opts, cb });
     return this;
   }
-  subscribe() {
-    this.log.push({ name: this.name, subs: this.subs, opts: this.opts });
+  subscribe(statusCb) {
+    this.log.push({ name: this.name, subs: this.subs, opts: this.opts, statusCb });
     return this;
   }
 }
@@ -327,6 +327,8 @@ const { createDb } = require("../../app/supabase-client.js");
     const msgLoadEntry = fake.log.filter(l => l.table === "chat_messages").pop();
     check("loadSessionMessages filters chat_messages by session_id (not astrologer_id — the real-session shape, not the demo's)", !!msgLoadEntry.calls.find(c => c[0] === "eq" && c[1] === "session_id" && c[2] === "session-1"));
     check("loadSessionMessages orders by created_at ascending, same as the demo's loadChatMessages", !!msgLoadEntry.calls.find(c => c[0] === "order" && c[1] === "created_at" && c[2].ascending === true));
+    const selectCall = msgLoadEntry.calls.find(c => c[0] === "select");
+    check("loadSessionMessages selects the message id (needed to de-duplicate history against messages held from the live channel)", !!selectCall && /\bid\b/.test(String(selectCall[1])), selectCall && selectCall[1]);
 
     await db.sendSessionMessage("session-1", "Hello!");
     const msgSendEntry = fake.log.filter(l => l.table === "chat_messages").pop();
@@ -351,6 +353,28 @@ const { createDb } = require("../../app/supabase-client.js");
     check("subscribeToSessionMessages returns an unsubscribe function", typeof unsubMessages === "function");
     unsubMessages();
     check("...which calls removeChannel() on exactly that channel", fake.removedChannels.includes("session:session-1"));
+
+    // onReady: history must be read only AFTER the channel has really joined,
+    // or a message inserted in between is in neither (the resume-race bug).
+    {
+      let readyCalls = 0;
+      const unsubReady = db.subscribeToSessionMessages("session-r", () => {}, () => { readyCalls++; });
+      await new Promise(r => setImmediate(r));
+      const entry = fake.channelLog.find(c => c.name === "session:session-r");
+      check("subscribeToSessionMessages passes a status callback to subscribe()", !!entry && typeof entry.statusCb === "function");
+      check("onReady does NOT fire before the channel has joined", readyCalls === 0);
+      entry.statusCb("CHANNEL_ERROR"); entry.statusCb("TIMED_OUT");
+      check("...nor on CHANNEL_ERROR / TIMED_OUT", readyCalls === 0);
+      entry.statusCb("SUBSCRIBED");
+      check("...it fires when the status reaches SUBSCRIBED", readyCalls === 1);
+      unsubReady();
+      const unsubNoCb = db.subscribeToSessionMessages("session-n", () => {});
+      await new Promise(r => setImmediate(r));
+      const entry2 = fake.channelLog.find(c => c.name === "session:session-n");
+      let threw = false; try { entry2.statusCb("SUBSCRIBED"); } catch (_) { threw = true; }
+      check("calling it WITHOUT an onReady (existing callers) is still safe", !threw);
+      unsubNoCb();
+    }
 
     // Unsubscribing BEFORE setAuth() resolves must cancel the pending join
     // (otherwise a channel would leak that nothing can ever remove).

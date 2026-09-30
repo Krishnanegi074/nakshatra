@@ -321,7 +321,7 @@
       async loadSessionMessages(sessionId) {
         return supabase
           .from("chat_messages")
-          .select("sender, text, created_at")
+          .select("id, sender, text, created_at")
           .eq("session_id", sessionId)
           .order("created_at", { ascending: true });
       },
@@ -347,7 +347,12 @@
       // need the user's JWT on the Realtime socket BEFORE joining, hence
       // setAuth() first — which is async, so the unsubscribe function
       // returned synchronously must also cancel a not-yet-started join.
-      subscribeToSessionMessages(sessionId, onInsert) {
+      // onReady (optional) fires once the channel has actually joined
+      // (SUBSCRIBED). Callers that also read history need it: live messages
+      // are only delivered from the moment of joining, so history must be
+      // read AFTER that point or a message inserted in between is in neither
+      // (see openExpertSession() in app.js).
+      subscribeToSessionMessages(sessionId, onInsert, onReady) {
         let channel = null;
         let cancelled = false;
         (async () => {
@@ -356,7 +361,7 @@
           channel = supabase
             .channel("session:" + sessionId, { config: { private: true } })
             .on("broadcast", { event: "INSERT" }, (msg) => onInsert(msg.payload.record))
-            .subscribe();
+            .subscribe((status) => { if (status === "SUBSCRIBED" && onReady) onReady(); });
         })();
         return () => { cancelled = true; if (channel) supabase.removeChannel(channel); };
       },

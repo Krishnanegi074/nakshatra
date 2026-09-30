@@ -2129,7 +2129,12 @@ function initExpertChat() {
   $("#btn-expert-session-end").addEventListener("click", endExpertSessionClicked);
 }
 
-async function openExpertSession(sessionId, expertName, expertSpecialty) {
+// Bumped on every openExpertSession() so timers/callbacks from an earlier
+// open of the SAME session (e.g. a resume after a reload) can't redraw over
+// the current one with stale data.
+let expertSessionOpenSeq = 0;
+
+function openExpertSession(sessionId, expertName, expertSpecialty) {
   state.activeExpertSession = { id: sessionId, expertName, expertSpecialty, ended: false };
   $("#expert-session-name").textContent = expertName;
   $("#expert-session-specialty").textContent = expertSpecialty || "";
@@ -2137,23 +2142,49 @@ async function openExpertSession(sessionId, expertName, expertSpecialty) {
   showScreen("screen-expert-session", { silent: true });
 
   const dbInstance = backendDb();
-  const { data, error } = dbInstance
-    ? await backendCall(dbInstance.loadSessionMessages(sessionId), "loadSessionMessages")
-    : { data: [], error: null };
-  renderExpertSessionMessages(error ? [] : (data || []));
-
   stopExpertSessionRealtime();
-  if (dbInstance) {
-    stopExpertMessagesRealtime = dbInstance.subscribeToSessionMessages(sessionId, (m) => {
-      // Guards a slow-arriving event from a session the customer has since
-      // switched away from or ended — same idea as the expert dashboard's
-      // equivalent check.
-      if (state.activeExpertSession && state.activeExpertSession.id === sessionId) appendExpertMessage(m);
-    });
-    stopExpertStatusRealtime = dbInstance.subscribeToSessionStatus(sessionId, (row) => {
-      if (state.activeExpertSession && state.activeExpertSession.id === sessionId) handleExpertSessionStatusUpdate(row);
-    });
-  }
+  const seq = ++expertSessionOpenSeq;
+  const isCurrent = () => seq === expertSessionOpenSeq && state.activeExpertSession && state.activeExpertSession.id === sessionId;
+
+  // WHY THIS IS SHAPED THE WAY IT IS. Live (Broadcast) messages only reach a
+  // subscriber some time AFTER the channel reports SUBSCRIBED — measured at a
+  // few hundred ms — and history is a one-time read, so any message inserted
+  // around opening/resuming a session can fall between the two and never
+  // show (this app doesn't render your own sent message locally either).
+  // Neither "history then subscribe" nor "subscribe then history" closes
+  // that window on its own. So: keep ONE map of every message known (by id),
+  // fed by both history reads and live events, and re-read history when the
+  // channel joins, again shortly after, and again whenever it re-joins after
+  // a disconnect. A message missed live is picked up by the next read; the
+  // id-keyed map makes duplicates impossible.
+  const known = new Map();
+  let drawn = false;
+  const byTime = (x, y) => (Date.parse(x.created_at) - Date.parse(y.created_at)) || (x.id < y.id ? -1 : 1);
+  const redraw = () => { renderExpertSessionMessages([...known.values()].sort(byTime)); drawn = true; };
+  const learn = (rows) => { let added = false; rows.forEach((m) => { if (m && m.id && !known.has(m.id)) { known.set(m.id, m); added = true; } }); return added; };
+  const syncHistory = async () => {
+    if (!dbInstance) return;
+    const { data, error } = await backendCall(dbInstance.loadSessionMessages(sessionId), "loadSessionMessages");
+    if (!isCurrent() || error) return;
+    if (learn(data || []) || !drawn) redraw();
+  };
+
+  if (!dbInstance) { redraw(); return; }
+  stopExpertMessagesRealtime = dbInstance.subscribeToSessionMessages(sessionId, (m) => {
+    // Guards a slow-arriving event from a session the customer has since
+    // switched away from or ended — same idea as the expert dashboard's
+    // equivalent check.
+    if (!isCurrent() || !m || !m.id || known.has(m.id)) return;
+    const isNewest = ![...known.values()].some((k) => byTime(k, m) > 0);
+    known.set(m.id, m);
+    if (!drawn) return; // the first history read draws everything
+    if (isNewest) appendExpertMessage(m); else redraw();
+  }, () => { syncHistory(); setTimeout(syncHistory, 1500); setTimeout(syncHistory, 5000); });
+  stopExpertStatusRealtime = dbInstance.subscribeToSessionStatus(sessionId, (row) => {
+    if (isCurrent()) handleExpertSessionStatusUpdate(row);
+  });
+  // A channel that never joins must not leave the chat blank.
+  setTimeout(() => { if (isCurrent() && !drawn) syncHistory(); }, 4000);
 }
 
 // "Match status" (build plan, Phase 4) — most notably the expert ending the

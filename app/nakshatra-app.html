@@ -4879,6 +4879,26 @@ if (typeof module !== "undefined") {
       return data && data.user ? data.user.id : null;
     }
 
+    // supabase-js resolves a non-2xx Edge Function response as
+    // { data: null, error: FunctionsHttpError } with the function's own
+    // JSON body left unread on error.context (a Response) — so a message
+    // the function wrote for the customer (e.g. "No experts are available
+    // right now — you have not been charged.") would never reach the UI
+    // and everything showed the generic toast. Read that body and hand it
+    // back as `data` ({ error: "..." }), which the callers in app.js
+    // already check for (`orderData.error` / `verifyData.error`). Network-
+    // level failures (no response at all) keep the original error.
+    async function invokeKeepingErrorBody(name, body) {
+      const res = await supabase.functions.invoke(name, { body });
+      if (res.error && res.error.context && typeof res.error.context.json === "function") {
+        try {
+          const parsed = await res.error.context.json();
+          if (parsed && typeof parsed.error === "string") return { data: parsed, error: null };
+        } catch (_) { /* body wasn't JSON — fall through to the original error */ }
+      }
+      return res;
+    }
+
     return {
       // ==================== AUTH ====================
       async signUp(email, password, name) {
@@ -5034,7 +5054,7 @@ if (typeof module !== "undefined") {
       // 010_expert_customer_name.sql) — kept apart from the report-tier
       // ones rather than folding a second price into them.
       async createExpertSessionOrder() {
-        return supabase.functions.invoke("create-expert-session-order", { body: {} });
+        return invokeKeepingErrorBody("create-expert-session-order", {});
       },
 
       // razorpayResponse: same shape as verifyRazorpayPayment's. Resolves
@@ -5043,9 +5063,7 @@ if (typeof module !== "undefined") {
       // NO_EXPERT_AVAILABLE-and-refund path this can also surface as an
       // error.
       async verifyExpertSessionPayment(razorpayResponse) {
-        return supabase.functions.invoke("verify-expert-session-payment", {
-          body: razorpayResponse,
-        });
+        return invokeKeepingErrorBody("verify-expert-session-payment", razorpayResponse);
       },
 
       // Whether at least one real expert is online right now — checked
@@ -5147,7 +5165,7 @@ if (typeof module !== "undefined") {
       async loadSessionMessages(sessionId) {
         return supabase
           .from("chat_messages")
-          .select("sender, text, created_at")
+          .select("id, sender, text, created_at")
           .eq("session_id", sessionId)
           .order("created_at", { ascending: true });
       },
@@ -5173,7 +5191,12 @@ if (typeof module !== "undefined") {
       // need the user's JWT on the Realtime socket BEFORE joining, hence
       // setAuth() first — which is async, so the unsubscribe function
       // returned synchronously must also cancel a not-yet-started join.
-      subscribeToSessionMessages(sessionId, onInsert) {
+      // onReady (optional) fires once the channel has actually joined
+      // (SUBSCRIBED). Callers that also read history need it: live messages
+      // are only delivered from the moment of joining, so history must be
+      // read AFTER that point or a message inserted in between is in neither
+      // (see openExpertSession() in app.js).
+      subscribeToSessionMessages(sessionId, onInsert, onReady) {
         let channel = null;
         let cancelled = false;
         (async () => {
@@ -5182,7 +5205,7 @@ if (typeof module !== "undefined") {
           channel = supabase
             .channel("session:" + sessionId, { config: { private: true } })
             .on("broadcast", { event: "INSERT" }, (msg) => onInsert(msg.payload.record))
-            .subscribe();
+            .subscribe((status) => { if (status === "SUBSCRIBED" && onReady) onReady(); });
         })();
         return () => { cancelled = true; if (channel) supabase.removeChannel(channel); };
       },
@@ -7380,7 +7403,12 @@ function initExpertChat() {
   $("#btn-expert-session-end").addEventListener("click", endExpertSessionClicked);
 }
 
-async function openExpertSession(sessionId, expertName, expertSpecialty) {
+// Bumped on every openExpertSession() so timers/callbacks from an earlier
+// open of the SAME session (e.g. a resume after a reload) can't redraw over
+// the current one with stale data.
+let expertSessionOpenSeq = 0;
+
+function openExpertSession(sessionId, expertName, expertSpecialty) {
   state.activeExpertSession = { id: sessionId, expertName, expertSpecialty, ended: false };
   $("#expert-session-name").textContent = expertName;
   $("#expert-session-specialty").textContent = expertSpecialty || "";
@@ -7388,23 +7416,49 @@ async function openExpertSession(sessionId, expertName, expertSpecialty) {
   showScreen("screen-expert-session", { silent: true });
 
   const dbInstance = backendDb();
-  const { data, error } = dbInstance
-    ? await backendCall(dbInstance.loadSessionMessages(sessionId), "loadSessionMessages")
-    : { data: [], error: null };
-  renderExpertSessionMessages(error ? [] : (data || []));
-
   stopExpertSessionRealtime();
-  if (dbInstance) {
-    stopExpertMessagesRealtime = dbInstance.subscribeToSessionMessages(sessionId, (m) => {
-      // Guards a slow-arriving event from a session the customer has since
-      // switched away from or ended — same idea as the expert dashboard's
-      // equivalent check.
-      if (state.activeExpertSession && state.activeExpertSession.id === sessionId) appendExpertMessage(m);
-    });
-    stopExpertStatusRealtime = dbInstance.subscribeToSessionStatus(sessionId, (row) => {
-      if (state.activeExpertSession && state.activeExpertSession.id === sessionId) handleExpertSessionStatusUpdate(row);
-    });
-  }
+  const seq = ++expertSessionOpenSeq;
+  const isCurrent = () => seq === expertSessionOpenSeq && state.activeExpertSession && state.activeExpertSession.id === sessionId;
+
+  // WHY THIS IS SHAPED THE WAY IT IS. Live (Broadcast) messages only reach a
+  // subscriber some time AFTER the channel reports SUBSCRIBED — measured at a
+  // few hundred ms — and history is a one-time read, so any message inserted
+  // around opening/resuming a session can fall between the two and never
+  // show (this app doesn't render your own sent message locally either).
+  // Neither "history then subscribe" nor "subscribe then history" closes
+  // that window on its own. So: keep ONE map of every message known (by id),
+  // fed by both history reads and live events, and re-read history when the
+  // channel joins, again shortly after, and again whenever it re-joins after
+  // a disconnect. A message missed live is picked up by the next read; the
+  // id-keyed map makes duplicates impossible.
+  const known = new Map();
+  let drawn = false;
+  const byTime = (x, y) => (Date.parse(x.created_at) - Date.parse(y.created_at)) || (x.id < y.id ? -1 : 1);
+  const redraw = () => { renderExpertSessionMessages([...known.values()].sort(byTime)); drawn = true; };
+  const learn = (rows) => { let added = false; rows.forEach((m) => { if (m && m.id && !known.has(m.id)) { known.set(m.id, m); added = true; } }); return added; };
+  const syncHistory = async () => {
+    if (!dbInstance) return;
+    const { data, error } = await backendCall(dbInstance.loadSessionMessages(sessionId), "loadSessionMessages");
+    if (!isCurrent() || error) return;
+    if (learn(data || []) || !drawn) redraw();
+  };
+
+  if (!dbInstance) { redraw(); return; }
+  stopExpertMessagesRealtime = dbInstance.subscribeToSessionMessages(sessionId, (m) => {
+    // Guards a slow-arriving event from a session the customer has since
+    // switched away from or ended — same idea as the expert dashboard's
+    // equivalent check.
+    if (!isCurrent() || !m || !m.id || known.has(m.id)) return;
+    const isNewest = ![...known.values()].some((k) => byTime(k, m) > 0);
+    known.set(m.id, m);
+    if (!drawn) return; // the first history read draws everything
+    if (isNewest) appendExpertMessage(m); else redraw();
+  }, () => { syncHistory(); setTimeout(syncHistory, 1500); setTimeout(syncHistory, 5000); });
+  stopExpertStatusRealtime = dbInstance.subscribeToSessionStatus(sessionId, (row) => {
+    if (isCurrent()) handleExpertSessionStatusUpdate(row);
+  });
+  // A channel that never joins must not leave the chat blank.
+  setTimeout(() => { if (isCurrent() && !drawn) syncHistory(); }, 4000);
 }
 
 // "Match status" (build plan, Phase 4) — most notably the expert ending the
