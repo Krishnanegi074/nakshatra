@@ -375,6 +375,16 @@ will fail until this is done:
    `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` are already available
    to every Edge Function automatically; nothing to add for those.
 
+   **Expert-chat functions can use their own Razorpay keys.**
+   `create-expert-session-order` and `verify-expert-session-payment` read
+   `EXPERT_RAZORPAY_KEY_ID` / `EXPERT_RAZORPAY_KEY_SECRET` first and fall
+   back to the shared `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET`. Set BOTH
+   expert secrets to Razorpay **test** keys (`rzp_test_...`) to test the
+   expert flow without touching real report purchases; delete them (or set
+   them to live keys) for launch. They are only ever used as a matched pair,
+   so setting just one of the two has no effect. The two functions must be
+   deployed together so create and verify always resolve to the same pair.
+
 Once all three are in place, do a real test payment (Razorpay's test mode
 has [published test card/UPI numbers](https://razorpay.com/docs/payments/payments/test-card-details/)
 that don't move real money) and confirm in the Supabase Table Editor that

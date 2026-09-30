@@ -27,7 +27,11 @@
 // SETUP.md): Supabase dashboard -> Edge Functions -> Deploy a new function
 // -> name it exactly "verify-expert-session-payment" -> Via Editor -> paste
 // this whole file -> Deploy. Uses the same RAZORPAY_KEY_ID/
-// RAZORPAY_KEY_SECRET secrets the other two payment functions already need.
+// RAZORPAY_KEY_SECRET secrets the other payment functions already need,
+// unless EXPERT_RAZORPAY_KEY_ID / EXPERT_RAZORPAY_KEY_SECRET are also set
+// (both), in which case those win — see razorpayKeys() below. This MUST
+// resolve to the same pair as create-expert-session-order, or the payment
+// signature check will fail.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -73,6 +77,23 @@ async function hmacHex(secret: string, message: string): Promise<string> {
 }
 
 // Same reasoning as verify-razorpay-payment's identical helper.
+// Razorpay keys for the expert-chat flow. Dedicated EXPERT_RAZORPAY_KEY_ID /
+// EXPERT_RAZORPAY_KEY_SECRET win when BOTH are set, so expert sessions can
+// run on Razorpay TEST keys while report purchases keep using the live
+// RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET; otherwise the shared pair is used.
+// Always taken as a matched PAIR — never one from each — because the
+// signature check in verify-expert-session-payment needs the secret that
+// belongs to the key that created the order. Both expert functions must
+// carry this same helper so create and verify always agree.
+function razorpayKeys(): { id: string; secret: string } | null {
+  const expertId = Deno.env.get("EXPERT_RAZORPAY_KEY_ID");
+  const expertSecret = Deno.env.get("EXPERT_RAZORPAY_KEY_SECRET");
+  if (expertId && expertSecret) return { id: expertId, secret: expertSecret };
+  const id = Deno.env.get("RAZORPAY_KEY_ID");
+  const secret = Deno.env.get("RAZORPAY_KEY_SECRET");
+  return id && secret ? { id, secret } : null;
+}
+
 function safeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
   let diff = 0;
@@ -108,10 +129,9 @@ Deno.serve(async (req: Request) => {
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SECRET_KEY = apiKey("SUPABASE_SECRET_KEYS", "default", "SUPABASE_SERVICE_ROLE_KEY");
-    const RAZORPAY_KEY_ID = Deno.env.get("RAZORPAY_KEY_ID");
-    const RAZORPAY_KEY_SECRET = Deno.env.get("RAZORPAY_KEY_SECRET");
-    if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
-      console.error("Missing RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET secrets");
+    const razorpay = razorpayKeys();
+    if (!razorpay) {
+      console.error("Missing Razorpay secrets (EXPERT_RAZORPAY_KEY_ID/_SECRET or RAZORPAY_KEY_ID/_SECRET)");
       return json({ error: "Payments aren't configured yet." }, 500);
     }
 
@@ -133,7 +153,7 @@ Deno.serve(async (req: Request) => {
       return json({ error: "Malformed payment response." }, 400);
     }
 
-    const expected = await hmacHex(RAZORPAY_KEY_SECRET, `${orderId}|${paymentId}`);
+    const expected = await hmacHex(razorpay.secret, `${orderId}|${paymentId}`);
     if (!safeEqual(expected, signature)) {
       return json({ error: "Payment verification failed." }, 400);
     }
@@ -160,7 +180,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const payResp = await fetch(`https://api.razorpay.com/v1/payments/${paymentId}`, {
-      headers: { Authorization: "Basic " + btoa(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`) },
+      headers: { Authorization: "Basic " + btoa(`${razorpay.id}:${razorpay.secret}`) },
     });
     if (!payResp.ok) {
       console.error("Razorpay payment lookup failed:", payResp.status, await payResp.text().catch(() => ""));
@@ -187,7 +207,7 @@ Deno.serve(async (req: Request) => {
       // a payment that's actually fine and just hit an unrelated problem
       // recording it.
       if (String(completeErr.message || "").includes("NO_EXPERT_AVAILABLE")) {
-        const refunded = await refundPayment(paymentId, RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET);
+        const refunded = await refundPayment(paymentId, razorpay.id, razorpay.secret);
         return json({
           error: refunded
             ? "No experts are available right now — you have not been charged."

@@ -12,17 +12,21 @@
 // second price into that one — keeps report-tier pricing logic and session
 // pricing logic from getting entangled.
 //
-// Fast-fails BEFORE even creating a Razorpay order if nobody is online —
-// this is a courtesy check only (see complete_expert_session_order() in
-// sql/009_expert_chat.sql for the reasoning on why the real, race-safe
-// enforcement has to happen at verification time instead, not here).
+// Fast-fails BEFORE even creating a Razorpay order if no expert is both
+// online AND free (no active session) — an expert who is online but already
+// mid-session can't take a new customer, and complete_expert_session_order()
+// would refund them after payment. This is a courtesy check only (see
+// complete_expert_session_order() in sql/009_expert_chat.sql for the
+// reasoning on why the real, race-safe enforcement has to happen at
+// verification time instead, not here).
 //
 // How to deploy (no CLI/Docker in the sandbox this was written in — see
 // SETUP.md): Supabase dashboard -> Edge Functions -> Deploy a new function
 // -> name it exactly "create-expert-session-order" -> Via Editor -> paste
 // this whole file -> Deploy. Uses the same RAZORPAY_KEY_ID/
-// RAZORPAY_KEY_SECRET secrets create-razorpay-order already needs — nothing
-// new to add if that one's already deployed.
+// RAZORPAY_KEY_SECRET secrets create-razorpay-order already needs, unless
+// EXPERT_RAZORPAY_KEY_ID / EXPERT_RAZORPAY_KEY_SECRET are also set (both),
+// in which case those win — see razorpayKeys() below.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -50,6 +54,23 @@ function apiKey(dictVar: string, name: string, legacyVar: string): string {
 // TIER_PRICES_PAISE and app.js's TIER_INFO already are).
 const EXPERT_SESSION_PRICE_PAISE = 19900;
 
+// Razorpay keys for the expert-chat flow. Dedicated EXPERT_RAZORPAY_KEY_ID /
+// EXPERT_RAZORPAY_KEY_SECRET win when BOTH are set, so expert sessions can
+// run on Razorpay TEST keys while report purchases keep using the live
+// RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET; otherwise the shared pair is used.
+// Always taken as a matched PAIR — never one from each — because the
+// signature check in verify-expert-session-payment needs the secret that
+// belongs to the key that created the order. Both expert functions must
+// carry this same helper so create and verify always agree.
+function razorpayKeys(): { id: string; secret: string } | null {
+  const expertId = Deno.env.get("EXPERT_RAZORPAY_KEY_ID");
+  const expertSecret = Deno.env.get("EXPERT_RAZORPAY_KEY_SECRET");
+  if (expertId && expertSecret) return { id: expertId, secret: expertSecret };
+  const id = Deno.env.get("RAZORPAY_KEY_ID");
+  const secret = Deno.env.get("RAZORPAY_KEY_SECRET");
+  return id && secret ? { id, secret } : null;
+}
+
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -69,10 +90,9 @@ Deno.serve(async (req: Request) => {
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SECRET_KEY = apiKey("SUPABASE_SECRET_KEYS", "default", "SUPABASE_SERVICE_ROLE_KEY");
-    const RAZORPAY_KEY_ID = Deno.env.get("RAZORPAY_KEY_ID");
-    const RAZORPAY_KEY_SECRET = Deno.env.get("RAZORPAY_KEY_SECRET");
-    if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
-      console.error("Missing RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET secrets");
+    const razorpay = razorpayKeys();
+    if (!razorpay) {
+      console.error("Missing Razorpay secrets (EXPERT_RAZORPAY_KEY_ID/_SECRET or RAZORPAY_KEY_ID/_SECRET)");
       return json({ error: "Payments aren't configured yet." }, 500);
     }
 
@@ -93,16 +113,30 @@ Deno.serve(async (req: Request) => {
     // whether experts_public's grant to `authenticated` is in place; the
     // real access boundary this function relies on is
     // complete_expert_session_order()'s own lock, not this check.
-    const { count: onlineCount, error: onlineErr } = await adminClient
+    const { data: onlineExperts, error: onlineErr } = await adminClient
       .from("experts")
-      .select("id", { count: "exact", head: true })
+      .select("id")
       .eq("is_online", true);
     if (onlineErr) {
       console.error("Failed to check online experts:", onlineErr);
       return json({ error: "Something went wrong — please try again." }, 500);
     }
-    if (!onlineCount) {
+    const onlineIds = (onlineExperts ?? []).map((e: { id: string }) => e.id);
+    if (!onlineIds.length) {
       return json({ error: "No experts online right now." }, 409);
+    }
+    const { data: busySessions, error: busyErr } = await adminClient
+      .from("chat_sessions")
+      .select("expert_id")
+      .eq("status", "active")
+      .in("expert_id", onlineIds);
+    if (busyErr) {
+      console.error("Failed to check busy experts:", busyErr);
+      return json({ error: "Something went wrong — please try again." }, 500);
+    }
+    const busyIds = new Set((busySessions ?? []).map((s: { expert_id: string }) => s.expert_id));
+    if (!onlineIds.some((id: string) => !busyIds.has(id))) {
+      return json({ error: "All our experts are busy right now — please try again in a few minutes." }, 409);
     }
 
     const receipt = `nk_session_${user.id.slice(0, 8)}_${Date.now()}`;
@@ -110,7 +144,7 @@ Deno.serve(async (req: Request) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: "Basic " + btoa(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`),
+        Authorization: "Basic " + btoa(`${razorpay.id}:${razorpay.secret}`),
       },
       body: JSON.stringify({
         amount: EXPERT_SESSION_PRICE_PAISE,
@@ -140,7 +174,7 @@ Deno.serve(async (req: Request) => {
     }
 
     return json({
-      key_id: RAZORPAY_KEY_ID,
+      key_id: razorpay.id,
       order_id: order.id,
       amount: order.amount,
       currency: order.currency,
