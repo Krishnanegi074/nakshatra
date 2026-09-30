@@ -35,6 +35,26 @@
       return data && data.user ? data.user.id : null;
     }
 
+    // supabase-js resolves a non-2xx Edge Function response as
+    // { data: null, error: FunctionsHttpError } with the function's own
+    // JSON body left unread on error.context (a Response) — so a message
+    // the function wrote for the customer (e.g. "No experts are available
+    // right now — you have not been charged.") would never reach the UI
+    // and everything showed the generic toast. Read that body and hand it
+    // back as `data` ({ error: "..." }), which the callers in app.js
+    // already check for (`orderData.error` / `verifyData.error`). Network-
+    // level failures (no response at all) keep the original error.
+    async function invokeKeepingErrorBody(name, body) {
+      const res = await supabase.functions.invoke(name, { body });
+      if (res.error && res.error.context && typeof res.error.context.json === "function") {
+        try {
+          const parsed = await res.error.context.json();
+          if (parsed && typeof parsed.error === "string") return { data: parsed, error: null };
+        } catch (_) { /* body wasn't JSON — fall through to the original error */ }
+      }
+      return res;
+    }
+
     return {
       // ==================== AUTH ====================
       async signUp(email, password, name) {
@@ -190,7 +210,7 @@
       // 010_expert_customer_name.sql) — kept apart from the report-tier
       // ones rather than folding a second price into them.
       async createExpertSessionOrder() {
-        return supabase.functions.invoke("create-expert-session-order", { body: {} });
+        return invokeKeepingErrorBody("create-expert-session-order", {});
       },
 
       // razorpayResponse: same shape as verifyRazorpayPayment's. Resolves
@@ -199,9 +219,7 @@
       // NO_EXPERT_AVAILABLE-and-refund path this can also surface as an
       // error.
       async verifyExpertSessionPayment(razorpayResponse) {
-        return supabase.functions.invoke("verify-expert-session-payment", {
-          body: razorpayResponse,
-        });
+        return invokeKeepingErrorBody("verify-expert-session-payment", razorpayResponse);
       },
 
       // Whether at least one real expert is online right now — checked

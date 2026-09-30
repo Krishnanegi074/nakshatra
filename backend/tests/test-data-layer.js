@@ -372,6 +372,35 @@ const { createDb } = require("../../app/supabase-client.js");
     check("subscribeToSessionStatus's unsubscribe also calls removeChannel() on its own (different-named) channel", fake.removedChannels.includes("session-status-session-1"));
   }
 
+  console.log("\n== Expert payment: a non-2xx Edge Function response's own message reaches the caller ==");
+  {
+    // supabase-js resolves a non-2xx response as { data: null, error } with the
+    // function's JSON body unread on error.context (a Response). The wrappers
+    // must read it and return it as `data` so app.js can show the message.
+    const httpError = (body) => ({ message: "Edge Function returned a non-2xx status code", context: { json: async () => body } });
+    const run = async (name, method, result) => {
+      const fake = makeFakeSupabase({ functionResults: { [name]: result } });
+      const db = createDb(fake);
+      return method === "createExpertSessionOrder"
+        ? db.createExpertSessionOrder()
+        : db.verifyExpertSessionPayment({ razorpay_order_id: "o", razorpay_payment_id: "p", razorpay_signature: "s" });
+    };
+    let r = await run("verify-expert-session-payment", "verifyExpertSessionPayment", { data: null, error: httpError({ error: "No experts are available right now — you have not been charged." }) });
+    check("verify: the refund-case message ('you have not been charged') is returned as data.error", r.data && r.data.error === "No experts are available right now — you have not been charged." && r.error === null);
+    r = await run("create-expert-session-order", "createExpertSessionOrder", { data: null, error: httpError({ error: "All our experts are busy right now — please try again in a few minutes." }) });
+    check("create: the 'experts are busy' message is returned as data.error", r.data && /busy/.test(r.data.error) && r.error === null);
+    const netErr = { message: "Failed to send a request to the Edge Function" };
+    r = await run("create-expert-session-order", "createExpertSessionOrder", { data: null, error: netErr });
+    check("a network-level failure (no response body) keeps the original error, so callers still show their generic message", r.error === netErr && r.data === null);
+    r = await run("verify-expert-session-payment", "verifyExpertSessionPayment", { data: null, error: { message: "x", context: { json: async () => { throw new Error("not json"); } } } });
+    check("a non-JSON error body falls back to the original error instead of throwing", r.error && r.error.message === "x");
+    r = await run("verify-expert-session-payment", "verifyExpertSessionPayment", { data: null, error: httpError({ unrelated: true }) });
+    check("a JSON body with no string .error keeps the original error", r.error !== null && r.data === null);
+    const okRes = { data: { session_id: "s1", expert_name: "Test Expert", expert_specialty: "General" }, error: null };
+    r = await run("verify-expert-session-payment", "verifyExpertSessionPayment", okRes);
+    check("a successful response passes through untouched", r.data && r.data.session_id === "s1" && r.error === null);
+  }
+
   console.log(`\n=== RESULT: ${results.filter(r => r.pass).length} / ${results.length} checks passed ===`);
   const failed = results.filter(r => !r.pass);
   if (failed.length) {
