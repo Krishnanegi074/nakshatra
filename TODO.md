@@ -26,6 +26,8 @@ Last updated: 2026-09-30
 - [ ] Make the share card's star field deterministic (seeded) instead of random on every open, if a consistent image between opens matters.
 - [ ] Double-check the chip icon badge colors in the card against the exact `--plum`/`--plum-light` tokens — looked slightly more saturated in one screenshot, may just be compression.
 - [ ] Users who hit the `city_tz` save bug before the `006_city_timezone.sql` fix (applied 2026-09-30) have no saved chart and will need to redo onboarding once. Very low impact given the current user count, but worth knowing if anyone reports a "lost my chart" issue.
+- [ ] Localize the "Couldn't verify your access — please try again" toast (currently a hardcoded English string in showScreen's paywall guard) — add proper keys to `I18N.en` and `I18N.hi` in `i18n.js` if/when it's worth translating a rare failure-path message.
+- [ ] Consider automatic retry for a failed entitlements fetch. Right now, on failure the user just gets redirected to the dashboard with a toast — no retry happens on its own, they have to reload or renavigate to trigger a fresh `loadUserDataFromBackend()` call.
 
 ## Done tonight (2026-09-30), for reference
 
