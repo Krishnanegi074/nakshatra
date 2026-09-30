@@ -2426,14 +2426,56 @@ function renderFullReport() {
 }
 
 // ================= SHARE CARD =================
-function drawShareCard() {
+// Every font face the card draws with. A canvas `ctx.font` never triggers a
+// web-font download by itself, and `document.fonts.ready` resolves immediately
+// when nothing is pending — so each face is requested explicitly before the
+// first fillText, or Cinzel/Poppins silently fall back to default fonts.
+const SHARE_CARD_FONTS = [
+  "600 34px Poppins", "400 28px Poppins", "700 24px Poppins", "italic 500 32px Poppins",
+  "600 60px Cinzel", "700 46px Cinzel",
+];
+const SHARE_CARD_FONT_SAMPLE = "Aa Zz 0-9 % — · ’ “ ”";
+
+function loadShareCardFonts() {
+  if (!document.fonts || !document.fonts.load) return Promise.resolve();
+  const loads = Promise.allSettled(SHARE_CARD_FONTS.map(f => document.fonts.load(f, SHARE_CARD_FONT_SAMPLE)));
+  // Never block the card on a stalled font request — after 2.5s draw with fallbacks.
+  return Promise.race([loads, new Promise(r => setTimeout(r, 2500))]);
+}
+
+// Largest font size (stepping down by 2) at which `text` fits in maxWidth.
+function fitFontSize(ctx, text, maxWidth, startPx, minPx, fontFor) {
+  let px = startPx;
+  for (; px > minPx; px -= 2) {
+    ctx.font = fontFor(px);
+    if (ctx.measureText(text).width <= maxWidth) break;
+  }
+  ctx.font = fontFor(px);
+  return px;
+}
+
+// Returns a promise: the canvas is only fully drawn once it resolves, so
+// callers that read it (Download, Post to Community) must wait for that.
+async function drawShareCard() {
+  await loadShareCardFonts();
+
   const canvas = $("#shareCanvas");
   const ctx = canvas.getContext("2d");
   const W = canvas.width, H = canvas.height;
   const c = state.computed;
 
+  // Brand tokens from app.css :root, spelled out because canvas can't read CSS vars.
+  const T = {
+    navy0: "#0d0820", navy1: "#1b1032", navy2: "#241640", plumLight: "#9b7ec0",
+    gold: "#c9a15f", goldBright: "#e8c687",
+    text: "#f3eefb", textDim: "#b6acc9", textFaint: "#8478a0",
+    surface: "rgba(255,255,255,0.06)", surface2: "rgba(255,255,255,0.10)", border: "rgba(232,198,135,0.18)",
+  };
+  const setTracking = (px) => { if ("letterSpacing" in ctx) ctx.letterSpacing = px + "px"; };
+
+  // Background + stars
   const grad = ctx.createLinearGradient(0, 0, W, H);
-  grad.addColorStop(0, "#1b1032"); grad.addColorStop(0.55, "#2c1a4d"); grad.addColorStop(1, "#100a24");
+  grad.addColorStop(0, T.navy1); grad.addColorStop(0.42, T.navy2); grad.addColorStop(1, T.navy0);
   ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
 
   ctx.fillStyle = "rgba(255,255,255,0.7)";
@@ -2444,56 +2486,118 @@ function drawShareCard() {
   }
   ctx.globalAlpha = 1;
 
+  // Wordmark
   ctx.textAlign = "center";
-  ctx.fillStyle = "#e8c687";
+  ctx.fillStyle = T.goldBright;
   ctx.font = "600 34px Poppins, sans-serif";
   ctx.fillText("✦ NAKSHATRA ✦", W / 2, 160);
 
-  ctx.fillStyle = "#f3eefb";
-  ctx.font = "600 64px 'Cinzel', serif";
-  ctx.fillText(state.user ? state.user.name.split(" ")[0] + "'s" : "Your", W / 2, 280);
-  ctx.fillText("Cosmic Snapshot", W / 2, 360);
+  // Name + subtitle
+  const firstName = state.user && state.user.name ? state.user.name.trim().split(/\s+/)[0] : "";
+  const title = firstName ? firstName + "’s day" : "Your day";
+  ctx.fillStyle = T.text;
+  fitFontSize(ctx, title, W - 180, 60, 40, (px) => `600 ${px}px 'Cinzel', serif`);
+  ctx.fillText(title, W / 2, 290);
+  if (c.sunIdx != null && c.moonIdx != null) {
+    ctx.fillStyle = T.textDim; ctx.font = "400 28px Poppins, sans-serif";
+    ctx.fillText(`${SIGNS[c.sunIdx]} Sun · ${SIGNS[c.moonIdx]} Moon`, W / 2, 345);
+  }
 
-  const badges = [
-    { label: "SUN", val: c.sunIdx != null ? SIGNS[c.sunIdx] : "—", sym: c.sunIdx != null ? SIGN_SYMBOLS[c.sunIdx] : "" },
-    { label: "MOON", val: c.moonIdx != null ? SIGNS[c.moonIdx] : "—", sym: c.moonIdx != null ? SIGN_SYMBOLS[c.moonIdx] : "" },
-    { label: "RISING", val: c.ascIdx != null ? SIGNS[c.ascIdx] : "Unknown", sym: c.ascIdx != null ? SIGN_SYMBOLS[c.ascIdx] : "?" },
+  // Five placement chips
+  const chips = [
+    { label: "SUN", idx: c.sunIdx }, { label: "MOON", idx: c.moonIdx }, { label: "RISING", idx: c.ascIdx },
+    { label: "VENUS", idx: c.venusIdx }, { label: "MARS", idx: c.marsIdx },
   ];
-  const cy = 620, spacing = W / 3;
-  badges.forEach((b, i) => {
-    const cx = spacing * i + spacing / 2;
-    ctx.beginPath();
-    ctx.arc(cx, cy, 110, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(232,198,135,0.14)";
-    ctx.fill();
-    ctx.lineWidth = 3; ctx.strokeStyle = "rgba(232,198,135,0.5)"; ctx.stroke();
-    ctx.fillStyle = "#e8c687"; ctx.font = "64px sans-serif"; ctx.fillText(b.sym, cx, cy + 22);
-    ctx.fillStyle = "#b6acc9"; ctx.font = "26px Poppins, sans-serif"; ctx.fillText(b.label, cx, cy + 170);
-    ctx.fillStyle = "#f3eefb"; ctx.font = "600 32px Poppins, sans-serif"; ctx.fillText(b.val, cx, cy + 210);
+  const chipGap = 16, chipMargin = 70, chipTop = 540, chipH = 210;
+  const chipW = (W - chipMargin * 2 - chipGap * (chips.length - 1)) / chips.length;
+  chips.forEach((chip, i) => {
+    const x = chipMargin + i * (chipW + chipGap), cx = x + chipW / 2;
+    ctx.fillStyle = T.surface;
+    roundRect(ctx, x, chipTop, chipW, chipH, 32); ctx.fill();
+    ctx.strokeStyle = T.border; ctx.lineWidth = 2;
+    roundRect(ctx, x, chipTop, chipW, chipH, 32); ctx.stroke();
+    const known = chip.idx != null;
+    ctx.textAlign = "center";
+    if (known) { ctx.fillStyle = T.goldBright; ctx.font = "56px sans-serif"; ctx.fillText(SIGN_SYMBOLS[chip.idx], cx, chipTop + 88); }
+    ctx.fillStyle = T.text; ctx.font = "600 34px Poppins, sans-serif";
+    ctx.fillText(known ? SIGNS[chip.idx].slice(0, 3) : "—", cx, chipTop + 142);
+    ctx.fillStyle = T.textFaint; ctx.font = "600 20px Poppins, sans-serif"; setTracking(2);
+    ctx.fillText(chip.label, cx, chipTop + 184); setTracking(0);
   });
 
-  if (state._lastHoroscope) {
-    ctx.fillStyle = "rgba(255,255,255,0.06)";
-    roundRect(ctx, 90, 950, W - 180, 340, 28); ctx.fill();
-    ctx.strokeStyle = "rgba(232,198,135,0.25)"; ctx.lineWidth = 2;
-    roundRect(ctx, 90, 950, W - 180, 340, 28); ctx.stroke();
-    ctx.fillStyle = "#e8c687"; ctx.font = "600 28px Poppins, sans-serif"; ctx.textAlign = "left";
-    ctx.fillText("THIS WEEK", 130, 1020);
-    ctx.fillStyle = "#f3eefb"; ctx.font = "30px Poppins, sans-serif";
-    wrapText(ctx, state._lastHoroscope.paragraphs[0], 130, 1080, W - 260, 42);
+  // Moon Nakshatra hero panel
+  const nk = c.moonNakshatra;
+  if (nk) {
+    const hx = 90, hy = 830, hw = W - 180, hh = 190;
+    const heroGrad = ctx.createLinearGradient(hx, hy, hx + hw, hy + hh);
+    heroGrad.addColorStop(0, "rgba(232,198,135,0.22)"); heroGrad.addColorStop(1, "rgba(155,126,192,0.16)");
+    ctx.fillStyle = heroGrad; roundRect(ctx, hx, hy, hw, hh, 40); ctx.fill();
+    ctx.strokeStyle = "rgba(232,198,135,0.4)"; ctx.lineWidth = 2; roundRect(ctx, hx, hy, hw, hh, 40); ctx.stroke();
+
+    const bx = hx + 95, by = hy + hh / 2;
+    const badge = ctx.createRadialGradient(bx - 16, by - 20, 4, bx, by, 60);
+    badge.addColorStop(0, T.navy2); badge.addColorStop(1, T.navy0);
+    ctx.beginPath(); ctx.arc(bx, by, 54, 0, Math.PI * 2); ctx.fillStyle = badge; ctx.fill();
+    ctx.strokeStyle = "rgba(232,198,135,0.5)"; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = T.goldBright; ctx.font = "58px sans-serif"; ctx.textAlign = "center";
+    ctx.fillText("☾", bx, by + 20);
+
+    const tx = bx + 54 + 36, tw = hx + hw - 40 - tx;
+    ctx.textAlign = "left";
+    ctx.fillStyle = T.gold; ctx.font = "700 24px Poppins, sans-serif"; setTracking(3);
+    ctx.fillText("MOON NAKSHATRA", tx, hy + 72); setTracking(0);
+    ctx.fillStyle = T.text;
+    fitFontSize(ctx, `${nk.name} · Pada ${nk.pada}`, tw, 46, 30, (px) => `600 ${px}px 'Cinzel', serif`);
+    ctx.fillText(`${nk.name} · Pada ${nk.pada}`, tx, hy + 134);
   }
 
-  const love = c.sunIdx != null ? generateLoveEnergy(c.sunIdx, new Date(), c.moonPhase.angle) : null;
+  // Insight line — generated here, not read from state._lastHoroscope (which
+  // only exists after the horoscope screen has been visited). Only the first
+  // paragraph is used; skipped if the chart isn't calculated yet.
+  const moonPhase = c.moonPhase || getMoonPhase(new Date());
+  if (c.sunIdx != null && c.moonIdx != null) {
+    const quote = "“" + generateWeeklyHoroscope(c.sunIdx, c.moonIdx, c.ascIdx, new Date(), moonPhase.name).paragraphs[0] + "”";
+    const insightW = W - 180;
+    let px = 36;
+    for (; px > 28; px -= 2) {
+      ctx.font = `italic 500 ${px}px Poppins, sans-serif`;
+      if (wrapLines(ctx, quote, insightW).length <= 3) break;
+    }
+    ctx.font = `italic 500 ${px}px Poppins, sans-serif`;
+    ctx.fillStyle = T.text; ctx.textAlign = "center";
+    wrapText(ctx, quote, W / 2, 1140, insightW, Math.round(px * 1.55), 3);
+  }
+
+  // Love energy ring
+  const love = c.sunIdx != null ? generateLoveEnergy(c.sunIdx, new Date(), moonPhase.angle) : null;
   if (love) {
-    ctx.textAlign = "center";
-    ctx.fillStyle = "#9b7ec0"; ctx.font = "600 28px Poppins, sans-serif";
-    ctx.fillText("TODAY'S LOVE ENERGY", W / 2, 1420);
-    ctx.fillStyle = "#e8c687"; ctx.font = "700 90px 'Cinzel', serif";
-    ctx.fillText(love.score + "%", W / 2, 1530);
+    const ringR = 92, ringW = 22, ringD = (ringR + ringW / 2) * 2, gap = 56, textW = 520;
+    const gx = (W - (ringD + gap + textW)) / 2, rcx = gx + ringD / 2, rcy = 1500, textX = gx + ringD + gap;
+    ctx.lineWidth = ringW; ctx.lineCap = "butt";
+    ctx.strokeStyle = T.surface2;
+    ctx.beginPath(); ctx.arc(rcx, rcy, ringR, 0, Math.PI * 2); ctx.stroke();
+    const ringGrad = ctx.createLinearGradient(rcx - ringR, rcy + ringR, rcx + ringR, rcy - ringR);
+    ringGrad.addColorStop(0, T.plumLight); ringGrad.addColorStop(1, T.goldBright);
+    ctx.strokeStyle = ringGrad; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.arc(rcx, rcy, ringR, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * love.score / 100); ctx.stroke();
+    ctx.lineCap = "butt";
+    ctx.textAlign = "center"; ctx.fillStyle = T.text; ctx.font = "700 46px 'Cinzel', serif";
+    ctx.fillText(love.score + "%", rcx, rcy + 16);
+    ctx.textAlign = "left";
+    ctx.fillStyle = T.textFaint; ctx.font = "700 24px Poppins, sans-serif"; setTracking(3);
+    ctx.fillText("TODAY'S LOVE ENERGY", textX, rcy - 34); setTracking(0);
+    ctx.fillStyle = T.textDim; ctx.font = "400 26px Poppins, sans-serif";
+    wrapText(ctx, love.blurb, textX, rcy + 8, textW, 36, 3);
   }
 
-  ctx.fillStyle = "#8478a0"; ctx.font = "24px Poppins, sans-serif"; ctx.textAlign = "center";
-  ctx.fillText("Entertainment purposes only · Get your reading at " + SITE_DOMAIN, W / 2, 1830);
+  // Footer
+  ctx.strokeStyle = T.surface2; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(90, 1750); ctx.lineTo(W - 90, 1750); ctx.stroke();
+  ctx.textAlign = "center";
+  ctx.fillStyle = T.textFaint; ctx.font = "600 22px Poppins, sans-serif"; setTracking(3);
+  ctx.fillText("ENTERTAINMENT PURPOSES ONLY", W / 2, 1800); setTracking(0);
+  ctx.fillStyle = T.gold; ctx.font = "700 28px Poppins, sans-serif";
+  ctx.fillText("Get your full reading — " + SITE_DOMAIN, W / 2, 1850);
 }
 
 function roundRect(ctx, x, y, w, h, r) {
@@ -2505,7 +2609,34 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.arcTo(x, y, x + w, y, r);
   ctx.closePath();
 }
-function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+// Greedy word-wrap into an array of lines, using the ctx's current font.
+function wrapLines(ctx, text, maxWidth) {
+  const lines = [];
+  let line = "";
+  for (const w of text.split(" ")) {
+    const test = line ? line + " " + w : w;
+    if (ctx.measureText(test).width > maxWidth && line) { lines.push(line); line = w; }
+    else line = test;
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+// maxLines (optional): draw at most that many lines, ending the last one with
+// "…" if text was cut. Omitted -> the original behaviour, unchanged (the gift
+// card's message still uses that path).
+function wrapText(ctx, text, x, y, maxWidth, lineHeight, maxLines) {
+  if (maxLines) {
+    const lines = wrapLines(ctx, text, maxWidth);
+    const cut = lines.length > maxLines;
+    const shown = lines.slice(0, maxLines);
+    if (cut) {
+      let last = shown[maxLines - 1];
+      while (last && ctx.measureText(last + "…").width > maxWidth) last = last.slice(0, last.lastIndexOf(" ") > 0 ? last.lastIndexOf(" ") : -1);
+      shown[maxLines - 1] = last + "…";
+    }
+    shown.forEach((ln, i) => ctx.fillText(ln, x, y + i * lineHeight));
+    return shown.length;
+  }
   const words = text.split(" ");
   let line = "", curY = y;
   for (const w of words) {
@@ -2519,7 +2650,14 @@ function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
 }
 
 function initShare() {
-  function openShare() { $("#sheet-share-backdrop").classList.add("visible"); drawShareCard(); }
+  // The card draws asynchronously (fonts load first), and Download / Post to
+  // Community read the canvas, so both stay disabled until the draw resolves.
+  function openShare() {
+    $("#sheet-share-backdrop").classList.add("visible");
+    const gated = [$("#btn-download-card"), $("#btn-post-community")];
+    gated.forEach(b => { b.disabled = true; });
+    drawShareCard().catch(() => {}).finally(() => { gated.forEach(b => { b.disabled = false; }); });
+  }
   function closeShare() { $("#sheet-share-backdrop").classList.remove("visible"); }
   $("#btn-open-share").addEventListener("click", openShare);
   $("#btn-fullreport-share").addEventListener("click", openShare);
