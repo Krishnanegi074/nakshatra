@@ -1702,6 +1702,12 @@ button { font-family: inherit; }
       <p class="muted" style="margin:0" id="fr-name-line"></p>
     </div>
 
+    <div class="report-section-title"><span class="eyebrow" style="margin:0" data-i18n="fr.section.today">✨ Today</span><div class="line"></div></div>
+    <div class="card" id="fr-today"></div>
+
+    <div class="report-section-title"><span class="eyebrow" style="margin:0" data-i18n="fr.section.dasha">🪐 Current Dasha</span><div class="line"></div></div>
+    <div class="card stack" id="fr-dasha"></div>
+
     <div class="report-section-title"><span class="eyebrow" style="margin:0" data-i18n="fr.section.horoscope">🔮 Weekly Horoscope</span><div class="line"></div></div>
     <div class="card stack" id="fr-horoscope"></div>
 
@@ -3324,6 +3330,78 @@ function generateLoveEnergy(sunIdx, now, moonPhaseAngle) {
   return { score, bucket, blurb };
 }
 
+// ---------------- Today score (Tara Bala) + Current Dasha note ----------------
+const TARA_INFO = [
+  { name: "Janma",        value: 55, tag: "Building", blurb: "The Moon returns to your own star today — a self-focused day, good for taking stock rather than pushing outward." },
+  { name: "Sampat",       value: 80, tag: "Strong",   blurb: "A gain-natured day — favorable for money, decisions, and anything you want to move forward." },
+  { name: "Vipat",        value: 32, tag: "Low",      blurb: "An obstacle-natured day — plans may meet friction. Better to finish what's started than begin something new." },
+  { name: "Kshema",       value: 85, tag: "Strong",   blurb: "A well-being day — steady and safe, good for health, comfort, and consolidating what you already have." },
+  { name: "Pratyak",      value: 35, tag: "Low",      blurb: "A setback-natured day — minor delays are common. Patience serves you better than force today." },
+  { name: "Sadhana",      value: 88, tag: "Peak",     blurb: "An achievement-natured day — strong for effort that pays off, especially anything requiring focus." },
+  { name: "Naidhana",     value: 22, tag: "Low",      blurb: "A loss-natured day, the most cautious of the nine — avoid big risks and rest where you can." },
+  { name: "Mitra",        value: 78, tag: "Strong",   blurb: "A friendly-natured day — good for relationships, conversations, and asking for what you need." },
+  { name: "Parama Mitra", value: 92, tag: "Peak",     blurb: "The most favorable of the nine — a best-friend day, excellent for anything important to you." },
+];
+
+// Tara Bala: counts from the natal (janma) nakshatra to today's
+// transiting nakshatra, mod 9. Caller passes both indices — this
+// function does not call getMoonNakshatra itself, since that's a
+// browser-only global from engine.browser.js and rules.js also runs
+// in Node (module.exports, loaded by the test scripts).
+function generateTodayScore(natalNakshatraIdx, transitNakshatraIdx) {
+  const taraIdx = (((transitNakshatraIdx - natalNakshatraIdx) % 9) + 9) % 9;
+  const tara = TARA_INFO[taraIdx];
+  return { score: tara.value, bucket: tara.tag, taraName: tara.name, blurb: tara.blurb };
+}
+
+const DASHA_MAHA_THEME = {
+  Sun: "themes of identity, authority, and recognition",
+  Moon: "themes of emotional security, home, and instinct",
+  Mars: "themes of drive, courage, and decisive action",
+  Rahu: "themes of ambition, reinvention, and reaching past your comfort zone",
+  Jupiter: "themes of growth, wisdom, and expanding what already works",
+  Saturn: "themes of discipline, patience, and building things that last",
+  Mercury: "themes of communication, learning, and sharpening your thinking",
+  Ketu: "themes of release, introspection, and letting go of what no longer serves you",
+  Venus: "themes of relationships, beauty, and what you value",
+};
+
+const DASHA_ANTAR_FILTER = {
+  Sun: "filtered through confidence and visibility",
+  Moon: "filtered through mood and intuition",
+  Mars: "filtered through energy and momentum",
+  Rahu: "filtered through ambition and unconventional choices",
+  Jupiter: "filtered through optimism and opportunity",
+  Saturn: "filtered through caution and long-term thinking",
+  Mercury: "filtered through conversation and detail",
+  Ketu: "filtered through detachment and quiet reflection",
+  Venus: "filtered through relationships, money, and taste",
+};
+
+const DASHA_ANTAR_CLOSING = {
+  Sun: "Decisions that put you in the spotlight tend to hold.",
+  Moon: "Trust what feels emotionally right more than what looks right on paper.",
+  Mars: "Bold moves made now carry real momentum.",
+  Rahu: "Unconventional choices made now can pay off later.",
+  Jupiter: "Opportunities that show up now are worth taking seriously.",
+  Saturn: "Slow, steady progress now outlasts quick wins.",
+  Mercury: "Conversations and agreements made now tend to stick.",
+  Ketu: "Letting go of something now clears space for what's next.",
+  Venus: "Decisions about partnerships made now tend to hold.",
+};
+
+// Composed from 9+9+9 fragments rather than 81 bespoke sentences, so
+// every Mahadasha x Antardasha combination is specific and the
+// "Antardasha filters Mahadasha" relationship is structural, not
+// something 81 hand-written sentences would need to stay consistent
+// about by accident.
+function generateDashaNote(mahaLord, antarLord) {
+  const maha = DASHA_MAHA_THEME[mahaLord] || "a period of significant personal change";
+  const filter = DASHA_ANTAR_FILTER[antarLord] || "filtered through the current moment";
+  const closing = DASHA_ANTAR_CLOSING[antarLord] || "Pay attention to what feels different lately.";
+  return `You're in a ${mahaLord} period running through ${antarLord} — ${maha}, ${filter}. ${closing}`;
+}
+
 // ---------------- Palmistry — assisted / guided rule engine ----------------
 const PALM_QUESTIONS = [
   {
@@ -3600,7 +3678,7 @@ const COMMUNITY_SEED = [
 ];
 
 if (typeof module !== "undefined") {
-  module.exports = { SIGN_INFO, ELEMENT_PAIR, generateWeeklyHoroscope, generateLoveEnergy, PALM_QUESTIONS, PALM_RULES, generatePalmReport, dayOfYear, isoWeek, ASPECT_INFO, signDistance, aspectBetween, generateSynastry, generateYearAhead, ASTROLOGERS, classifyChatTopic, generateAstrologerReply, CHAT_GREETINGS, COMMUNITY_SEED };
+  module.exports = { SIGN_INFO, ELEMENT_PAIR, generateWeeklyHoroscope, generateLoveEnergy, generateTodayScore, generateDashaNote, PALM_QUESTIONS, PALM_RULES, generatePalmReport, dayOfYear, isoWeek, ASPECT_INFO, signDistance, aspectBetween, generateSynastry, generateYearAhead, ASTROLOGERS, classifyChatTopic, generateAstrologerReply, CHAT_GREETINGS, COMMUNITY_SEED };
 }
 
 </script>
@@ -4348,6 +4426,13 @@ const I18N = {
     "fr.section.yearahead": "🪐 Year Ahead",
     "fr.section.compat": "💞 Compatibility Report",
     "fr.section.partner": "💍 Future Partner Report",
+    "fr.section.today": "✨ Today",
+    "fr.section.dasha": "🪐 Current Dasha",
+    "fr.dasha.mahadasha": "Mahadasha",
+    "fr.dasha.antardasha": "Antardasha",
+    "fr.today-recovery": "Recalculate your chart to see today's reading.",
+    "fr.dasha-recovery": "Recalculate your chart to see your current Dasha period.",
+    "fr.time-approx": "(approximate — birth time wasn't provided)",
     "fr.disclaimer": "Just for fun: a playful, non-predictive pattern generated for entertainment and self-reflection. Unlike the rest of this report, it isn't based on Nakshatra's documented classical rules and shouldn't be read as an actual prediction.",
     "fr.btn.share": "Share as Image Card",
 
@@ -4552,7 +4637,7 @@ const I18N = {
     "dash.card.community.title": "कम्युनिटी", "dash.card.community.desc": "साझा रीडिंग की डेमो फ़ीड",
     "dash.card.report.title": "आपकी पूर्ण रिपोर्ट", "dash.card.report.desc": "पूर्ण रीडिंग अनलॉक करें",
     "dash.tag.unlock": "अनलॉक करें",
-    "content.hi-note": "ऐप के मेन्यू और बटन हिंदी में हैं। पूर्ण जनरेट की गई रीडिंग (राशिफल, हस्तरेखा व्याख्या, अनुकूलता, आने वाला वर्ष, ज्योतिषी चैट, कम्युनिटी पोस्ट) फिलहाल अंग्रेज़ी में ही हैं — इनके लिए हिंदी कंटेंट टेम्पलेट एक भविष्य के अपडेट में जोड़े जाएंगे।",
+    "content.hi-note": "ऐप के मेन्यू और बटन हिंदी में हैं। पूर्ण जनरेट की गई रीडिंग (राशिफल, आज की रीडिंग, वर्तमान दशा, हस्तरेखा व्याख्या, अनुकूलता, आने वाला वर्ष, ज्योतिषी चैट, कम्युनिटी पोस्ट) फिलहाल अंग्रेज़ी में ही हैं — इनके लिए हिंदी कंटेंट टेम्पलेट एक भविष्य के अपडेट में जोड़े जाएंगे।",
 
     "chat.picker.title": "ज्योतिषी से चैट करें",
     "chat.demo-note": "डेमो फीचर — ये सिम्युलेटेड, नियम-आधारित उत्तर हैं, कोई असली व्यक्ति या AI चैटबॉट नहीं। केवल मनोरंजन के उद्देश्य से।",
@@ -4681,6 +4766,13 @@ const I18N = {
     "fr.section.yearahead": "🪐 आने वाला वर्ष",
     "fr.section.compat": "💞 अनुकूलता रिपोर्ट",
     "fr.section.partner": "💍 भविष्य के साथी की रिपोर्ट",
+    "fr.section.today": "✨ आज",
+    "fr.section.dasha": "🪐 वर्तमान दशा",
+    "fr.dasha.mahadasha": "महादशा",
+    "fr.dasha.antardasha": "अंतर्दशा",
+    "fr.today-recovery": "आज की रीडिंग देखने के लिए अपना चार्ट फिर से गणना करें।",
+    "fr.dasha-recovery": "अपनी वर्तमान दशा अवधि देखने के लिए अपना चार्ट फिर से गणना करें।",
+    "fr.time-approx": "(अनुमानित — जन्म का समय नहीं दिया गया था)",
     "fr.disclaimer": "सिर्फ मनोरंजन के लिए: यह एक चंचल, गैर-भविष्यसूचक पैटर्न है जो मनोरंजन और आत्म-चिंतन के लिए बनाया गया है। इस रिपोर्ट के बाकी हिस्सों के विपरीत, यह Nakshatra के दस्तावेज़ीकृत शास्त्रीय नियमों पर आधारित नहीं है और इसे वास्तविक भविष्यवाणी नहीं माना जाना चाहिए।",
     "fr.btn.share": "छवि कार्ड के रूप में साझा करें",
 
@@ -7546,6 +7638,36 @@ function renderFullReport() {
   const satSign = getTransitingSign(Astronomy.Body.Saturn, now);
   const ya = generateYearAhead(c.sunIdx, jupSign, satSign, getUserAge());
   $("#fr-yearahead").innerHTML = `<p style="margin:0 0 6px" class="muted">${tr("fr.yearahead-signs", { jup: signName(jupSign), sat: signName(satSign) })}</p>` + ya.paragraphs.map(p => `<p style="margin:0 0 8px">${p}</p>`).join("");
+
+  if (c.moonNakshatra) {
+    const transitNak = getMoonNakshatra(now);
+    const today = generateTodayScore(c.moonNakshatra.index, transitNak.index);
+    const timeCaveat = state.birth && state.birth.unknownTime
+      ? ` <span class="muted">${tr("fr.time-approx")}</span>` : "";
+    $("#fr-today").innerHTML = `<div class="row between"><strong>${today.score}/100 · ${today.bucket}</strong><span class="muted">${now.toLocaleDateString()}</span></div><p style="margin:8px 0 0">${today.blurb}${timeCaveat}</p>`;
+  } else {
+    $("#fr-today").innerHTML = `<p style="margin:0">${tr("fr.today-recovery")}</p>`;
+  }
+
+  if (c.dasha) {
+    const d = c.dasha;
+    const note = generateDashaNote(d.mahadasha.lord, d.antardasha.lord);
+    const timeCaveat = state.birth && state.birth.unknownTime
+      ? ` <span class="muted">${tr("fr.time-approx")}</span>` : "";
+    // tr() at render time, not data-i18n: applyLanguage() only relabels
+    // data-i18n nodes on a language switch, so labels injected here would
+    // otherwise stay English in Hindi mode (same approach as fr.partner.*).
+    $("#fr-dasha").innerHTML = `
+      <div class="row wrap" style="gap:18px;justify-content:space-between">
+        <div><div class="muted">${tr("fr.dasha.mahadasha")}</div><strong style="font-size:1.3rem">${d.mahadasha.lord}</strong></div>
+        <div><div class="muted">${tr("fr.dasha.antardasha")}</div><strong style="font-size:1.3rem">${d.antardasha.lord}</strong></div>
+      </div>
+      <div class="divider"></div>
+      <p style="margin:2px 0 0">${note}${timeCaveat}</p>
+    `;
+  } else {
+    $("#fr-dasha").innerHTML = `<p style="margin:0">${tr("fr.dasha-recovery")}</p>`;
+  }
 
   if (state.compatResult) {
     const r = state.compatResult;

@@ -2388,6 +2388,36 @@ function renderFullReport() {
   const ya = generateYearAhead(c.sunIdx, jupSign, satSign, getUserAge());
   $("#fr-yearahead").innerHTML = `<p style="margin:0 0 6px" class="muted">${tr("fr.yearahead-signs", { jup: signName(jupSign), sat: signName(satSign) })}</p>` + ya.paragraphs.map(p => `<p style="margin:0 0 8px">${p}</p>`).join("");
 
+  if (c.moonNakshatra) {
+    const transitNak = getMoonNakshatra(now);
+    const today = generateTodayScore(c.moonNakshatra.index, transitNak.index);
+    const timeCaveat = state.birth && state.birth.unknownTime
+      ? ` <span class="muted">${tr("fr.time-approx")}</span>` : "";
+    $("#fr-today").innerHTML = `<div class="row between"><strong>${today.score}/100 · ${today.bucket}</strong><span class="muted">${now.toLocaleDateString()}</span></div><p style="margin:8px 0 0">${today.blurb}${timeCaveat}</p>`;
+  } else {
+    $("#fr-today").innerHTML = `<p style="margin:0">${tr("fr.today-recovery")}</p>`;
+  }
+
+  if (c.dasha) {
+    const d = c.dasha;
+    const note = generateDashaNote(d.mahadasha.lord, d.antardasha.lord);
+    const timeCaveat = state.birth && state.birth.unknownTime
+      ? ` <span class="muted">${tr("fr.time-approx")}</span>` : "";
+    // tr() at render time, not data-i18n: applyLanguage() only relabels
+    // data-i18n nodes on a language switch, so labels injected here would
+    // otherwise stay English in Hindi mode (same approach as fr.partner.*).
+    $("#fr-dasha").innerHTML = `
+      <div class="row wrap" style="gap:18px;justify-content:space-between">
+        <div><div class="muted">${tr("fr.dasha.mahadasha")}</div><strong style="font-size:1.3rem">${d.mahadasha.lord}</strong></div>
+        <div><div class="muted">${tr("fr.dasha.antardasha")}</div><strong style="font-size:1.3rem">${d.antardasha.lord}</strong></div>
+      </div>
+      <div class="divider"></div>
+      <p style="margin:2px 0 0">${note}${timeCaveat}</p>
+    `;
+  } else {
+    $("#fr-dasha").innerHTML = `<p style="margin:0">${tr("fr.dasha-recovery")}</p>`;
+  }
+
   if (state.compatResult) {
     const r = state.compatResult;
     const you = state.user ? state.user.name.split(" ")[0] : "You";

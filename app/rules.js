@@ -89,6 +89,78 @@ function generateLoveEnergy(sunIdx, now, moonPhaseAngle) {
   return { score, bucket, blurb };
 }
 
+// ---------------- Today score (Tara Bala) + Current Dasha note ----------------
+const TARA_INFO = [
+  { name: "Janma",        value: 55, tag: "Building", blurb: "The Moon returns to your own star today — a self-focused day, good for taking stock rather than pushing outward." },
+  { name: "Sampat",       value: 80, tag: "Strong",   blurb: "A gain-natured day — favorable for money, decisions, and anything you want to move forward." },
+  { name: "Vipat",        value: 32, tag: "Low",      blurb: "An obstacle-natured day — plans may meet friction. Better to finish what's started than begin something new." },
+  { name: "Kshema",       value: 85, tag: "Strong",   blurb: "A well-being day — steady and safe, good for health, comfort, and consolidating what you already have." },
+  { name: "Pratyak",      value: 35, tag: "Low",      blurb: "A setback-natured day — minor delays are common. Patience serves you better than force today." },
+  { name: "Sadhana",      value: 88, tag: "Peak",     blurb: "An achievement-natured day — strong for effort that pays off, especially anything requiring focus." },
+  { name: "Naidhana",     value: 22, tag: "Low",      blurb: "A loss-natured day, the most cautious of the nine — avoid big risks and rest where you can." },
+  { name: "Mitra",        value: 78, tag: "Strong",   blurb: "A friendly-natured day — good for relationships, conversations, and asking for what you need." },
+  { name: "Parama Mitra", value: 92, tag: "Peak",     blurb: "The most favorable of the nine — a best-friend day, excellent for anything important to you." },
+];
+
+// Tara Bala: counts from the natal (janma) nakshatra to today's
+// transiting nakshatra, mod 9. Caller passes both indices — this
+// function does not call getMoonNakshatra itself, since that's a
+// browser-only global from engine.browser.js and rules.js also runs
+// in Node (module.exports, loaded by the test scripts).
+function generateTodayScore(natalNakshatraIdx, transitNakshatraIdx) {
+  const taraIdx = (((transitNakshatraIdx - natalNakshatraIdx) % 9) + 9) % 9;
+  const tara = TARA_INFO[taraIdx];
+  return { score: tara.value, bucket: tara.tag, taraName: tara.name, blurb: tara.blurb };
+}
+
+const DASHA_MAHA_THEME = {
+  Sun: "themes of identity, authority, and recognition",
+  Moon: "themes of emotional security, home, and instinct",
+  Mars: "themes of drive, courage, and decisive action",
+  Rahu: "themes of ambition, reinvention, and reaching past your comfort zone",
+  Jupiter: "themes of growth, wisdom, and expanding what already works",
+  Saturn: "themes of discipline, patience, and building things that last",
+  Mercury: "themes of communication, learning, and sharpening your thinking",
+  Ketu: "themes of release, introspection, and letting go of what no longer serves you",
+  Venus: "themes of relationships, beauty, and what you value",
+};
+
+const DASHA_ANTAR_FILTER = {
+  Sun: "filtered through confidence and visibility",
+  Moon: "filtered through mood and intuition",
+  Mars: "filtered through energy and momentum",
+  Rahu: "filtered through ambition and unconventional choices",
+  Jupiter: "filtered through optimism and opportunity",
+  Saturn: "filtered through caution and long-term thinking",
+  Mercury: "filtered through conversation and detail",
+  Ketu: "filtered through detachment and quiet reflection",
+  Venus: "filtered through relationships, money, and taste",
+};
+
+const DASHA_ANTAR_CLOSING = {
+  Sun: "Decisions that put you in the spotlight tend to hold.",
+  Moon: "Trust what feels emotionally right more than what looks right on paper.",
+  Mars: "Bold moves made now carry real momentum.",
+  Rahu: "Unconventional choices made now can pay off later.",
+  Jupiter: "Opportunities that show up now are worth taking seriously.",
+  Saturn: "Slow, steady progress now outlasts quick wins.",
+  Mercury: "Conversations and agreements made now tend to stick.",
+  Ketu: "Letting go of something now clears space for what's next.",
+  Venus: "Decisions about partnerships made now tend to hold.",
+};
+
+// Composed from 9+9+9 fragments rather than 81 bespoke sentences, so
+// every Mahadasha x Antardasha combination is specific and the
+// "Antardasha filters Mahadasha" relationship is structural, not
+// something 81 hand-written sentences would need to stay consistent
+// about by accident.
+function generateDashaNote(mahaLord, antarLord) {
+  const maha = DASHA_MAHA_THEME[mahaLord] || "a period of significant personal change";
+  const filter = DASHA_ANTAR_FILTER[antarLord] || "filtered through the current moment";
+  const closing = DASHA_ANTAR_CLOSING[antarLord] || "Pay attention to what feels different lately.";
+  return `You're in a ${mahaLord} period running through ${antarLord} — ${maha}, ${filter}. ${closing}`;
+}
+
 // ---------------- Palmistry — assisted / guided rule engine ----------------
 const PALM_QUESTIONS = [
   {
@@ -365,5 +437,5 @@ const COMMUNITY_SEED = [
 ];
 
 if (typeof module !== "undefined") {
-  module.exports = { SIGN_INFO, ELEMENT_PAIR, generateWeeklyHoroscope, generateLoveEnergy, PALM_QUESTIONS, PALM_RULES, generatePalmReport, dayOfYear, isoWeek, ASPECT_INFO, signDistance, aspectBetween, generateSynastry, generateYearAhead, ASTROLOGERS, classifyChatTopic, generateAstrologerReply, CHAT_GREETINGS, COMMUNITY_SEED };
+  module.exports = { SIGN_INFO, ELEMENT_PAIR, generateWeeklyHoroscope, generateLoveEnergy, generateTodayScore, generateDashaNote, PALM_QUESTIONS, PALM_RULES, generatePalmReport, dayOfYear, isoWeek, ASPECT_INFO, signDistance, aspectBetween, generateSynastry, generateYearAhead, ASTROLOGERS, classifyChatTopic, generateAstrologerReply, CHAT_GREETINGS, COMMUNITY_SEED };
 }
