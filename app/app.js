@@ -22,6 +22,7 @@ const state = {
   // purchased or been gifted, from user_entitlements — NOT overwritten by a
   // later purchase of a different tier the way the old unlocks table was.
   entitlements: { tiers: [] },
+  entitlementsLoadFailed: false,
   // Set right after a purchase/redemption completes so the immediate
   // post-purchase screen (#btn-success-continue, gift redemption) can route
   // by what was JUST bought instead of always assuming the full report.
@@ -222,6 +223,7 @@ async function loadUserDataFromBackend() {
   if (entitlementsRes.data) {
     state.entitlements.tiers = entitlementsRes.data.map(row => row.tier);
   }
+  state.entitlementsLoadFailed = !!entitlementsRes.error;
 }
 
 // Set by initAuth()'s password-recovery detection (below) BEFORE
@@ -405,6 +407,15 @@ function toast(msg) {
 
 function showScreen(id, opts) {
   opts = opts || {};
+  if (id === "screen-fullreport" && !hasFullReportAccess()) {
+    if (state.entitlementsLoadFailed) {
+      toast("Couldn't verify your access — please try again.");
+      showScreen("screen-dashboard", opts);
+      return;
+    }
+    showScreen("screen-report", opts);
+    return;
+  }
   $all(".screen").forEach(s => s.classList.remove("active"));
   const target = document.getElementById(id);
   if (target) target.classList.add("active");
@@ -944,7 +955,7 @@ function resetLocalSessionState() {
   Object.assign(state, {
     user: null, birth: { year: null, month: null, day: null, hour: 12, minute: 0, unknownTime: false, city: null },
     computed: { sunIdx: null, moonIdx: null, ascIdx: null, moonPhase: null }, palmAnswers: {}, palmReport: null,
-    entitlements: { tiers: [] }, lastPurchasedTier: null,
+    entitlements: { tiers: [] }, entitlementsLoadFailed: false, lastPurchasedTier: null,
     selectedTier: "onetime", payMethod: "upi", compatResult: null, compatPartnerCity: null,
     giftInProgress: null, lastGiftCode: null, giftTier: "bundle", sentGifts: [],
     chats: {}, activeChatId: null,
