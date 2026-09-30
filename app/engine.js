@@ -9,6 +9,12 @@ const D2R = Math.PI / 180, R2D = 180 / Math.PI;
 function norm360(x) { return ((x % 360) + 360) % 360; }
 function signIndexFromLongitude(lon) { return Math.floor(norm360(lon) / 30); }
 
+// The 27 lunar mansions, Ashwini first (0 deg sidereal Aries). Each spans
+// 360/27 = 13d20', split into 4 padas of 3d20'.
+const NAKSHATRAS = ["Ashwini","Bharani","Krittika","Rohini","Mrigashira","Ardra","Punarvasu","Pushya","Ashlesha","Magha","Purva Phalguni","Uttara Phalguni","Hasta","Chitra","Swati","Vishakha","Anuradha","Jyeshtha","Mula","Purva Ashadha","Uttara Ashadha","Shravana","Dhanishta","Shatabhisha","Purva Bhadrapada","Uttara Bhadrapada","Revati"];
+const NAKSHATRA_SPAN_DEG = 360 / 27;
+const PADA_SPAN_DEG = NAKSHATRA_SPAN_DEG / 4;
+
 // Lahiri (Chitra Paksha) ayanamsa — the standard reference traditional Indian/Vedic
 // astrology uses to convert the engine's raw tropical (Western) ecliptic longitudes
 // into sidereal longitudes. Modeled as a straight line anchored at J2000.0
@@ -99,9 +105,85 @@ function getSunSign(utcDate) {
   return signIndexFromLongitude(toSidereal(elon, utcDate));
 }
 
+// The Moon's sidereal (Lahiri) ecliptic longitude, 0-360. Single source for
+// getMoonSign() AND getMoonNakshatra(), so the two can never disagree.
+function getMoonSiderealLongitude(utcDate) {
+  return toSidereal(Astronomy.EclipticGeoMoon(utcDate).lon, utcDate);
+}
+
+// Pure lookup from a sidereal longitude. degreesIntoNakshatra (0-13.33) is
+// what a Vimshottari Dasha balance calculation needs next.
+function getNakshatraFromLongitude(siderealLonDeg) {
+  const lon = norm360(siderealLonDeg);
+  const index = Math.min(26, Math.floor(lon / NAKSHATRA_SPAN_DEG));
+  const degreesIntoNakshatra = lon - index * NAKSHATRA_SPAN_DEG;
+  const pada = Math.min(4, Math.floor(degreesIntoNakshatra / PADA_SPAN_DEG) + 1);
+  return { name: NAKSHATRAS[index], index, pada, degreesIntoNakshatra };
+}
+
+function getMoonNakshatra(utcDate) {
+  return getNakshatraFromLongitude(getMoonSiderealLongitude(utcDate));
+}
+
+// ---------------- Vimshottari Dasha ----------------
+// Fixed cyclical lord order and full period lengths (total 120 years). A
+// nakshatra's ruling lord is DASHA_LORDS[nakshatraIndex % 9]: Ashwini=Ketu,
+// Bharani=Venus, ... Ashlesha=Mercury, Magha=Ketu again.
+const DASHA_LORDS = [
+  { lord: "Ketu", years: 7 }, { lord: "Venus", years: 20 }, { lord: "Sun", years: 6 },
+  { lord: "Moon", years: 10 }, { lord: "Mars", years: 7 }, { lord: "Rahu", years: 18 },
+  { lord: "Jupiter", years: 16 }, { lord: "Saturn", years: 19 }, { lord: "Mercury", years: 17 },
+];
+const DASHA_TOTAL_YEARS = 120;
+const DASHA_MS_PER_YEAR = 365.25 * 24 * 3600 * 1000; // standard simplification
+
+// "Virtual start" method. The Mahadasha running at birth belongs to the birth
+// nakshatra's lord, and degreesIntoNakshatra / (360/27) of it has already
+// elapsed, so its start is back-projected to before birth. Mahadashas then run
+// forward from there at FULL length; the Antardasha cycle inside a Mahadasha
+// starts at that Mahadasha's own lord, each lasting
+// mahadashaYears * antardashaLordYears / 120.
+//
+// Returned start dates are clamped to birthDate for display (the virtual
+// start of the birth Mahadasha, and of any Antardasha inside it, can fall
+// before birth); the unclamped virtual dates drive all the maths. Windows are
+// [start, end). An asOfDate before birth is treated as the birth moment.
+function getVimshottariDasha(nakshatraIndex, degreesIntoNakshatra, birthDate, asOfDate = new Date()) {
+  const firstIdx = nakshatraIndex % 9;
+  const elapsedFraction = degreesIntoNakshatra / NAKSHATRA_SPAN_DEG;
+  const birthMs = birthDate.getTime();
+  const virtualStartMs = birthMs - elapsedFraction * DASHA_LORDS[firstIdx].years * DASHA_MS_PER_YEAR;
+  const targetMs = Math.max(asOfDate.getTime(), birthMs);
+  const shown = (ms) => new Date(Math.max(ms, birthMs));
+
+  let mdStartMs = virtualStartMs;
+  for (let step = 0; ; step++) {
+    const md = DASHA_LORDS[(firstIdx + step) % 9];
+    const mdEndMs = mdStartMs + md.years * DASHA_MS_PER_YEAR;
+    if (targetMs < mdEndMs) {
+      const mdIdx = (firstIdx + step) % 9;
+      let adStartMs = mdStartMs, antardasha = null;
+      for (let k = 0; k < 9; k++) {
+        const ad = DASHA_LORDS[(mdIdx + k) % 9];
+        const adEndMs = adStartMs + (md.years * ad.years / DASHA_TOTAL_YEARS) * DASHA_MS_PER_YEAR;
+        if (targetMs < adEndMs || k === 8) {
+          antardasha = { lord: ad.lord, start: shown(adStartMs), end: new Date(adEndMs) };
+          break;
+        }
+        adStartMs = adEndMs;
+      }
+      return {
+        mahadasha: { lord: md.lord, start: shown(mdStartMs), end: new Date(mdEndMs) },
+        antardasha,
+        balanceAtBirthYears: (1 - elapsedFraction) * DASHA_LORDS[firstIdx].years,
+      };
+    }
+    mdStartMs = mdEndMs;
+  }
+}
+
 function getMoonSign(utcDate) {
-  const lon = Astronomy.EclipticGeoMoon(utcDate).lon;
-  return signIndexFromLongitude(toSidereal(lon, utcDate));
+  return signIndexFromLongitude(getMoonSiderealLongitude(utcDate));
 }
 
 // Validated against sunrise = ascendant conjunct sun (see verification notes).
@@ -131,7 +213,7 @@ function getTransitingSign(body, utcDate) {
   return signIndexFromLongitude(toSidereal(elon, utcDate));
 }
 
-module.exports = { SIGNS, toUtcDate, toUtcDateTz, tzOffsetMinutesAt, getSunSign, getMoonSign, getAscendantSign, getMoonPhase, getTransitingSign, signIndexFromLongitude, getAyanamsa, toSidereal };
+module.exports = { SIGNS, toUtcDate, toUtcDateTz, tzOffsetMinutesAt, getSunSign, getMoonSign, getMoonSiderealLongitude, getNakshatraFromLongitude, getMoonNakshatra, NAKSHATRAS, getVimshottariDasha, DASHA_LORDS, getAscendantSign, getMoonPhase, getTransitingSign, signIndexFromLongitude, getAyanamsa, toSidereal };
 
 // ---- self-test when run directly ----
 if (require.main === module) {

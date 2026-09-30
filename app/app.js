@@ -12,7 +12,7 @@ const state = {
   user: null,
   authMode: "signup",
   birth: { year: null, month: null, day: null, hour: 12, minute: 0, unknownTime: false, city: null },
-  computed: { sunIdx: null, moonIdx: null, ascIdx: null, moonPhase: null },
+  computed: { sunIdx: null, moonIdx: null, ascIdx: null, moonPhase: null, moonNakshatra: null, venusIdx: null, marsIdx: null, dasha: null },
   palmAnswers: {},
   palmReport: null,
   // Replaces the old single `unlocked` boolean — see the hasTier()/
@@ -209,6 +209,7 @@ async function loadUserDataFromBackend() {
     state.computed.moonPhase = getMoonPhase(new Date()); // always "now" — never persisted
     if (state.birth.city) {
       state.computed.birthUtc = birthLocalToUtc(state.birth.city, { year: b.year, month: b.month, day: b.day, hour: b.hour, minute: b.minute });
+      computeExtraPlacements(state.computed.birthUtc);
     }
   }
 
@@ -890,6 +891,22 @@ function renderCityList() {
 }
 
 // ================= CHART CALCULATION =================
+// Placements derived from the birth moment that aren't persisted in
+// birth_data (no DB columns yet), so they're recomputed client-side from
+// birthUtc every time it's known — fresh calculation and login-restore alike.
+// moonNakshatra shares getMoonSiderealLongitude() with getMoonSign(), so the
+// two use the identical Lahiri value.
+function computeExtraPlacements(utc) {
+  state.computed.moonNakshatra = getMoonNakshatra(utc);
+  state.computed.dasha = getVimshottariDasha(state.computed.moonNakshatra.index, state.computed.moonNakshatra.degreesIntoNakshatra, utc, new Date());
+  state.computed.venusIdx = getTransitingSign(Astronomy.Body.Venus, utc);
+  state.computed.marsIdx = getTransitingSign(Astronomy.Body.Mars, utc);
+  console.log("[chart] birth placements",
+    { sun: SIGNS[state.computed.sunIdx], moon: SIGNS[state.computed.moonIdx],
+      moonNakshatra: state.computed.moonNakshatra, dasha: state.computed.dasha,
+      venus: SIGNS[state.computed.venusIdx], mars: SIGNS[state.computed.marsIdx] });
+}
+
 function runChartCalculation() {
   showScreen("screen-calculating", { silent: true });
   const statuses = [tr("calc.status.0"), tr("calc.status.1"), tr("calc.status.2"), state.birth.unknownTime ? tr("calc.status.3unknown") : tr("calc.status.3known"), tr("calc.status.4")];
@@ -908,6 +925,7 @@ function runChartCalculation() {
     state.computed.ascIdx = b.unknownTime ? null : getAscendantSign(utc, b.city.lat, b.city.lon);
     state.computed.moonPhase = getMoonPhase(new Date());
     state.computed.birthUtc = utc;
+    computeExtraPlacements(utc);
 
     const dbInstance = backendDb();
     if (dbInstance) {
@@ -954,7 +972,7 @@ function renderDashboard() {
 function resetLocalSessionState() {
   Object.assign(state, {
     user: null, birth: { year: null, month: null, day: null, hour: 12, minute: 0, unknownTime: false, city: null },
-    computed: { sunIdx: null, moonIdx: null, ascIdx: null, moonPhase: null }, palmAnswers: {}, palmReport: null,
+    computed: { sunIdx: null, moonIdx: null, ascIdx: null, moonPhase: null, moonNakshatra: null, venusIdx: null, marsIdx: null, dasha: null }, palmAnswers: {}, palmReport: null,
     entitlements: { tiers: [] }, entitlementsLoadFailed: false, lastPurchasedTier: null,
     selectedTier: "onetime", payMethod: "upi", compatResult: null, compatPartnerCity: null,
     giftInProgress: null, lastGiftCode: null, giftTier: "bundle", sentGifts: [],
