@@ -145,15 +145,14 @@ short version:
   migration and the Edge Functions are applied to the real Supabase
   project, and real Razorpay keys are in place as Edge Function secrets.
   Checkout on the live site works.
-  The live site is currently a few release builds behind `main`, though:
-  it's still running the `ac32bba` build, so a known double-click-on-Pay
-  bug (duplicate orders; fixed on `main`, not yet shipped) is likely still
-  live, and expert chat isn't reachable from the live site yet. Expert
-  chat's own backend (`backend/sql/009_expert_chat.sql`,
-  `backend/supabase/functions/create-expert-session-order/`,
-  `backend/supabase/functions/verify-expert-session-payment/`) is also
-  confirmed deployed, but the frontend release build that would expose it
-  on nakshatra.ind.in hasn't gone out — see "Deploying a change" above.
+  Expert chat is live on nakshatra.ind.in as of the 2026-10-01 release
+  build (`backend/sql/009_expert_chat.sql`,
+  `backend/supabase/functions/create-expert-session-order/` and
+  `verify-expert-session-payment/`). Its checkout uses the same live Razorpay
+  pair as reports once the `EXPERT_RAZORPAY_KEY_ID`/`_SECRET` test-key
+  secrets are removed (they are what put it in test mode during QA). The
+  double-click-on-Pay fix shipped in the same build. Still open: expert
+  staffing/presence, the consent flow and legal pages.
 - **Legal pages** — Privacy Policy and Terms of Service exist in-app
   (reachable from the landing page footer and Settings), with real contact
   details filled in, but are still an AI-drafted starting point — not yet

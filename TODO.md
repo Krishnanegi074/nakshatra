@@ -14,14 +14,15 @@ Last updated: 2026-10-01
   `create-expert-session-order`, `verify-expert-session-payment`) are
   deployed, and `razorpay_orders` exists in the Table Editor. `SETUP.md`'s
   "Real payments (Razorpay)" section was stale — corrected.
-- [ ] **Deploy today's bug fixes to the live site.** Since Razorpay is
-  confirmed live and taking real payments, the double-click-creates-
-  duplicate-charges bug fixed in today's QA pass is very likely still
-  active in production right now (`app/index.html` hasn't been rebuilt
-  since before this fix) — this is the top priority now, ahead of any
-  marketing push. Rebuild (`node build.js` from `app/`, confirm the beta
-  banner is off), review, then push live the same way the last release was
-  (see `ac32bba`'s approach / `deploy.sh`).
+- [x] **Deploy today's bug fixes to the live site** — full release build
+  from `main`, committed 2026-10-01: expert chat live for the first time,
+  Play Billing code (inert on web) and the 8 QA fixes including the
+  double-click-Pay duplicate-order fix. Expert functions switch from test
+  to live Razorpay keys by deleting `EXPERT_RAZORPAY_KEY_ID`/`_SECRET`.
+- [ ] Take down the private-beta page `/beta-596f52e8ed16/` (and point the
+  `~/Documents/nakshatra-app` wrapper back to `/app/`) now that beta is over;
+  once the expert keys are live, the beta page would charge real money for
+  expert sessions. Delete beta accounts with `backend/scripts/beta-cleanup.js`.
 
 - [x] Card redesign, engine additions (Moon Nakshatra/Pada/Dasha), the full
   reading screen (Today score, Current Dasha, Year Ahead, Compatibility),
