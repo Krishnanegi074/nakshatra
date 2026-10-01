@@ -112,11 +112,17 @@ Deno.serve(async (req: Request) => {
     // client (not userClient) purely so this works the same regardless of
     // whether experts_public's grant to `authenticated` is in place; the
     // real access boundary this function relies on is
-    // complete_expert_session_order()'s own lock, not this check.
+    // complete_expert_session_order()'s own lock, not this check. The
+    // last_seen_at staleness filter mirrors that function's own matching
+    // query (014_expert_presence.sql) so a dead dashboard tab is rejected
+    // here, before Razorpay checkout even opens, instead of only being
+    // caught later at payment-verification time.
     const { data: onlineExperts, error: onlineErr } = await adminClient
       .from("experts")
       .select("id")
-      .eq("is_online", true);
+      .eq("is_online", true)
+      .not("last_seen_at", "is", null)
+      .gte("last_seen_at", new Date(Date.now() - 2 * 60 * 1000).toISOString());
     if (onlineErr) {
       console.error("Failed to check online experts:", onlineErr);
       return json({ error: "Something went wrong — please try again." }, 500);

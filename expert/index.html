@@ -219,6 +219,7 @@ let activeSessionId = null;
 let queueChannel = null;
 let messagesChannel = null;
 let openSessionSeq = 0;   // bumped per openSession() so a stale timer can't redraw over a newer one
+let heartbeatInterval = null; // 014_expert_presence.sql's last_seen_at pinger, see startHeartbeat()
 
 function showScreen(id) {
   $("#screen-login").classList.toggle("hidden", id !== "login");
@@ -277,11 +278,13 @@ async function afterSignedIn() {
   renderOnlineToggle();
   showScreen("dashboard");
   startQueueRealtime();
+  if (me.is_online) startHeartbeat(); // resume pinging after a page reload while already online
 }
 
 async function signOut() {
   stopQueueRealtime();
   stopMessagesRealtime();
+  stopHeartbeat();
   await sb.auth.signOut();
   me = null;
   sessions = [];
@@ -298,12 +301,43 @@ function renderOnlineToggle() {
   $("#online-status-label").className = "status-label " + (me.is_online ? "on" : "off");
 }
 
+// Heartbeat: while online, pings last_seen_at every 30s so the matching
+// logic (complete_expert_session_order() in 014_expert_presence.sql) can
+// tell a live dashboard apart from a dead tab/closed laptop. The server
+// side's 2-minute staleness threshold gives ~4 missed beats of tolerance
+// for a rough network before this expert quietly stops being matched to
+// new customers — no manual recovery needed, it resumes the moment this
+// page is reconnected and heartbeating again.
+const HEARTBEAT_MS = 30000;
+
+async function sendHeartbeat() {
+  if (!me || !me.is_online) return;
+  const { error } = await sb.from("experts").update({ last_seen_at: new Date().toISOString() }).eq("id", me.id);
+  if (error) console.error("Heartbeat failed:", error);
+}
+
+function startHeartbeat() {
+  stopHeartbeat();
+  sendHeartbeat(); // fire immediately — don't wait a full 30s for the first beat
+  heartbeatInterval = setInterval(sendHeartbeat, HEARTBEAT_MS);
+}
+
+function stopHeartbeat() {
+  if (heartbeatInterval) { clearInterval(heartbeatInterval); heartbeatInterval = null; }
+}
+
 async function toggleOnline() {
   const next = !me.is_online;
-  const { error } = await sb.from("experts").update({ is_online: next }).eq("id", me.id);
+  // Going online always stamps a fresh last_seen_at in the same update as
+  // is_online, so there's no gap where is_online is true but the heartbeat
+  // hasn't landed yet — the matching check would otherwise treat that
+  // instant as stale.
+  const payload = next ? { is_online: true, last_seen_at: new Date().toISOString() } : { is_online: false };
+  const { error } = await sb.from("experts").update(payload).eq("id", me.id);
   if (error) { alert("Couldn't update your status — please try again."); return; }
   me.is_online = next;
   renderOnlineToggle();
+  if (next) startHeartbeat(); else stopHeartbeat();
 }
 
 // ================= QUEUE =================
