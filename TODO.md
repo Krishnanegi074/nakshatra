@@ -19,10 +19,17 @@ Last updated: 2026-10-01
   Play Billing code (inert on web) and the 8 QA fixes including the
   double-click-Pay duplicate-order fix. Expert functions switch from test
   to live Razorpay keys by deleting `EXPERT_RAZORPAY_KEY_ID`/`_SECRET`.
-- [ ] Take down the private-beta page `/beta-596f52e8ed16/` (and point the
-  `~/Documents/nakshatra-app` wrapper back to `/app/`) now that beta is over;
-  once the expert keys are live, the beta page would charge real money for
-  expert sessions. Delete beta accounts with `backend/scripts/beta-cleanup.js`.
+- [x] ~~Take down the private-beta page `/beta-596f52e8ed16/` (and point
+  the `~/Documents/nakshatra-app` wrapper back to `/app/`)~~ — done 2026-10-01:
+  beta folder removed from the live site in commit `73a42fb` (now 404s), and
+  the wrapper's `capacitor.config.json` points to `https://nakshatra.ind.in/app/`.
+  Rebuilt with `npx cap sync android && ./gradlew clean assembleDebug` —
+  working APK at `~/Desktop/nakshatra-app-live.apk` (debug build, loads the
+  live app). It has no purchase plugin installed, so Play Billing shows
+  "payments aren't available in this build" rather than taking real money —
+  fine for a test wrapper, but means it can't be used to test real purchases.
+- [ ] Delete stale beta signups with `backend/scripts/beta-cleanup.js --since
+  2026-09-30 --keep krishnanegi074@gmail.com` — run as a dry run first.
 
 - [x] Card redesign, engine additions (Moon Nakshatra/Pada/Dasha), the full
   reading screen (Today score, Current Dasha, Year Ahead, Compatibility),
