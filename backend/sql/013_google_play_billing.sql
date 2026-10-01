@@ -144,7 +144,17 @@ $$;
 comment on function public.complete_play_report_purchase(uuid, text, text, text, int) is
   'Credits a Google-Play-verified report purchase. Callable ONLY via the service_role key from supabase/functions/verify-play-report-purchase/index.ts, AFTER it independently confirms the purchase token with the Google Play Developer API — deliberately NOT granted to authenticated.';
 
-revoke execute on function public.complete_play_report_purchase(uuid, text, text, text, int) from public;
+revoke execute on function public.complete_play_report_purchase(uuid, text, text, text, int) from public, anon, authenticated;
+-- Same gotcha 012_lock_down_functions.sql fixed for the Razorpay-era
+-- functions: Supabase grants EXECUTE on new public-schema functions to
+-- anon/authenticated explicitly at creation time, separately from the
+-- PUBLIC pseudo-role — revoking only "from public" does not remove those.
+-- This function takes p_user_id as a plain parameter and trusts its caller
+-- entirely (by design — the Google-verification already happened in the
+-- edge function), so leaving it reachable by authenticated would let any
+-- signed-in user credit an arbitrary purchase to any user id. Only
+-- service_role may ever call it.
+grant execute on function public.complete_play_report_purchase(uuid, text, text, text, int) to service_role;
 
 -- ---------------------------------------------------------------------------
 -- complete_play_expert_session_order(): the Play-Billing twin of
@@ -224,7 +234,9 @@ $$;
 comment on function public.complete_play_expert_session_order(uuid, text, text, int) is
   'Credits a Google-Play-verified expert-chat session. Callable ONLY via the service_role key from supabase/functions/verify-play-expert-session-purchase/index.ts, AFTER it independently confirms the purchase token with the Google Play Developer API — deliberately NOT granted to authenticated.';
 
-revoke execute on function public.complete_play_expert_session_order(uuid, text, text, int) from public;
+revoke execute on function public.complete_play_expert_session_order(uuid, text, text, int) from public, anon, authenticated;
+-- Same reasoning as complete_play_report_purchase() above.
+grant execute on function public.complete_play_expert_session_order(uuid, text, text, int) to service_role;
 
 -- ----------------------------------------------------------------------------
 -- IMPORTANT — same caveat every prior payments migration in this folder
