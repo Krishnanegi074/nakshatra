@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nakshatra — Expert Dashboard</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+/* Same palette as the consumer app (app/app.css) for visual consistency —
+   this page is deliberately its own small, self-contained stylesheet
+   rather than pulling in that whole file, since the dashboard's layout
+   (a desktop-first two-pane queue+chat view, no bottom nav, no onboarding
+   screens, etc.) has nothing in common with it structurally. */
+:root {
+  --navy-0: #0d0820; --navy-1: #1b1032;
+  --gold: #c9a15f; --gold-bright: #e8c687;
+  --text: #f3eefb; --text-dim: #b6acc9; --text-faint: #8478a0;
+  --surface: rgba(255,255,255,0.06); --surface-2: rgba(255,255,255,0.10);
+  --border: rgba(232,198,135,0.18);
+  --success: #74d6a3; --danger: #ef7f7f;
+  --radius: 14px; --radius-sm: 10px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: linear-gradient(180deg, var(--navy-0) 0%, var(--navy-1) 100%);
+  color: var(--text);
+  font-family: 'Poppins', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+}
+h1, h2, h3 { font-family: 'Cinzel', Georgia, serif; margin: 0 0 6px; letter-spacing: 0.02em; }
+p { margin: 0 0 10px; line-height: 1.5; color: var(--text-dim); }
+button { font-family: inherit; cursor: pointer; }
+.muted { color: var(--text-faint); font-size: 0.85rem; }
+.hidden { display: none !important; }
+
+/* ---------- Login screen ---------- */
+#screen-login {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.login-card {
+  width: 100%; max-width: 360px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 28px;
+}
+.field { margin-bottom: 14px; }
+.field label { display: block; font-size: 0.8rem; color: var(--text-dim); margin-bottom: 5px; }
+.field input {
+  width: 100%; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+  background: rgba(0,0,0,0.25); color: var(--text); font-size: 0.95rem;
+}
+.field input:focus { outline: none; border-color: var(--gold); }
+.btn {
+  border: none; border-radius: var(--radius-sm); padding: 11px 16px; font-weight: 600;
+  font-size: 0.92rem; width: 100%;
+}
+.btn-primary { background: linear-gradient(135deg, var(--gold-bright), var(--gold)); color: #2a1b0a; }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-ghost { background: transparent; color: var(--gold-bright); border: 1px solid var(--border); }
+.error-line { color: var(--danger); font-size: 0.85rem; margin: 10px 0 0; min-height: 1.2em; }
+
+/* ---------- Dashboard shell ---------- */
+#screen-dashboard { display: flex; flex-direction: column; min-height: 100vh; }
+.topbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 14px 20px; border-bottom: 1px solid var(--border); background: rgba(0,0,0,0.15);
+}
+.topbar-identity { display: flex; align-items: center; gap: 10px; }
+.online-toggle { display: flex; align-items: center; gap: 8px; }
+.switch {
+  position: relative; width: 44px; height: 24px; border-radius: 999px; border: 1px solid var(--border);
+  background: var(--surface-2); cursor: pointer;
+}
+.switch.on { background: var(--success); border-color: var(--success); }
+.switch::after {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%;
+  background: #fff; transition: left 0.15s;
+}
+.switch.on::after { left: 22px; }
+.status-label { font-size: 0.85rem; font-weight: 600; }
+.status-label.on { color: var(--success); }
+.status-label.off { color: var(--text-faint); }
+
+.dash-body { flex: 1; display: flex; min-height: 0; }
+.queue-pane {
+  width: 300px; flex-shrink: 0; border-right: 1px solid var(--border); overflow-y: auto; padding: 14px;
+}
+.queue-pane h2 { font-size: 0.95rem; }
+.queue-item {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 12px; margin-bottom: 8px; cursor: pointer;
+}
+.queue-item:hover { background: var(--surface-2); }
+.queue-item.active-selected { border-color: var(--gold); background: rgba(201,161,95,0.12); }
+.queue-item strong { display: block; font-size: 0.88rem; }
+.queue-empty { padding: 20px 4px; }
+
+.chat-pane { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.chat-pane-empty {
+  flex: 1; display: flex; align-items: center; justify-content: center; color: var(--text-faint);
+  text-align: center; padding: 20px;
+}
+.chat-header {
+  display: flex; align-items: center; justify-content: space-between; padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.chat-messages { flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 8px; }
+.chat-bubble {
+  max-width: 70%; padding: 9px 13px; border-radius: 14px; font-size: 0.92rem; line-height: 1.4;
+}
+.chat-bubble.user { align-self: flex-start; background: var(--surface-2); border: 1px solid var(--border); }
+.chat-bubble.astro {
+  align-self: flex-end; background: linear-gradient(135deg, var(--gold-bright), var(--gold)); color: #2a1b0a;
+}
+.chat-input-row { display: flex; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--border); }
+.chat-input-row input {
+  flex: 1; padding: 10px 14px; border-radius: 999px; border: 1px solid var(--border);
+  background: rgba(0,0,0,0.25); color: var(--text); font-size: 0.92rem;
+}
+.chat-input-row input:focus { outline: none; border-color: var(--gold); }
+.btn-send {
+  border: none; border-radius: 999px; padding: 10px 18px; font-weight: 600;
+  background: linear-gradient(135deg, var(--gold-bright), var(--gold)); color: #2a1b0a;
+}
+.btn-end-session {
+  background: transparent; border: 1px solid var(--danger); color: var(--danger);
+  border-radius: var(--radius-sm); padding: 6px 12px; font-size: 0.8rem;
+}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<section id="screen-login">
+  <div class="login-card">
+    <h1 style="font-size:1.3rem">Nakshatra</h1>
+    <p class="muted" style="margin-bottom:18px">Expert dashboard — sign in</p>
+    <div class="field"><label for="login-email">Email</label><input type="email" id="login-email" autocomplete="username"></div>
+    <div class="field"><label for="login-password">Password</label><input type="password" id="login-password" autocomplete="current-password"></div>
+    <button class="btn btn-primary" id="btn-login-submit">Sign In</button>
+    <p class="error-line" id="login-error"></p>
+  </div>
+</section>
+
+<!-- ============ DASHBOARD ============ -->
+<section id="screen-dashboard" class="hidden">
+  <div class="topbar">
+    <div class="topbar-identity">
+      <div>
+        <strong id="dash-expert-name" style="font-size:0.95rem"></strong>
+        <div class="muted" id="dash-expert-specialty"></div>
+      </div>
+    </div>
+    <div class="online-toggle">
+      <span class="status-label off" id="online-status-label">Offline</span>
+      <div class="switch" id="online-toggle-switch" role="button" tabindex="0" aria-label="Toggle online status"></div>
+      <button class="btn-ghost" id="btn-signout" style="width:auto;padding:6px 12px;font-size:0.8rem;margin-left:14px">Sign Out</button>
+    </div>
+  </div>
+
+  <div class="dash-body">
+    <div class="queue-pane">
+      <h2>Incoming sessions</h2>
+      <div id="queue-list"><p class="muted queue-empty">No active sessions right now.</p></div>
+    </div>
+
+    <div class="chat-pane">
+      <div class="chat-pane-empty" id="chat-empty-state">
+        <div>
+          <p style="margin-bottom:4px">Select a session from the queue</p>
+          <p class="muted" style="margin:0">Replies you send here go straight to the customer.</p>
+        </div>
+      </div>
+      <div id="chat-active" class="hidden" style="flex:1;display:flex;flex-direction:column;min-height:0">
+        <div class="chat-header">
+          <div>
+            <strong id="chat-session-label" style="font-size:0.9rem"></strong>
+            <div class="muted" id="chat-session-started"></div>
+          </div>
+          <button class="btn-end-session" id="btn-end-session">End Session</button>
+        </div>
+        <div class="chat-messages" id="chat-messages"></div>
+        <div class="chat-input-row">
+          <input type="text" id="chat-input" placeholder="Type a reply...">
+          <button class="btn-send" id="btn-chat-send">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+// ============================================================================
+// Nakshatra — expert dashboard. Deliberately its own small script, not a
+// slice of app/app.js — this page's whole job (sign in, toggle online,
+// work a queue, reply in a chat pane) shares almost no state or screens
+// with the consumer app's giant state machine, so bolting it onto that
+// file would only add coupling for no benefit.
+//
+// Login gate, online/offline toggle, queue, chat reply — live via Supabase
+// Realtime (Phase 4 of the build plan; Phase 2 originally shipped this on
+// plain polling, since replaced everywhere below).
+//
+// Same Supabase project as the consumer app (app/supabase-client.js) —
+// same database, same Auth, just a different login surface and a
+// different set of tables this account is allowed to touch (see
+// backend/sql/009_expert_chat.sql's RLS policies).
+// ============================================================================
+const SUPABASE_URL = "https://xinelwrxgveztrtokwbt.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_TCpwYsH_r77QM7kRkdBLrw_BPW26GHs";
+// (Named `sb`, not `supabase`: the CDN bundle already defines a global `supabase`, and a top-level const of the same name is a SyntaxError.)
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const $ = (sel) => document.querySelector(sel);
+
+let me = null;              // { id, name, specialty, is_online }
+let sessions = [];           // this expert's active chat_sessions
+let activeSessionId = null;
+let queueChannel = null;
+let messagesChannel = null;
+let openSessionSeq = 0;   // bumped per openSession() so a stale timer can't redraw over a newer one
+
+function showScreen(id) {
+  $("#screen-login").classList.toggle("hidden", id !== "login");
+  $("#screen-dashboard").classList.toggle("hidden", id !== "dashboard");
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+// ================= AUTH =================
+async function attemptLogin() {
+  const email = $("#login-email").value.trim();
+  const password = $("#login-password").value;
+  const errEl = $("#login-error");
+  const btn = $("#btn-login-submit");
+  errEl.textContent = "";
+  if (!email || !password) { errEl.textContent = "Enter your email and password."; return; }
+
+  btn.disabled = true;
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if (error || !data.session) {
+    btn.disabled = false;
+    errEl.textContent = "Incorrect email or password.";
+    return;
+  }
+  await afterSignedIn();
+  btn.disabled = false;
+}
+
+// Runs on both a fresh login and a resumed (page-reload) session. The
+// access gate lives entirely here: being a valid Supabase Auth user is not
+// enough — this account also needs a row in public.experts, which nothing
+// in this app lets a client create for itself (see 009_expert_chat.sql's
+// table comment). No row means "not an expert account", full stop, even
+// though the sign-in itself succeeded.
+async function afterSignedIn() {
+  // No .eq("id", ...) needed — experts_select_own's RLS (id = auth.uid())
+  // already scopes this to exactly the signed-in account's own row, the
+  // same way app/supabase-client.js's own queries lean on RLS rather than
+  // re-filtering by the caller's id client-side.
+  const { data: expertRow, error } = await sb
+    .from("experts")
+    .select("id, name, specialty, is_online")
+    .maybeSingle();
+
+  if (error || !expertRow) {
+    $("#login-error").textContent = "This account isn't set up as an expert. Contact the site admin.";
+    await sb.auth.signOut();
+    return;
+  }
+
+  me = expertRow;
+  $("#dash-expert-name").textContent = me.name;
+  $("#dash-expert-specialty").textContent = me.specialty;
+  renderOnlineToggle();
+  showScreen("dashboard");
+  startQueueRealtime();
+}
+
+async function signOut() {
+  stopQueueRealtime();
+  stopMessagesRealtime();
+  await sb.auth.signOut();
+  me = null;
+  sessions = [];
+  activeSessionId = null;
+  $("#login-email").value = "";
+  $("#login-password").value = "";
+  showScreen("login");
+}
+
+// ================= ONLINE TOGGLE =================
+function renderOnlineToggle() {
+  $("#online-toggle-switch").classList.toggle("on", !!me.is_online);
+  $("#online-status-label").textContent = me.is_online ? "Online" : "Offline";
+  $("#online-status-label").className = "status-label " + (me.is_online ? "on" : "off");
+}
+
+async function toggleOnline() {
+  const next = !me.is_online;
+  const { error } = await sb.from("experts").update({ is_online: next }).eq("id", me.id);
+  if (error) { alert("Couldn't update your status — please try again."); return; }
+  me.is_online = next;
+  renderOnlineToggle();
+}
+
+// ================= QUEUE =================
+// Realtime, not polling (Phase 4 of the build plan). One-time fetch to
+// populate the current state, then a channel subscription for everything
+// after — postgres_changes only delivers CHANGES from the moment of
+// subscribing, never a backlog, so the initial fetch still has to happen.
+//
+// No RLS policy changes were needed for this — chat_sessions_select_expert
+// (`expert_id = auth.uid()`, sql/009_expert_chat.sql) is exactly what
+// Realtime's own authorization check against postgres_changes needs: it
+// evaluates the SAME select policy against the (new) row before deciding
+// whether to deliver the event to this subscriber, so scoping "only this
+// expert's own sessions" was already correct before Realtime was ever
+// wired up — the filter below is a server-side optimization (don't even
+// evaluate rows for other experts), not what actually keeps this private.
+function startQueueRealtime() {
+  refreshQueue();
+  stopQueueRealtime();
+  queueChannel = sb
+    .channel("expert-queue-" + me.id)
+    .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_sessions", filter: `expert_id=eq.${me.id}` }, handleQueueInsert)
+    .on("postgres_changes", { event: "UPDATE", schema: "public", table: "chat_sessions", filter: `expert_id=eq.${me.id}` }, handleQueueUpdate)
+    .subscribe();
+}
+function stopQueueRealtime() {
+  if (queueChannel) { sb.removeChannel(queueChannel); queueChannel = null; }
+}
+
+// A new session got assigned to this expert — complete_expert_session_
+// order() (sql/009_expert_chat.sql) only ever creates one with status=
+// 'active', so no status check needed here the way handleQueueUpdate below
+// needs one.
+async function handleQueueInsert(payload) {
+  const row = payload.new;
+  if (sessions.some(s => s.id === row.id)) return; // already have it somehow — no-op
+  sessions.push({ id: row.id, user_id: row.user_id, created_at: row.created_at });
+  sessions.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  // expert_customer_names is a VIEW (sql/010_expert_customer_name.sql), not
+  // a table — Realtime's postgres_changes only watches actual tables (it
+  // reads the WAL, which has no notion of a view), so there's no realtime
+  // event for it to piggyback on. One small on-demand fetch per new
+  // session instead of re-querying the whole view on every change.
+  const { data: nameRow } = await sb.from("expert_customer_names").select("customer_name").eq("session_id", row.id).maybeSingle();
+  if (nameRow) customerNames[row.id] = nameRow.customer_name;
+  renderQueue();
+}
+
+// Covers a session ending — most commonly the customer ending it (this
+// expert ending it themselves also flows through here, from
+// endActiveSession()'s own UPDATE below, rather than that function
+// touching `sessions`/renderQueue() directly — one code path for "a
+// session of mine just ended," regardless of who ended it).
+function handleQueueUpdate(payload) {
+  const row = payload.new;
+  if (row.status === "ended") {
+    sessions = sessions.filter(s => s.id !== row.id);
+    if (activeSessionId === row.id) stopMessagesRealtime();
+  } else {
+    const existing = sessions.find(s => s.id === row.id);
+    if (existing) Object.assign(existing, row);
+  }
+  renderQueue();
+}
+
+// session_id -> customer name, from expert_customer_names (010_expert_
+// customer_name.sql) — populated by refreshQueue()'s initial load and
+// handleQueueInsert() per new session after that (see its own comment on
+// why: the view itself has no realtime channel to subscribe to).
+let customerNames = {};
+
+async function refreshQueue() {
+  const { data, error } = await sb
+    .from("chat_sessions")
+    .select("id, user_id, created_at")
+    .eq("status", "active")
+    .order("created_at", { ascending: true });
+  if (error) return; // transient network hiccup — the realtime subscription that follows this call is still the ongoing source of truth
+  sessions = data || [];
+
+  const { data: names } = await sb.from("expert_customer_names").select("session_id, customer_name");
+  customerNames = {};
+  (names || []).forEach(n => { customerNames[n.session_id] = n.customer_name; });
+
+  renderQueue();
+}
+
+function renderQueue() {
+  const box = $("#queue-list");
+  if (!sessions.length) {
+    box.innerHTML = `<p class="muted queue-empty">No active sessions right now.</p>`;
+    return;
+  }
+  box.innerHTML = sessions.map(s => `
+    <div class="queue-item ${s.id === activeSessionId ? "active-selected" : ""}" data-session="${s.id}">
+      <strong>${escapeHtml(customerLabel(s.id))}</strong>
+      <span class="muted">Started ${new Date(s.created_at).toLocaleTimeString()}</span>
+    </div>
+  `).join("");
+}
+
+// Returns the RAW name (or fallback), deliberately unescaped — callers
+// decide how to render it: escapeHtml() when going into innerHTML (as
+// renderQueue does above), plain when going into .textContent (as
+// openSession does below, which escapes on its own). Escaping here too
+// would double-escape the .textContent path, showing literal "&#39;"
+// instead of an apostrophe for a name like O'Brien.
+//
+// Falls back to a short, distinguishing id only in the brief window before
+// customerNames has loaded (or if the lookup somehow comes back empty) —
+// not a permanent state, unlike before this file existed.
+function customerLabel(sessionId) {
+  const name = customerNames[sessionId];
+  if (name) return name;
+  const s = sessions.find(x => x.id === sessionId);
+  return "Customer #" + (s ? s.user_id.slice(0, 8) : "?");
+}
+
+// ================= CHAT =================
+// Same one-time-fetch-then-subscribe approach as the queue above, but
+// messages arrive via Broadcast-from-Database on the private topic
+// "session:<id>" (backend/sql/011_chat_broadcast.sql), not postgres_changes
+// — Realtime couldn't evaluate chat_messages_session_participants' subquery,
+// so postgres_changes delivered nothing. Access to the topic is enforced by
+// an RLS policy on realtime.messages (only this session's customer/expert).
+async function openSession(sessionId) {
+  activeSessionId = sessionId;
+  renderQueue(); // re-render to highlight the selected item
+  stopMessagesRealtime();
+
+  $("#chat-empty-state").classList.add("hidden");
+  $("#chat-active").classList.remove("hidden");
+  const s = sessions.find(x => x.id === sessionId);
+  $("#chat-session-label").textContent = customerLabel(sessionId);
+  $("#chat-session-started").textContent = s ? "Started " + new Date(s.created_at).toLocaleString() : "";
+
+  // WHY THIS IS SHAPED THE WAY IT IS (same reasoning as openExpertSession()
+  // in app.js): live messages only reach a subscriber some time after the
+  // channel reports SUBSCRIBED, and history is a one-time read, so a message
+  // inserted around opening a session can fall between the two. Keep ONE map
+  // of every message known (by id), fed by history reads and live events, and
+  // re-read history when the channel joins, again shortly after, and again
+  // whenever it re-joins after a disconnect.
+  // Private channels need the JWT on the Realtime socket before joining.
+  await sb.realtime.setAuth();
+  if (activeSessionId !== sessionId) return; // switched sessions while awaiting
+  const seq = ++openSessionSeq;
+  const isCurrent = () => seq === openSessionSeq && activeSessionId === sessionId;
+  const known = new Map();
+  let drawn = false;
+  const byTime = (x, y) => (Date.parse(x.created_at) - Date.parse(y.created_at)) || (x.id < y.id ? -1 : 1);
+  const redraw = () => { renderMessages([...known.values()].sort(byTime)); drawn = true; };
+  const learn = (rows) => { let added = false; rows.forEach((m) => { if (m && m.id && !known.has(m.id)) { known.set(m.id, m); added = true; } }); return added; };
+  const syncHistory = async () => {
+    const rows = await fetchMessages(sessionId);
+    if (!isCurrent() || !rows) return;
+    if (learn(rows) || !drawn) redraw();
+  };
+  messagesChannel = sb
+    .channel("session:" + sessionId, { config: { private: true } })
+    .on("broadcast", { event: "INSERT" }, (msg) => {
+      // Guards a slow event arriving after the expert already switched to
+      // a different session (or closed this one) — same idea as app.js's
+      // equivalent check on the customer side.
+      const m = msg.payload.record;
+      if (!isCurrent() || !m || !m.id || known.has(m.id)) return;
+      const isNewest = ![...known.values()].some((k) => byTime(k, m) > 0);
+      known.set(m.id, m);
+      if (!drawn) return; // the first history read draws everything
+      if (isNewest) appendMessage(m); else redraw();
+    })
+    .subscribe((status) => {
+      if (status === "SUBSCRIBED") { syncHistory(); setTimeout(syncHistory, 1500); setTimeout(syncHistory, 5000); }
+    });
+  // A channel that never joins must not leave the chat blank.
+  setTimeout(() => { if (isCurrent() && !drawn) syncHistory(); }, 4000);
+}
+
+function stopMessagesRealtime() {
+  if (messagesChannel) { sb.removeChannel(messagesChannel); messagesChannel = null; }
+}
+
+async function fetchMessages(sessionId) {
+  const { data, error } = await sb
+    .from("chat_messages")
+    .select("id, sender, text, created_at")
+    .eq("session_id", sessionId)
+    .order("created_at", { ascending: true });
+  return error ? null : (data || []);
+}
+
+function renderMessages(messages) {
+  const box = $("#chat-messages");
+  box.innerHTML = messages.map(m =>
+    `<div class="chat-bubble ${m.sender === "astro" ? "astro" : "user"}">${escapeHtml(m.text)}</div>`
+  ).join("");
+  box.scrollTop = box.scrollHeight;
+}
+
+// Appends ONE message without re-rendering the whole list — this is what
+// both a customer's incoming message AND this expert's own just-sent reply
+// (see sendReply() below, which no longer renders anything itself) arrive
+// through, via the realtime subscription above.
+function appendMessage(m) {
+  const box = $("#chat-messages");
+  const wasNearBottom = box.scrollTop + box.clientHeight >= box.scrollHeight - 20;
+  const bubble = document.createElement("div");
+  bubble.className = "chat-bubble " + (m.sender === "astro" ? "astro" : "user");
+  bubble.textContent = m.text;
+  box.appendChild(bubble);
+  if (wasNearBottom) box.scrollTop = box.scrollHeight;
+}
+
+async function sendReply() {
+  const input = $("#chat-input");
+  const text = input.value.trim();
+  if (!text || !activeSessionId) return;
+  const s = sessions.find(x => x.id === activeSessionId);
+  if (!s) return;
+  input.value = "";
+  input.disabled = true;
+  // user_id here MUST be the session's customer (not this expert's own
+  // id) — chat_messages_session_participants' WITH CHECK (009_expert_
+  // chat.sql) requires it to match chat_sessions.user_id exactly, same
+  // "whose conversation" convention the demo chat already uses.
+  //
+  // No local render here, deliberately — the realtime subscription in
+  // openSession() above renders this same insert once it comes back
+  // through, the same path a customer's message takes. Rendering it here
+  // too would double it up.
+  const { error } = await sb
+    .from("chat_messages")
+    .insert({ user_id: s.user_id, session_id: activeSessionId, sender: "astro", text });
+  input.disabled = false;
+  if (error) { alert("Couldn't send — please try again."); input.value = text; return; }
+}
+
+async function endActiveSession() {
+  if (!activeSessionId) return;
+  if (!confirm("End this session?")) return;
+  const { error } = await sb
+    .from("chat_sessions")
+    .update({ status: "ended", ended_at: new Date().toISOString() })
+    .eq("id", activeSessionId);
+  if (error) { alert("Couldn't end the session — please try again."); return; }
+  // No manual `sessions`/renderQueue() cleanup here — this UPDATE flows
+  // back through handleQueueUpdate() above (this expert is subscribed to
+  // their own chat_sessions changes same as any other), which is what
+  // actually removes it from the queue. One code path for "a session of
+  // mine ended," regardless of who ended it.
+  stopMessagesRealtime();
+  activeSessionId = null;
+  $("#chat-active").classList.add("hidden");
+  $("#chat-empty-state").classList.remove("hidden");
+}
+
+// ================= WIRING =================
+document.addEventListener("DOMContentLoaded", () => {
+  $("#btn-login-submit").addEventListener("click", attemptLogin);
+  $("#login-password").addEventListener("keydown", (e) => { if (e.key === "Enter") attemptLogin(); });
+  $("#btn-signout").addEventListener("click", signOut);
+  $("#online-toggle-switch").addEventListener("click", toggleOnline);
+  $("#online-toggle-switch").addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleOnline(); } });
+  $("#queue-list").addEventListener("click", (e) => {
+    const item = e.target.closest("[data-session]");
+    if (item) openSession(item.dataset.session);
+  });
+  $("#btn-chat-send").addEventListener("click", sendReply);
+  $("#chat-input").addEventListener("keydown", (e) => { if (e.key === "Enter") sendReply(); });
+  $("#btn-end-session").addEventListener("click", endActiveSession);
+
+  // Resume an already-signed-in expert on page reload, same idea as the
+  // consumer app's bootstrapSession() in app/app.js.
+  sb.auth.getSession().then(({ data }) => {
+    if (data.session) afterSignedIn();
+  });
+});
+</script>
+</body>
+</html>

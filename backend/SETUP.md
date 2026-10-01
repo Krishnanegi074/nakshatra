@@ -346,12 +346,18 @@ gateway is actually wired up, before real users rely on what they say.
 
 ## Real payments (Razorpay) — replaces the test-mode checkout
 
-The app's checkout now goes through a real Razorpay integration instead of
-`record_test_purchase()`. Three pieces make this work, and **all three need
-to actually be deployed to your real Supabase + Razorpay accounts** before
-checkout on the live site will work — right now the live frontend already
-calls Edge Functions that don't exist yet on the backend, so clicking Pay
-will fail until this is done:
+**Status: deployed and confirmed live (2026-10-01)** — all 4 Edge Functions
+(`create-razorpay-order`, `verify-razorpay-payment`,
+`create-expert-session-order`, `verify-expert-session-payment`) are visible
+in the Supabase dashboard's Edge Functions list, and `razorpay_orders`
+exists in the Table Editor. This section originally described the
+deployment steps while they were still pending from this sandbox (which has
+no network access to actually do them) — kept below for reference /
+reproducing on a fresh project, but checkout on the live site is NOT
+currently blocked on this.
+
+The app's checkout goes through a real Razorpay integration instead of
+`record_test_purchase()`. Three pieces make this work:
 
 1. **`sql/004_razorpay_payments.sql`** — adds the `razorpay_orders` table and
    `complete_razorpay_order()`, and removes the `gift_codes_insert_own`
@@ -405,16 +411,201 @@ whole frontend flow (`createRazorpayOrder` -> Razorpay Checkout ->
 and fake Edge Functions, driven through the real UI. See the "What WAS
 genuinely verified" section above for the exact check counts.
 
+## Google Play Billing (Android app) — replaces Razorpay on Android only
+
+Google Play policy requires paid digital features to go through Google
+Play's own billing system once the Android app leaves Internal testing —
+Razorpay (above) stays exactly as-is for the website, but the Android app
+now needs a second, parallel path for the same two paid features (report
+tiers, expert-chat sessions). The app's frontend already branches on this
+(`isNativeApp()` in `app/app.js`'s `initCheckout()`/`initExpertChat()`), and
+`android/` already has the `@capgo/native-purchases` plugin installed and
+synced. **None of the three pieces below are deployed yet** — until they
+are, a Play purchase on Android will fail at the verification step the same
+way Razorpay checkout failed before its own setup above was done.
+
+1. **`sql/013_google_play_billing.sql`** — adds `play_purchases`,
+   `complete_play_report_purchase()`, `complete_play_expert_session_order()`,
+   and a `chat_sessions.play_purchase_token` column. Same deploy method as
+   every other file here — SQL Editor -> New query -> paste the whole file
+   -> Run — any time after `004_razorpay_payments.sql` and
+   `009_expert_chat.sql`.
+
+2. **Create a Google Cloud service account** that's allowed to read your
+   Play purchases (this sandbox can't do this for you — needs a browser and
+   your own Google account):
+   - In the [Google Cloud Console](https://console.cloud.google.com), pick
+     (or create) the project linked to your Play Console account, enable the
+     **Google Play Android Developer API**, then **IAM & Admin -> Service
+     Accounts -> Create service account**. No roles need to be granted in
+     Cloud Console itself — access is granted in Play Console, next step.
+   - Create a JSON key for it (**Keys -> Add key -> JSON**) and download it.
+     Treat this file like a password — it can read your real purchase and
+     financial data.
+   - In **Play Console -> Users and permissions -> Invite new users**, invite
+     the service account's email (ends `...gserviceaccount.com`, in the JSON
+     as `client_email`). Grant **Financial data -> View financial data** and
+     **App access -> View app information** for Nakshatra. Google's own
+     permission propagation can take up to ~24 hours — a 401/403 from the
+     Edge Functions below right after inviting it usually just means "not
+     propagated yet," not a misconfiguration.
+
+3. **Create the four products in Play Console -> Monetize -> Products ->
+   In-app products**, with these EXACT product IDs (the Edge Functions below
+   hard-code this mapping — a typo here means a purchase that can never be
+   verified):
+   | Product ID | Type | Matches |
+   |---|---|---|
+   | `report_onetime` | Managed (non-consumable) | `TIER_INFO.onetime` in `app.js`, ₹399 |
+   | `report_bundle` | Managed (non-consumable) | `TIER_INFO.bundle`, ₹599 |
+   | `report_subscription` | Managed (non-consumable) | `TIER_INFO.subscription`, ₹299 — a one-time unlock despite the name, see that constant's comment |
+   | `expert_session` | Managed (**consumable**) | `EXPERT_SESSION_PRICE.paise` in `app.js`, ₹199 |
+
+   Set each one's real price to match (Play Console prices per-country; the
+   `amountPaise` constants in the Edge Functions are only for Nakshatra's
+   own bookkeeping, they don't set what's actually charged). Activate all
+   four.
+
+4. **Deploy the two Edge Functions** under `supabase/functions/`:
+   `verify-play-report-purchase` and `verify-play-expert-session-purchase`
+   — same Via Editor / paste-whole-file method as every other function here.
+   Then **Edge Functions -> Manage secrets**, add:
+   - `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` — the whole JSON key file from step
+     2, pasted in as one value (it's valid JSON on one "line" once pasted;
+     the secrets box doesn't need it pre-minified).
+   - `ANDROID_PACKAGE_NAME` — `nakshatra.ind.in.app` (matches `applicationId`
+     in `android/app/build.gradle`).
+
+5. **Add your own Google account as a License Tester**: Play Console ->
+   Setup -> License testing -> add the Gmail account(s) you'll test with.
+   Purchases from a license tester show the real Play purchase UI but are
+   never actually charged — this is what lets you test the whole flow
+   end-to-end for free before anyone pays for real.
+
+Once all three are deployed and the app is installed from an Internal
+testing release (Play Billing doesn't work against a sideloaded debug APK —
+it has to come from Play, even for internal testing), make one real test
+purchase as a license tester for each of the four products and confirm in
+the Supabase Table Editor that `play_purchases` goes `created` -> `verified`
+(or `failed` for a deliberately-forced `NO_EXPERT_AVAILABLE` test — take the
+one online expert offline mid-purchase to trigger it), a `purchases` row
+appears with `payment_method = 'google_play'`, and `unlocks` /
+`chat_sessions` update correctly — the same "prove it against the real
+thing" step the Razorpay section above asked for, and the one thing that
+couldn't be done from this sandbox (no network access to Google's APIs, and
+no real Android device to run the purchase UI on at all).
+
+What WAS verified from here: both Edge Functions type-check cleanly
+(`tsc --noEmit`, ignoring the expected "cannot find module" on the `esm.sh`
+import that only resolves inside Deno), `app.js`/`supabase-client.js` parse
+cleanly (`node --check`), and the `@capgo/native-purchases` plugin installs
+and syncs into `android/` without error. The RS256 JWT-signing code that
+mints a Google access token from the service account key (`googleAccessToken()`
+in both functions) follows Google's documented service-account OAuth2 flow
+but, like everything else in this list, has never actually been run against
+a real Google endpoint — treat the first real deploy as the actual test of
+that code, not this sandbox's syntax checks.
+
+Known, deliberate gaps — not bugs, just scope cut to ship this:
+- **Gifting a report is not available from the Android app.** Play Billing
+  ties a purchase to the Google account that paid for it; there's no clean
+  "buy this for someone else" primitive the way Razorpay's flat checkout
+  allows. `initCheckout()`'s native branch detects `state.giftInProgress`
+  and tells the customer to send gifts from the website instead, rather than
+  trying to force it through Play. The gift screens themselves are
+  unchanged and still work fine on the web.
+- **No `appAccountToken` cross-check yet.** Play Billing supports attaching
+  an opaque per-user token to a purchase and reading it back at verification
+  time as `obfuscatedExternalAccountId`, which would let the Edge Functions
+  confirm a purchase token actually belongs to the Supabase user presenting
+  it (defense in depth beyond "first Edge Function call to claim a given
+  token wins," which is what `play_purchases.purchase_token` as primary key
+  + the `TOKEN_OWNED_BY_ANOTHER_USER` check already gives you). Worth adding
+  before a wide Production launch; skipped here to keep this change scoped.
+
+## Android app bundle (`www/`) — rebuilt from current source
+
+`www/index.html` (what `android/app/src/main/assets/public` ships) was
+regenerated from the CURRENT `app/app.js` + `supabase-client.js` +
+`index.template.html` via `node app/build.js --beta ../www/index.html`, run
+from `app/`. Two things worth knowing about that:
+
+- **The copy that was there before this was stale and missing Expert Chat
+  entirely.** `app/index.html` (the committed, live-site file) was last
+  "release built" before the expert-chat feature was added to `app.js` —
+  its own git history shows the gap. The Android app's `www/` folder had
+  been curated from that same stale `app/index.html` last session, so until
+  now the Android build genuinely couldn't do expert chat at all, Play
+  Billing aside. This rebuild fixes that **for the Android bundle only** —
+  `app/index.html` (the live website) was deliberately left untouched here,
+  since "ship expert chat to production" is a separate decision from "fix
+  the Android testing build," and this session didn't want to make that call
+  silently. Worth doing a proper release build of `app/index.html` /
+  `app/nakshatra-app.html` (and `node build.js` from `app/`, then
+  `deploy.sh`) once you've decided expert chat is ready for real customers.
+- **`--beta` mode was used deliberately**, not because this is meant to stay
+  a "beta" build forever. It sets `window.NAKSHATRA_BETA = true`, which only
+  matters if someone opens `www/index.html` in a plain desktop/mobile
+  browser instead of through the real Android app — `isNativeApp()` would
+  then be `false`, and without the beta flag that fallback path would open
+  real-money Razorpay checkout. Inside the actual Android app on a real
+  device, `isNativeApp()` is `true` and the beta flag is never even checked
+  — Play Billing is used either way. Before a non-testing Play Console track
+  (Closed testing with real external users, or Production), rebuild without
+  `--beta` so the visible "PRIVATE BETA" banner and noindex meta go away.
+  Unlike the `--beta <outfile>` form, plain `node build.js` ignores any
+  output path argument and always writes `app/nakshatra-app.html` (see
+  `build.js` — that's the gitignored local-test file, deliberately never
+  committed because it carries live-key report checkout). So: from `app/`,
+  run `node build.js`, then copy the result into place yourself —
+  `cp nakshatra-app.html ../www/index.html` — and re-run `npx cap sync
+  android` from the repo root so `android/app/src/main/assets/public`
+  picks it up.
+
+## Android hardware back button (added in today's QA pass)
+
+Before today, pressing the hardware/gesture back button on Android would
+exit (or blank) the app from the very first press on ANY screen — the app's
+navigation never touched the History API, so there was nothing for
+Capacitor's default back-button behavior (`window.history.back()`, falling
+through to exiting once history is exhausted) to actually go back to.
+`app.js` now has `initAndroidBackButton()`, wired up at the end of the
+`DOMContentLoaded` bootstrap, which reuses the exact same navigation every
+on-screen back control already performs (close an open sheet, defer to
+onboarding's own back button, click whatever `[data-back]` control the
+active screen has, exit the app only when none of those apply).
+
+**This needs the `@capacitor/app` plugin to actually do anything on
+device.** The fix reads `window.Capacitor.Plugins.App` and no-ops safely if
+it's missing — so it won't break anything either way, but it also won't
+fix the back-button problem until the plugin is actually there. Before the
+next Android build:
+
+```
+npm install @capacitor/app
+npx cap sync android
+```
+
+Then do a real on-device (or emulator) check: open the app, navigate a few
+screens deep (e.g. into Settings -> Terms of Service), press the hardware
+back button, confirm it steps back one screen at a time instead of exiting,
+and confirm pressing back from the dashboard (home screen) exits cleanly.
+This couldn't be verified against the real plugin from here — the fix was
+proven with `app/verify-fixes.js`, which shims `window.Capacitor.Plugins.App`
+in a browser test rather than running inside an actual Android WebView.
+
 ## What's left
 
-- **Deploying the Razorpay payment backend (written and tested, not yet
-  live).** The live site's frontend already expects real Razorpay checkout,
-  but `sql/004_razorpay_payments.sql` and the two Edge Functions under
-  `supabase/functions/` still need to actually be applied to the real
-  Supabase project, and a real Razorpay account/API keys still need to be
-  created — see "Real payments (Razorpay)" above for the exact steps. Until
-  that's done, checkout on the live site fails (the Edge Functions it calls
-  don't exist on the backend yet).
+
+- **Deploying the Google Play Billing backend for Android (written, not yet
+  live) — see "Google Play Billing (Android app)" above for the exact
+  steps.** `sql/013_google_play_billing.sql`, the two `verify-play-*`
+  functions, the Google Cloud service account, and the four Play Console
+  products all still need to be created/deployed before a Play purchase on
+  Android will verify successfully.
+- ~~Deploying the Razorpay payment backend~~ — confirmed deployed and live
+  (2026-10-01 check). Was accurate when written; corrected once this was
+  actually verified.
 - **A real test payment**, once the above is deployed and Razorpay is in
   Test Mode — the one verification step that couldn't be done from this
   sandbox (no network access to `api.razorpay.com`). Don't flip Razorpay to

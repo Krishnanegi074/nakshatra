@@ -18,7 +18,11 @@ function check(label, cond, results) {
   const results = [];
   const errors = [];
   page.on("pageerror", (e) => errors.push("PAGEERROR: " + e.message));
-  page.on("console", (msg) => { if (msg.type() === "error") errors.push("CONSOLE ERROR: " + msg.text()); });
+  page.on("console", (msg) => {
+    if (msg.type() !== "error") return;
+    if (msg.text().includes("ERR_TUNNEL_CONNECTION_FAILED")) return; // expected in this sandbox — no real network
+    errors.push("CONSOLE ERROR: " + msg.text());
+  });
 
   await page.goto("file://" + path.resolve(__dirname, "nakshatra-app.html"));
 

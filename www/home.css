@@ -1,0 +1,244 @@
+/* ===================================================================
+   Home page — hero, toolkit, why-Nakshatra, how-it-works, CTA
+   =================================================================== */
+
+.nk-h2 { font-size: 34px; margin-top: 14px; }
+
+/* ---------- Hero ---------- */
+
+.nk-hero {
+  position: relative;
+  padding: 100px 0 60px;
+  overflow: hidden;
+}
+
+.nk-hero-wheel {
+  position: absolute;
+  right: -260px;
+  top: -60px;
+  width: 820px;
+  z-index: 1;
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.nk-hero-copy { max-width: 680px; position: relative; z-index: 2; }
+
+.nk-hero-title {
+  font-size: 76px;
+  line-height: 1.04;
+  margin: 20px 0 26px;
+  font-weight: 800;
+}
+
+.nk-hero-gradient-text {
+  background: linear-gradient(180deg, #ffffff 0%, #f3e9d8 55%, #e8c687 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.nk-hero-sub {
+  color: var(--text-dim);
+  font-size: 18px;
+  line-height: 1.65;
+  max-width: 490px;
+  margin: 0 0 36px;
+}
+
+.nk-hero-actions {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 56px;
+  position: relative;
+  z-index: 2;
+}
+
+.nk-hero-stats {
+  display: flex;
+  gap: 56px;
+  flex-wrap: wrap;
+  border-top: 1px solid rgba(232, 198, 135, 0.18);
+  padding-top: 26px;
+  max-width: 900px;
+  position: relative;
+  z-index: 2;
+}
+
+.nk-stat-value { font-family: 'Cinzel', serif; font-size: 24px; color: var(--gold-bright); }
+.nk-stat-label { font-size: 11px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
+
+/* ---------- Statement band ---------- */
+
+.nk-statement {
+  position: relative;
+  padding: 90px 0;
+  border-top: 1px solid rgba(232, 198, 135, 0.14);
+  border-bottom: 1px solid rgba(232, 198, 135, 0.14);
+  text-align: center;
+  background: rgba(0, 0, 0, 0.14);
+  overflow: hidden;
+}
+
+.nk-statement-glyph {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-family: 'Cinzel', serif;
+  font-size: 340px;
+  font-weight: 700;
+  color: rgba(232, 198, 135, 0.035);
+  line-height: 1;
+  pointer-events: none;
+}
+
+.nk-statement-text {
+  font-size: 38px;
+  line-height: 1.4;
+  font-weight: 600;
+  max-width: 840px;
+  margin: 0 auto;
+  position: relative;
+}
+
+/* ---------- Toolkit ---------- */
+
+.nk-toolkit-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 50px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.nk-toolkit-sub { color: var(--text-faint); font-size: 14.5px; max-width: 340px; margin: 0; }
+
+.nk-toolkit-live {
+  display: grid;
+  grid-template-columns: 1.7fr 1fr 1fr;
+  gap: 22px;
+  margin-bottom: 22px;
+}
+
+.nk-toolkit-coming {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+}
+
+.nk-toolkit-card { padding: 30px; position: relative; }
+.nk-toolkit-card--lg { padding: 34px; }
+.nk-toolkit-card--coming { padding: 26px; opacity: 0.72; border-style: dashed; }
+
+.nk-badge {
+  position: absolute;
+  top: 22px;
+  right: 22px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 4px 11px;
+  border-radius: 999px;
+}
+.nk-toolkit-card--lg .nk-badge { top: 26px; right: 26px; }
+.nk-toolkit-card--coming .nk-badge { top: 20px; right: 20px; font-size: 9.5px; padding: 4px 10px; }
+
+.nk-badge--live { background: rgba(116, 214, 163, 0.15); color: var(--success); border: 1px solid rgba(116, 214, 163, 0.4); }
+.nk-badge--coming { background: var(--surface); color: var(--text-faint); border: 1px solid var(--border); }
+
+.nk-icon-circle {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--surface-2); border: 1px solid var(--border-strong); color: var(--gold-bright);
+  display: flex; align-items: center; justify-content: center; margin-bottom: 22px;
+}
+.nk-icon-circle--sm { width: 46px; height: 46px; margin-bottom: 20px; }
+.nk-icon-circle--xs { width: 40px; height: 40px; margin-bottom: 16px; background: var(--surface); border-style: dashed; border-color: rgba(232, 198, 135, 0.3); }
+.nk-icon-circle--outline { width: 44px; height: 44px; flex-shrink: 0; background: var(--surface); border-color: var(--border-strong); margin-bottom: 0; }
+
+.nk-card-title { font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 20px; margin: 0 0 12px; }
+.nk-card-title--sm { font-size: 17px; margin-bottom: 10px; }
+.nk-card-title--xs { font-size: 15.5px; margin-bottom: 8px; }
+
+.nk-card-desc { color: var(--text-faint); font-size: 14.5px; line-height: 1.65; max-width: 400px; margin: 0; }
+.nk-card-desc--sm { font-size: 13.5px; line-height: 1.6; }
+.nk-card-desc--xs { color: var(--text-muted); font-size: 13px; line-height: 1.6; }
+
+/* ---------- Why Nakshatra ---------- */
+
+.nk-why-grid { display: grid; grid-template-columns: 5fr 7fr; gap: 70px; align-items: start; }
+.nk-why-title { font-size: 36px; line-height: 1.35; margin-top: 16px; }
+.nk-why-list { display: flex; flex-direction: column; }
+.nk-why-item { display: flex; gap: 22px; padding: 26px 0; border-bottom: 1px solid rgba(232, 198, 135, 0.14); }
+.nk-why-item--last { border-bottom: none; }
+.nk-why-item-title { font-size: 18px; margin-bottom: 6px; }
+.nk-why-item-desc { color: var(--text-faint); font-size: 14.5px; line-height: 1.65; margin: 0; max-width: 480px; }
+
+/* ---------- How it works ---------- */
+
+.nk-how { position: relative; }
+.nk-how-head { text-align: center; max-width: 560px; margin: 0 auto 64px; }
+.nk-how-body { position: relative; max-width: 980px; margin: 0 auto; }
+.nk-how-path { position: absolute; top: 20px; left: 0; width: 100%; height: 120px; opacity: 0.35; }
+.nk-how-grid { display: grid; grid-template-columns: repeat(3, 1fr); position: relative; gap: 24px; }
+.nk-how-step { text-align: center; padding: 0 20px; }
+.nk-how-step--1 { margin-top: 0; }
+.nk-how-step--2 { margin-top: 70px; }
+.nk-how-step--3 { margin-top: 10px; }
+.nk-how-num {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--surface-2); border: 1px solid var(--border-strong); color: var(--gold-bright);
+  font-family: 'Cinzel', serif; font-weight: 700; font-size: 19px;
+  display: flex; align-items: center; justify-content: center; margin: 0 auto 22px;
+}
+.nk-how-step-title { font-size: 18px; margin-bottom: 10px; }
+.nk-how-step-desc { color: var(--text-faint); font-size: 14px; line-height: 1.6; margin: 0; }
+
+/* ---------- CTA band ---------- */
+
+.nk-cta { position: relative; padding: 110px 0; text-align: center; overflow: hidden; }
+.nk-cta-ring { position: absolute; left: -200px; bottom: -260px; width: 600px; opacity: 0.5; pointer-events: none; }
+.nk-cta-inner { position: relative; }
+.nk-cta-title { font-size: 36px; margin-bottom: 30px; }
+.nk-cta-actions { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+.nk-btn-lg { padding: 17px 36px; font-size: 16px; }
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 1100px) {
+  .nk-hero-wheel { width: 620px; right: -220px; top: -40px; opacity: 0.55; }
+  .nk-hero-title { font-size: 62px; }
+}
+
+@media (max-width: 900px) {
+  .nk-hero { padding: 56px 0 40px; }
+  .nk-hero-title { font-size: 46px; }
+  .nk-hero-sub { font-size: 16px; }
+  .nk-hero-wheel { width: 460px; right: -200px; top: -30px; opacity: 0.4; }
+  .nk-hero-stats { gap: 32px; }
+
+  .nk-statement { padding: 56px 0; }
+  .nk-statement-text { font-size: 27px; }
+  .nk-statement-glyph { font-size: 220px; }
+
+  .nk-toolkit-live, .nk-toolkit-coming { grid-template-columns: 1fr; }
+
+  .nk-why-grid { grid-template-columns: 1fr; gap: 32px; }
+
+  .nk-how-path { display: none; }
+  .nk-how-grid { grid-template-columns: 1fr; gap: 36px; }
+  .nk-how-step--1, .nk-how-step--2, .nk-how-step--3 { margin-top: 0; }
+
+  .nk-cta { padding: 64px 0; }
+  .nk-cta-title { font-size: 28px; }
+}
+
+@media (max-width: 480px) {
+  .nk-hero-title { font-size: 36px; }
+  .nk-hero-wheel { display: none; }
+  .nk-hero-actions .nk-btn { width: 100%; }
+  .nk-cta-actions .nk-btn { width: 100%; }
+}

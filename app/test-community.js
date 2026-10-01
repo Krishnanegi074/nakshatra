@@ -1,8 +1,14 @@
 // Playwright test for Phase 4's simulated Community feed: seed posts render with the
 // demo disclaimer, liking/unliking toggles correctly, posting your own card (via the
-// existing Share sheet) prepends a real image+caption post, and both user posts and
-// likes survive logout (matching the giftCodes precedent) so a fresh second user still
-// sees them — demonstrating the "shared feed" concept without a real backend.
+// existing Share sheet) prepends a real image+caption post, and the post itself
+// survives logout (matching the giftCodes precedent) so a fresh second user still
+// sees it — demonstrating the "shared feed" concept. This file injects a fake
+// backend (needed for the paywall-gated purchase flow below), which makes the
+// community screen take its live-backend path too: once a backend is answering,
+// per-user "liked" state must be scoped to the actual logged-in user, not carried
+// over from whoever used this browser session last — see refreshCommunityFeed()
+// in app.js, which resets state.communityLikes from the backend's liked_by_me
+// flags on every refresh rather than merging into whatever was there before.
 const { chromium } = require("playwright");
 const path = require("path");
 
@@ -17,7 +23,20 @@ function check(label, cond, results) {
   const results = [];
   const errors = [];
   page.on("pageerror", (e) => errors.push("PAGEERROR: " + e.message));
-  page.on("console", (msg) => { if (msg.type() === "error") errors.push("CONSOLE ERROR: " + msg.text()); });
+  page.on("console", (msg) => {
+    if (msg.type() !== "error") return;
+    if (msg.text().includes("ERR_TUNNEL_CONNECTION_FAILED")) return; // expected in this sandbox — no real network
+    errors.push("CONSOLE ERROR: " + msg.text());
+  });
+
+  // Reaching the Full Report screen below now requires real entitlement
+  // (showScreen()'s paywall guard, added after this test was first written
+  // — see TODO.md) — inject the same fakes test-phase2.js/test.js use so a
+  // real purchase can actually complete through the UI.
+  const fakeSupabaseSrc = require("fs").readFileSync(path.join(__dirname, "tests-backend", "fake-supabase.js"), "utf8");
+  await page.addInitScript(fakeSupabaseSrc);
+  const fakeRazorpaySrc = require("fs").readFileSync(path.join(__dirname, "tests-backend", "fake-razorpay.js"), "utf8");
+  await page.addInitScript(fakeRazorpaySrc);
 
   await page.goto("file://" + path.resolve(__dirname, "nakshatra-app.html"));
 
@@ -68,6 +87,23 @@ function check(label, cond, results) {
   // --- Post to community via the existing Share sheet (lives on the Full Report screen) ---
   await page.click('.screen.active[id="screen-community"] [data-back="screen-dashboard"]');
   await page.waitForTimeout(100);
+  // screen-fullreport is paywall-guarded — buy a tier first via the fake
+  // Razorpay flow (same sequence test-phase2.js uses) before it's reachable.
+  await page.click('[data-nav="screen-report"]');
+  await page.waitForTimeout(100);
+  await page.click("#btn-report-checkout");
+  await page.waitForTimeout(100);
+  await page.click("#btn-pay-submit");
+  await page.waitForTimeout(2200);
+  // #btn-success-continue routes straight to screen-fullreport for the
+  // "onetime" tier (see its click handler in app.js) rather than back to
+  // the dashboard — go back to the dashboard explicitly so the nav-card
+  // clicks below land on visible elements instead of same-id ones hidden
+  // inside the now-inactive dashboard screen.
+  await page.click("#btn-success-continue");
+  await page.waitForTimeout(150);
+  await page.click('.screen.active [data-back="screen-dashboard"]');
+  await page.waitForTimeout(100);
   // Visit the horoscope screen first so state._lastHoroscope is populated (the share
   // card includes a "this week" excerpt sourced from it).
   await page.click('[data-nav="screen-horoscope"]');
@@ -104,7 +140,8 @@ function check(label, cond, results) {
   const ownAfterCount = parseInt(await page.$eval(".community-post .post-like-btn .like-count", el => el.textContent), 10);
   check("Own post is likeable like any other post", ownAfterCount === ownInitialCount + 1, results);
 
-  // --- Logout: own post + likes should persist (this is the whole point of the demo feed) ---
+  // --- Logout: the post itself should persist (shared feed) but the "liked" heart is
+  // per-user once a backend is live, so it must NOT carry over to a different login ---
   await page.click('.screen.active[id="screen-community"] [data-back="screen-dashboard"]');
   await page.waitForTimeout(100);
   await page.click("#btn-dash-logout");
@@ -130,7 +167,7 @@ function check(label, cond, results) {
   const secondUserFirstPostLikeCount = parseInt(await secondUserPosts[0].$eval(".like-count", el => el.textContent), 10);
   check("Like count on the carried-over post persisted across logout", secondUserFirstPostLikeCount === ownAfterCount, results);
   const secondUserFirstPostLiked = await secondUserPosts[0].$eval(".post-like-btn", el => el.classList.contains("liked"));
-  check("Liked state on the carried-over post persisted across logout too", secondUserFirstPostLiked, results);
+  check("Liked state on the carried-over post does NOT bleed into a different logged-in user", !secondUserFirstPostLiked, results);
 
   console.log("\nJS ERRORS:", errors.length);
   errors.forEach(e => console.log(" -", e));

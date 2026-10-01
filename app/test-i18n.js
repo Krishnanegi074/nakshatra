@@ -25,7 +25,13 @@ const fs = require("fs");
   await shot("01-landing-en");
 
   // --- Switch to Hindi from the landing screen globe button ---
-  await page.click("#btn-lang-toggle");
+  // At this 390px viewport the desktop-only #btn-lang-toggle is CSS-hidden
+  // (app.css's narrow-viewport rule) in favor of #btn-lang-toggle-mobile
+  // inside the hamburger menu — see initLangSwitch() in app.js, which wires
+  // all three toggle buttons to the exact same language-picker sheet.
+  await page.click("#btn-landing-nav-toggle");
+  await page.waitForTimeout(100);
+  await page.click("#btn-lang-toggle-mobile");
   await page.waitForTimeout(100);
   await page.click('.lang-option[data-lang="hi"]');
   await page.waitForTimeout(150);

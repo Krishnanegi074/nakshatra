@@ -257,7 +257,7 @@
           <form id="form-auth" class="card stack" novalidate>
             <div class="field" id="field-name">
               <label for="input-name" data-i18n="auth.label.name">Your name</label>
-              <input type="text" id="input-name" name="name" placeholder="e.g. Ananya Sharma" data-i18n-ph="auth.ph.name" autocomplete="name">
+              <input type="text" id="input-name" name="name" placeholder="e.g. Ananya Sharma" data-i18n-ph="auth.ph.name" autocomplete="name" maxlength="60">
             </div>
             <div class="field">
               <label for="input-email" data-i18n="auth.label.email">Email</label>
@@ -757,7 +757,7 @@
       <p class="muted" data-i18n="gift.desc">They'll get a code that unlocks their own full reading. For entertainment purposes only.</p>
     </div>
 
-    <div class="field" style="margin-top:16px"><label data-i18n="gift.label.recipient">Recipient's name</label><input type="text" id="gift-recipient-name" placeholder="Who is this for?" data-i18n-ph="gift.ph.recipient"></div>
+    <div class="field" style="margin-top:16px"><label data-i18n="gift.label.recipient">Recipient's name</label><input type="text" id="gift-recipient-name" placeholder="Who is this for?" data-i18n-ph="gift.ph.recipient" maxlength="60"></div>
     <div class="field"><label data-i18n="gift.label.message">A short message (optional)</label><textarea id="gift-message" rows="3" maxlength="180" placeholder="Add a personal note..." data-i18n-ph="gift.ph.message"></textarea></div>
 
     <div class="stack grid-list" style="margin-top:6px" id="gift-tier-list">
@@ -791,7 +791,7 @@
     <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:0 6px">
       <div class="success-tick">✓</div>
       <h2 data-i18n="gift.sent.title">Gift Sent!</h2>
-      <p class="muted" id="gift-sent-sub">Share this code with them.</p>
+      <p class="muted" id="gift-sent-sub" style="overflow-wrap:break-word;max-width:100%">Share this code with them.</p>
       <div class="card center" style="margin-top:8px;width:100%">
         <p class="muted" style="margin:0 0 6px" data-i18n="gift.sent.code-label">GIFT CODE</p>
         <div id="gift-code-display" style="font-family:'Cinzel',serif;font-size:1.5rem;letter-spacing:0.08em;color:var(--gold-bright)"></div>

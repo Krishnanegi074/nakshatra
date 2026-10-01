@@ -342,10 +342,10 @@ function authErrorMessage(error) {
 function timeAgoFrom(iso) {
   const diffMs = Date.now() - new Date(iso).getTime();
   const mins = Math.max(1, Math.round(diffMs / 60000));
-  if (mins < 60) return tr("community.time.mins-ago", { n: mins });
+  if (mins < 60) return mins + "m ago";
   const hrs = Math.round(mins / 60);
-  if (hrs < 24) return tr("community.time.hours-ago", { n: hrs });
-  return tr("community.time.days-ago", { n: Math.round(hrs / 24) });
+  if (hrs < 24) return hrs + "h ago";
+  return Math.round(hrs / 24) + "d ago";
 }
 
 // ================= UTIL =================
@@ -541,53 +541,6 @@ document.addEventListener("click", (e) => {
   const backEl = e.target.closest("[data-back]");
   if (backEl) { showScreen(backEl.dataset.back); return; }
 });
-
-// ================= ANDROID HARDWARE BACK BUTTON =================
-// This app's screens are plain .active-class toggling (showScreen()) with no
-// History API involvement — there's never more than the single initial
-// entry in the WebView's browser history. Left alone, Capacitor's default
-// hardware/gesture back-button behavior (window.history.back(), falling
-// through to minimizing/exiting the app once history is exhausted) would
-// exit on the very first press from ANY screen, including mid-onboarding,
-// mid-chat, or mid-checkout — there's nothing to "go back" to in a history
-// sense even though the app visually has plenty of places to retreat to.
-// This reuses the exact same navigation every on-screen back control
-// already performs, in priority order: close an open sheet/modal, let
-// onboarding's own stateful back button do its thing, click whatever
-// [data-back] control the active screen has, and only exit the app when
-// none of those apply (the screen is a "home" screen like the dashboard,
-// or — rarely — has no back control of its own).
-//
-// Requires the @capacitor/app plugin (window.Capacitor.Plugins.App) to be
-// installed and synced into the Android build — see backend/SETUP.md. Safe
-// no-op everywhere else (web, or a native build that hasn't added the
-// plugin yet): isNativeApp() and the Plugins.App guard below both have to
-// pass before this does anything.
-function initAndroidBackButton() {
-  if (!isNativeApp()) return;
-  const appPlugin = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
-  if (!appPlugin || !appPlugin.addListener) return;
-  appPlugin.addListener("backButton", () => {
-    const openSheet = document.querySelector('[id$="-backdrop"].visible');
-    if (openSheet) { openSheet.classList.remove("visible"); return; }
-
-    const activeScreen = document.querySelector(".screen.active");
-    if (!activeScreen) { if (appPlugin.exitApp) appPlugin.exitApp(); return; }
-
-    if (activeScreen.id === "screen-onboarding") {
-      const onbBack = $("#btn-onb-back");
-      if (onbBack) { onbBack.click(); return; }
-    }
-
-    const backBtn = activeScreen.querySelector("[data-back]");
-    if (backBtn) { backBtn.click(); return; }
-
-    // No back target on this screen (e.g. the dashboard, landing, splash,
-    // or auth with nowhere earlier to go) — same as any other Android app,
-    // the hardware back button's job here is to exit.
-    if (appPlugin.exitApp) appPlugin.exitApp();
-  });
-}
 
 // ================= AUTH =================
 function initAuth() {
@@ -1428,16 +1381,6 @@ function initPalmUpload() {
     $("#palm-quality-warning").style.display = "none";
     $("#palm-file-input").value = "";
     cropRect = null;
-    // Clear the PREVIOUS photo's scan results too — without this, their
-    // option picks, "Scanned NN%" tags, and finger-position labels stayed
-    // visible (at the old photo's coordinates) on top of the new photo, and
-    // Generate stayed enabled, so a report could be built from a different
-    // photo than the one actually scanned. Mirrors the equivalent lines in
-    // resetPalmUI().
-    $("#palm-finger-labels").innerHTML = "";
-    $all(".cv-tag").forEach(t => { t.style.display = "none"; t.textContent = ""; t.classList.remove("low"); });
-    $all(".option-btn.selected").forEach(b => b.classList.remove("selected"));
-    $("#btn-palm-generate").disabled = true;
   });
   $("#btn-palm-generate").addEventListener("click", () => {
     // Brief loading beat (ported from the tap-through prototype's
@@ -1626,24 +1569,13 @@ function initNotifications() {
 
   $("#btn-notif-enable").addEventListener("click", async () => {
     if (!supported) return;
-    // Give immediate feedback and disable the button while the native
-    // permission prompt is up — previously the button stayed clickable and
-    // the status text didn't change until requestPermission() resolved,
-    // which on a slow-to-respond prompt (or an environment where it never
-    // resolves at all) left the visitor looking at a dead button with no
-    // sign anything had happened.
-    const enableBtn = $("#btn-notif-enable");
-    const statusEl = $("#notif-status-text");
-    enableBtn.disabled = true;
-    statusEl.textContent = tr("notif.status.requesting");
     try {
       const perm = await Notification.requestPermission();
       refreshStatus();
       if (perm === "granted") toast("Notifications enabled ✨");
       else if (perm === "denied") toast("Notifications were blocked");
     } catch (e) {
-      statusEl.textContent = tr("notif.status.enable-failed");
-      enableBtn.disabled = false;
+      $("#notif-status-text").textContent = tr("notif.status.enable-failed");
     }
   });
 
@@ -1704,12 +1636,6 @@ function renderCheckout() {
   $("#btn-pay-amount").textContent = tier.label.split("/")[0];
   $("#checkout-summary-label").textContent = gifting ? tr("checkout.summary.gift", { name: state.giftInProgress.recipientName }) : tr("checkout.summary.order");
   $("#btn-checkout-back").setAttribute("data-back", gifting ? "screen-gift-send" : "screen-report");
-  // initCheckout()'s click handler deliberately leaves #btn-pay-submit
-  // disabled through a successful purchase (it navigates away rather than
-  // re-enabling it — see that handler's comment on the double-click-order
-  // fix), so a fresh visit to this screen for a SEPARATE purchase must
-  // explicitly reset it here rather than relying on the handler to do it.
-  $("#btn-pay-submit").disabled = false;
 }
 
 // Opens the real Razorpay Checkout popup for the currently-selected tier
@@ -1767,18 +1693,11 @@ function initCheckout() {
 
     submitBtn.disabled = true;
     const { data: orderData, error: orderErr } = await backendCall(dbInstance.createRazorpayOrder(tierKey, giftArg), "createRazorpayOrder");
+    submitBtn.disabled = false;
     if (orderErr || !orderData || orderData.error) {
-      submitBtn.disabled = false;
       return toast("Couldn't start the payment — please try again.");
     }
 
-    // Stay disabled through rzp.open() and the whole modal lifecycle — only
-    // re-enable on a path that lands the user back on this screen able to
-    // pay again (order creation failing above, a failed payment, the user
-    // closing the modal without paying, or verification failing after a
-    // successful charge). Re-enabling right after order creation (the
-    // previous behavior) left a window where a fast double-click on Pay
-    // started two independent orders/charges for a single tap.
     const rzp = new Razorpay({
       key: orderData.key_id,
       order_id: orderData.order_id,
@@ -1788,14 +1707,10 @@ function initCheckout() {
       description: gifting ? `Gift: ${tier.name} for ${state.giftInProgress.recipientName}` : tier.name,
       theme: { color: "#e8c687" },
       prefill: state.user ? { name: state.user.name, email: state.user.email } : {},
-      modal: {
-        ondismiss: function () { submitBtn.disabled = false; },
-      },
       handler: async function (response) {
         showScreen("screen-processing", { silent: true });
         const { data: verifyData, error: verifyErr } = await backendCall(dbInstance.verifyRazorpayPayment(response), "verifyRazorpayPayment");
         if (verifyErr || !verifyData || verifyData.error) {
-          submitBtn.disabled = false;
           toast("Payment succeeded but couldn't be confirmed — please contact support with your payment ID: " + (response.razorpay_payment_id || ""));
           showScreen("screen-checkout", { silent: true });
           return;
@@ -1819,7 +1734,6 @@ function initCheckout() {
       },
     });
     rzp.on("payment.failed", function () {
-      submitBtn.disabled = false;
       toast("Payment failed — please try again.");
     });
     rzp.open();
@@ -2060,13 +1974,6 @@ function initGiftRedeem() {
 // template bank keyed by topic/sign/turn, not a real person and not a generative
 // AI model. The picker and chat screens both keep an on-screen disclaimer visible
 // at all times so this is never mistaken for either of those.
-// ASTROLOGERS' specialtyLabel/tagline (rules.js) are the English fallback
-// text; the i18n keys below ("chat.astro.<id>.specialty"/".tagline") are
-// what actually renders, so this screen translates into Hindi like the rest
-// of the app instead of leaking English chrome text.
-function astrologerSpecialtyLabel(a) { return tr("chat.astro." + a.id + ".specialty"); }
-function astrologerTagline(a) { return tr("chat.astro." + a.id + ".tagline"); }
-
 function renderChatPicker() {
   const box = $("#chat-astrologer-list");
   box.innerHTML = ASTROLOGERS.map(a => `
@@ -2074,8 +1981,8 @@ function renderChatPicker() {
       <div class="zodiac-badge">${a.avatar}</div>
       <div style="flex:1">
         <strong>${a.name}</strong>
-        <div class="muted" style="margin-top:2px">${escapeHtml(astrologerSpecialtyLabel(a))}</div>
-        <div class="muted" style="font-size:0.78rem;margin-top:2px">${escapeHtml(astrologerTagline(a))}</div>
+        <div class="muted" style="margin-top:2px">${a.specialtyLabel}</div>
+        <div class="muted" style="font-size:0.78rem;margin-top:2px">${a.tagline}</div>
       </div>
       <span>›</span>
     </div>
@@ -2118,7 +2025,7 @@ function renderChatScreen() {
   const astro = ASTROLOGERS.find(a => a.id === state.activeChatId) || ASTROLOGERS[0];
   $("#chat-astrologer-avatar").textContent = astro.avatar;
   $("#chat-astrologer-name").textContent = astro.name;
-  $("#chat-astrologer-specialty").textContent = astrologerSpecialtyLabel(astro);
+  $("#chat-astrologer-specialty").textContent = astro.specialtyLabel;
   renderChatMessages();
   const chat = state.chats[astro.id];
   const pending = !!(chat && chat.pending);
@@ -2248,12 +2155,6 @@ async function onTalkToExpertClick() {
   if (error) return toast(tr("expert.toast.check-failed"));
   if (!online || !online.length) return toast(tr("expert.toast.none-online"));
 
-  // initExpertChat()'s pay-submit handler deliberately leaves this button
-  // disabled through a successful purchase (same double-click-order fix as
-  // the report checkout) — reset it here since this is the one path that
-  // leads a visitor into a FRESH paywall screen ready to pay again (e.g.
-  // after finishing one session and starting another).
-  $("#btn-expert-pay-submit").disabled = false;
   showScreen("screen-expert-paywall");
 }
 
@@ -2302,14 +2203,11 @@ function initExpertChat() {
 
     submitBtn.disabled = true;
     const { data: orderData, error: orderErr } = await backendCall(dbInstance.createExpertSessionOrder(), "createExpertSessionOrder");
+    submitBtn.disabled = false;
     if (orderErr || !orderData || orderData.error) {
-      submitBtn.disabled = false;
       return toast((orderData && orderData.error) || "Couldn't start the payment — please try again.");
     }
 
-    // Stay disabled through rzp.open() and the whole modal lifecycle — see
-    // the matching comment in initCheckout() above for why (a fast
-    // double-click here used to be able to start two independent orders).
     const rzp = new Razorpay({
       key: orderData.key_id,
       order_id: orderData.order_id,
@@ -2319,9 +2217,6 @@ function initExpertChat() {
       description: "Expert chat session",
       theme: { color: "#e8c687" },
       prefill: state.user ? { name: state.user.name, email: state.user.email } : {},
-      modal: {
-        ondismiss: function () { submitBtn.disabled = false; },
-      },
       handler: async function (response) {
         showScreen("screen-processing", { silent: true });
         const { data: verifyData, error: verifyErr } = await backendCall(dbInstance.verifyExpertSessionPayment(response), "verifyExpertSessionPayment");
@@ -2331,7 +2226,6 @@ function initExpertChat() {
           // index.ts returns a specific, already-customer-facing message
           // for that one) — either way, back to the paywall, not stuck on
           // the spinner.
-          submitBtn.disabled = false;
           toast((verifyData && verifyData.error) || ("Payment succeeded but couldn't be confirmed — please contact support with your payment ID: " + (response.razorpay_payment_id || "")));
           showScreen("screen-expert-paywall", { silent: true });
           return;
@@ -2340,7 +2234,6 @@ function initExpertChat() {
       },
     });
     rzp.on("payment.failed", function () {
-      submitBtn.disabled = false;
       toast("Payment failed — please try again.");
     });
     rzp.open();
@@ -2527,26 +2420,8 @@ async function refreshCommunityFeed() {
   if (!dbInstance) return;
   const { data } = await backendCall(dbInstance.loadCommunityFeed(), "loadCommunityFeed");
   if (!data) return;
-  // For every post the backend tracks, its liked_by_me flag is the sole
-  // source of truth for "did the CURRENT user like this" — overwrite (not
-  // merge) those specific entries so a stale `true` left by a PREVIOUS user
-  // in this same browser session never survives a login switch (the base
-  // like_count already includes that previous user's real like server-side,
-  // so a stale local overlay on top of it would double-count AND show the
-  // wrong person's heart as filled). Posts the backend doesn't track at all
-  // — the hardcoded seed posts (id starting with "seed-"), which the click
-  // handler below deliberately never syncs to a backend — must NOT be
-  // touched here: their liked state is local-only by design and is meant to
-  // persist across both a simple re-visit of this screen and a logout, same
-  // reasoning as giftCodes/communityFeed. A blanket `state.communityLikes =
-  // {}` here fixed the cross-login leak but wiped seed-post likes on every
-  // single refresh, including a plain navigate-away-and-back with no login
-  // involved — this targeted per-id overwrite fixes both at once.
-  for (const p of data) {
-    if (p.liked_by_me) state.communityLikes[p.id] = true;
-    else delete state.communityLikes[p.id];
-  }
   state.communityFeed = data.map(p => {
+    if (p.liked_by_me) state.communityLikes[p.id] = true;
     return {
       id: p.id,
       name: p.name,
@@ -2980,15 +2855,7 @@ function initShare() {
     toast("Image downloaded ✨");
   });
   $("#btn-post-community").addEventListener("click", () => {
-    // Guard against a double-tap posting twice: postToCommunity() is async
-    // and fire-and-forget here (closeShare() below runs immediately so the
-    // sheet dismisses right away), which used to leave no disabled-state
-    // window for a near-simultaneous second click to land in — same shape
-    // of bug the pay buttons already guard against.
-    const btn = $("#btn-post-community");
-    if (btn.disabled) return;
-    btn.disabled = true;
-    postToCommunity().finally(() => { btn.disabled = false; });
+    postToCommunity();
     closeShare();
   });
 }
@@ -3112,7 +2979,6 @@ document.addEventListener("DOMContentLoaded", () => {
   initExpertChat();
   initCommunity();
   initSettings();
-  initAndroidBackButton();
   renderOnbStep();
 
   // If a backend is configured and this browser already has a valid,

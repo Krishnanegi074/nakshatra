@@ -155,6 +155,18 @@ async function signup(page, name, email, dob, city) {
   await page.waitForTimeout(150);
 
   console.log("\n== Group 5: community post caption fallback when no horoscope was ever viewed ==");
+  // screen-fullreport is paywall-guarded (showScreen()'s entitlement check,
+  // added after this test was first written — see TODO.md) — "Journey
+  // Tester" needs to actually own a tier before this group can reach it.
+  // Same fake-Razorpay purchase sequence test-phase2.js already uses.
+  await page.click('[data-nav="screen-report"]');
+  await page.waitForTimeout(100);
+  await page.click("#btn-report-checkout");
+  await page.waitForTimeout(100);
+  await page.click("#btn-pay-submit");
+  await page.waitForTimeout(2200);
+  await page.click("#btn-success-continue");
+  await page.waitForTimeout(150);
   // Post straight from the Full Report screen's share button WITHOUT visiting the
   // Weekly Horoscope screen first, so state._lastHoroscope is still unset — exercises
   // the tr("community.default-caption", ...) fallback path.

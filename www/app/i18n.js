@@ -195,12 +195,6 @@ const I18N = {
     "chat.demo-note-short": "Simulated demo — not a real person or AI chatbot.",
     "chat.ph.message": "Type a message...",
     "chat.btn.send": "Send",
-    "chat.astro.priya.specialty": "Career & Vedic Astrology",
-    "chat.astro.priya.tagline": "Grounded, practical reads on work and timing.",
-    "chat.astro.kabir.specialty": "Love & Relationships",
-    "chat.astro.kabir.tagline": "Warm, direct takes on matters of the heart.",
-    "chat.astro.meera.specialty": "Family & Life Path",
-    "chat.astro.meera.tagline": "Reflective guidance on home, family, and big decisions.",
 
     "expert.paywall.title": "Talk to a Real Expert",
     "expert.paywall.h2": "Connect with an expert now",
@@ -218,9 +212,6 @@ const I18N = {
     "community.demo-note": "This is a shared community feed — a few posts are seeded examples, but your own posts and likes are real and visible to other users of the app.",
     "community.default-caption": "Just checked my {sign} reading on Nakshatra ✨",
     "community.just-now": "Just now",
-    "community.time.mins-ago": "{n}m ago",
-    "community.time.hours-ago": "{n}h ago",
-    "community.time.days-ago": "{n}d ago",
     "sheet.share.btn.community": "Post to Community (Demo)",
 
     "horo.title": "Weekly Horoscope",
@@ -365,7 +356,6 @@ const I18N = {
     "notif.status.granted": "Notifications are enabled. Try sending yourself today's guidance below.",
     "notif.status.denied": "Notifications are blocked for this page in your browser settings. Enable them in your browser's site settings to use this feature.",
     "notif.status.default": "Get a browser notification with your daily love energy and horoscope snippet while this tab is open.",
-    "notif.status.requesting": "Requesting permission — check for a browser prompt…",
     "notif.status.enable-failed": "Couldn't request notification permission in this environment. This feature needs a normal top-level browser tab.",
 
     "fr.prepared-for": "Prepared for {name}",
@@ -545,12 +535,6 @@ const I18N = {
     "chat.demo-note-short": "सिम्युलेटेड डेमो — कोई असली व्यक्ति या AI चैटबॉट नहीं।",
     "chat.ph.message": "संदेश लिखें...",
     "chat.btn.send": "भेजें",
-    "chat.astro.priya.specialty": "करियर और वैदिक ज्योतिष",
-    "chat.astro.priya.tagline": "काम और समय को लेकर व्यावहारिक, ज़मीनी सलाह।",
-    "chat.astro.kabir.specialty": "प्रेम और रिश्ते",
-    "chat.astro.kabir.tagline": "दिल के मामलों पर आत्मीय और स्पष्ट मार्गदर्शन।",
-    "chat.astro.meera.specialty": "परिवार और जीवन पथ",
-    "chat.astro.meera.tagline": "घर, परिवार और बड़े फैसलों पर सोच-समझकर मार्गदर्शन।",
 
     "expert.paywall.title": "असली विशेषज्ञ से बात करें",
     "expert.paywall.h2": "अभी एक विशेषज्ञ से जुड़ें",
@@ -568,9 +552,6 @@ const I18N = {
     "community.demo-note": "यह एक साझा कम्युनिटी फ़ीड है — कुछ पोस्ट उदाहरण के तौर पर बनाई गई हैं, लेकिन आपकी अपनी पोस्ट और लाइक असली हैं और ऐप के अन्य उपयोगकर्ताओं को दिखती हैं।",
     "community.default-caption": "अभी-अभी Nakshatra पर अपनी {sign} रीडिंग देखी ✨",
     "community.just-now": "अभी-अभी",
-    "community.time.mins-ago": "{n} मिनट पहले",
-    "community.time.hours-ago": "{n} घंटे पहले",
-    "community.time.days-ago": "{n} दिन पहले",
     "sheet.share.btn.community": "कम्युनिटी में पोस्ट करें (डेमो)",
 
     "horo.title": "साप्ताहिक राशिफल",
@@ -715,7 +696,6 @@ const I18N = {
     "notif.status.granted": "सूचनाएं सक्षम हैं। नीचे आज का मार्गदर्शन खुद को भेज कर देखें।",
     "notif.status.denied": "इस पेज के लिए आपकी ब्राउज़र सेटिंग्स में सूचनाएं अवरुद्ध हैं। इस सुविधा का उपयोग करने के लिए अपनी ब्राउज़र साइट सेटिंग्स में इन्हें सक्षम करें।",
     "notif.status.default": "जब यह टैब खुला हो, तब अपनी दैनिक प्रेम ऊर्जा और राशिफल का एक अंश ब्राउज़र सूचना के रूप में पाएं।",
-    "notif.status.requesting": "अनुमति का अनुरोध किया जा रहा है — ब्राउज़र प्रॉम्प्ट देखें…",
     "notif.status.enable-failed": "इस वातावरण में सूचना अनुमति का अनुरोध नहीं किया जा सका। इस सुविधा के लिए एक सामान्य टॉप-लेवल ब्राउज़र टैब चाहिए।",
 
     "fr.prepared-for": "इसके लिए तैयार: {name}",
