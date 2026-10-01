@@ -28,8 +28,18 @@ Last updated: 2026-10-01
   live app). It has no purchase plugin installed, so Play Billing shows
   "payments aren't available in this build" rather than taking real money —
   fine for a test wrapper, but means it can't be used to test real purchases.
-- [ ] Delete stale beta signups with `backend/scripts/beta-cleanup.js --since
-  2026-09-30 --keep krishnanegi074@gmail.com` — run as a dry run first.
+- [x] ~~Delete stale beta signups with `backend/scripts/beta-cleanup.js`~~ —
+  ran as a dry run 2026-10-01: 5 users total, only 1 matched the `--since
+  2026-09-30` filter — `guptasians.yash03@gmail.com` ("yash gupta"), and
+  investigation showed it's not a beta tester. It's a real signup from
+  2026-10-01 (after today's launch), with one saved chart and a single
+  unpaid ₹399 report order (status `created`, no payment id — they tapped
+  Buy and never completed checkout). Left alone; deleting would have cost a
+  real person their account and chart for no reason. No `--yes` run was
+  needed — there was nothing left to clean up. Note for later: the
+  `--since 2026-09-30` cutoff is now stale for distinguishing beta testers
+  from real users, since real public signups started the same day — don't
+  reuse it as-is for a future cleanup pass.
 
 - [x] Card redesign, engine additions (Moon Nakshatra/Pada/Dasha), the full
   reading screen (Today score, Current Dasha, Year Ahead, Compatibility),
