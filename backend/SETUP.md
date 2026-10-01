@@ -429,7 +429,16 @@ way Razorpay checkout failed before its own setup above was done.
    and a `chat_sessions.play_purchase_token` column. Same deploy method as
    every other file here — SQL Editor -> New query -> paste the whole file
    -> Run — any time after `004_razorpay_payments.sql` and
-   `009_expert_chat.sql`.
+   `009_expert_chat.sql`. **Caught and fixed in a 2026-10-01 security audit
+   before this was ever applied**: the two `complete_play_*` functions only
+   revoked EXECUTE `from public`, not also `from anon, authenticated` — the
+   same gap `012_lock_down_functions.sql` fixed for the Razorpay-era
+   functions. Left as written, any signed-in user could have called either
+   function directly with a fabricated purchase token and credited a paid
+   unlock to any account. Already fixed in the file (now revokes from
+   `public, anon, authenticated` and grants only to `service_role`) — just
+   make sure you're pasting the current version of the file, not an older
+   copy you may have saved elsewhere.
 
 2. **Create a Google Cloud service account** that's allowed to read your
    Play purchases (this sandbox can't do this for you — needs a browser and
