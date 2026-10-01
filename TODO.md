@@ -4,14 +4,10 @@ Last updated: 2026-10-01
 
 ## Do now
 
-- [ ] Commit today's uncommitted work (Google Play Billing integration + the
-  2026-10-01 QA pass's 8 bug fixes — see "Done 2026-10-01" sections below).
-  Currently sitting uncommitted in the working tree: `app/app.js`,
-  `app/app.css`, `app/i18n.js`, `app/index.template.html`,
-  `app/supabase-client.js`, plus new files (`android/`, `www/`,
-  `app/verify-fixes.js`, `backend/sql/013_google_play_billing.sql`, the two
-  `verify-play-*` Edge Functions, `capacitor.config.json`,
-  `package.json`/`package-lock.json`).
+- [x] ~~Commit today's uncommitted work~~ — done: Google Play Billing
+  integration is `b015b43`, the 2026-10-01 QA pass's 8 bug fixes are
+  `2df6689`. Both are local commits on `main`, not yet pushed (see the
+  "Deploy today's bug fixes to the live site" item below).
 - [x] ~~Resolve whether the real Razorpay backend is actually deployed~~ —
   confirmed 2026-10-01 via the Supabase dashboard: all 4 Edge Functions
   (`create-razorpay-order`, `verify-razorpay-payment`,
@@ -41,7 +37,7 @@ Last updated: 2026-10-01
 
 - [x] ~~Deploy `create-expert-session-order` and `verify-expert-session-payment` Edge Functions for the first time~~ — confirmed deployed (2026-10-01 check), this item was stale.
 - [ ] Run one test-mode expert payment to confirm that flow works end to end (still worth doing as a sanity check even though the functions are deployed).
-- [ ] Refresh root `index.html` from the app build and push it live — deliberately deferred, no reason to revisit yet.
+- [x] ~~Refresh root `index.html` from the app build and push it live — deliberately deferred~~ — superseded: this is no longer deferred, it's the "Deploy today's bug fixes to the live site" item above (now in progress via a Claude Code deployment prompt, 2026-10-01).
 - [ ] Fuller security audit beyond the `012_lock_down_functions.sql` fix: auth settings in the Supabase dashboard, payment traceability, a read-through of the auth code.
 - [ ] Make the share card's star field deterministic (seeded) instead of random on every open, if a consistent image between opens matters.
 - [ ] Double-check the chip icon badge colors in the card against the exact `--plum`/`--plum-light` tokens — looked slightly more saturated in one screenshot, may just be compression.

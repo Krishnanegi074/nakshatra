@@ -88,20 +88,42 @@ docs/       Product/business planning doc
 
 There's no CI/CD — this repo is deployed to
 [nakshatra.ind.in](https://nakshatra.ind.in/) (GitHub Pages, custom domain
-via the root `CNAME` file) by manually uploading the built file through
-GitHub's web UI:
+via the root `CNAME` file) straight from this repo's root `index.html`.
+`app/index.html` is kept as a byte-identical mirror of the root file; both
+are generated and neither is edited by hand (an older version of this doc
+described uploading through GitHub's web UI — in practice every release
+build since has gone out as a normal git commit, e.g. `ac32bba`).
+
+Day-to-day changes that don't need a fresh full build (copy tweaks, CSS, a
+small fix already covered by what's live) go out via
+`bash deploy.sh "describe what changed"` (stages, commits, and pushes
+`main` — see the script at the repo root) or an equivalent
+`git add -A && git commit && git push`.
+
+A **release build** — regenerating the single deployed HTML file from
+everything currently in `app/`'s source — is more deliberate, since it's a
+production rewrite:
 
 1. Make your change under `app/` (never edit `app/nakshatra-app.html` or the
-   root `index.html` directly — they're generated).
+   root/`app/index.html` directly — they're generated).
 2. From `app/`, run `node build.js` to regenerate `app/nakshatra-app.html`.
-3. On GitHub, open this repo → **Add file → Upload files** → drag in the
-   regenerated file, renamed to `index.html`, so it replaces the root
-   `index.html` GitHub Pages actually serves. Commit directly to `main`.
-4. GitHub Pages redeploys automatically, usually within a minute or two.
+   This file is gitignored — it's for local testing only (it's where
+   `app/`'s live Razorpay keys first land) and is never committed or
+   published directly (see `69265a9`).
+3. Decide whether everything currently in `app/`'s source is actually safe
+   to ship as-is — a feature whose backend isn't deployed yet should stay
+   out of the release build. `ac32bba`'s commit message is a worked example
+   of cherry-picking a release from a point mid-history rather than
+   shipping current `main` verbatim. Verify the build against the real
+   Supabase/Razorpay backend before shipping.
+4. Copy the verified build's contents into both the root `index.html` and
+   `app/index.html`, then commit and push directly — `bash deploy.sh "..."`
+   or `git add -A && git commit && git push origin main`.
+5. GitHub Pages redeploys automatically, usually within a minute or two.
 
-For a SQL migration or Edge Function change (like `004_razorpay_payments.sql`
-and the two functions under `backend/supabase/functions/`), see
-`backend/SETUP.md` — those go through the Supabase dashboard, not GitHub.
+For a SQL migration or Edge Function change (like the files under
+`backend/sql/` and `backend/supabase/functions/`), see `backend/SETUP.md`
+— those go through the Supabase dashboard, not GitHub.
 
 ## Status
 
@@ -118,13 +140,20 @@ short version:
   (`app/supabase-client.js`, `app/app.js`) and backend
   (`backend/sql/004_razorpay_payments.sql`,
   `backend/supabase/functions/create-razorpay-order/`,
-  `backend/supabase/functions/verify-razorpay-payment/`) are both written and
-  tested (see `backend/SETUP.md`), but **not yet deployed** — the SQL
-  migration and the two Edge Functions still need to be applied to the real
-  Supabase project, and a real Razorpay account/API keys still need to be
-  created and added as Edge Function secrets, before checkout on the live
-  site will actually work. Until that's done, clicking Pay on the live site
-  will fail (the Edge Functions it calls don't exist yet on the backend).
+  `backend/supabase/functions/verify-razorpay-payment/`) are both written,
+  tested, and **confirmed deployed and live (2026-10-01)** — the SQL
+  migration and the Edge Functions are applied to the real Supabase
+  project, and real Razorpay keys are in place as Edge Function secrets.
+  Checkout on the live site works.
+  The live site is currently a few release builds behind `main`, though:
+  it's still running the `ac32bba` build, so a known double-click-on-Pay
+  bug (duplicate orders; fixed on `main`, not yet shipped) is likely still
+  live, and expert chat isn't reachable from the live site yet. Expert
+  chat's own backend (`backend/sql/009_expert_chat.sql`,
+  `backend/supabase/functions/create-expert-session-order/`,
+  `backend/supabase/functions/verify-expert-session-payment/`) is also
+  confirmed deployed, but the frontend release build that would expose it
+  on nakshatra.ind.in hasn't gone out — see "Deploying a change" above.
 - **Legal pages** — Privacy Policy and Terms of Service exist in-app
   (reachable from the landing page footer and Settings), with real contact
   details filled in, but are still an AI-drafted starting point — not yet
