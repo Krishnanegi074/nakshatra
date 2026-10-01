@@ -13,3 +13,6 @@ app/shots-i18n/
 
 # Local build output (tests use it). Not published: the live-key report checkout in it must not be served.
 app/nakshatra-app.html
+android-signing/
+*.keystore
+*.jks

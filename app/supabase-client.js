@@ -226,6 +226,22 @@
         return invokeKeepingErrorBody("verify-expert-session-payment", razorpayResponse);
       },
 
+      // ==================== EXPERT CHAT / REPORT (Google Play Billing) ====
+      // Android-app-only counterparts of the two pairs above — called only
+      // from app.js's isNativeApp() branches in initCheckout()/
+      // initExpertChat(). Same invokeKeepingErrorBody wrapper so a Play
+      // verification failure's { error: "..." } body reaches the UI the
+      // same way a Razorpay one does. See
+      // backend/sql/013_google_play_billing.sql for the full server-side
+      // flow these two Edge Functions implement.
+      async verifyPlayReportPurchase(productId, purchaseToken) {
+        return invokeKeepingErrorBody("verify-play-report-purchase", { productId, purchaseToken });
+      },
+
+      async verifyPlayExpertSessionPurchase(purchaseToken) {
+        return invokeKeepingErrorBody("verify-play-expert-session-purchase", { purchaseToken });
+      },
+
       // Whether at least one real expert is online right now — checked
       // before even offering the "Talk to an Expert" payment flow (see
       // initExpertChat() in app.js). experts_public (009_expert_chat.sql)
