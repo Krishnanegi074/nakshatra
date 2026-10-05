@@ -213,6 +213,7 @@ const I18N = {
     "expert.session.fallback-name": "Your expert",
     "expert.toast.check-failed": "Couldn't check expert availability — please try again.",
     "expert.toast.none-online": "No experts online right now.",
+    "expert.toast.none-online-hours": "No experts online right now. Our experts are available {hours} IST.",
     "paywall.toast.verify-failed": "Couldn't verify your access — please try again.",
 
     "community.title": "Community",
@@ -564,6 +565,7 @@ const I18N = {
     "expert.session.fallback-name": "आपका विशेषज्ञ",
     "expert.toast.check-failed": "विशेषज्ञ उपलब्धता जांचने में समस्या — कृपया पुनः प्रयास करें।",
     "expert.toast.none-online": "अभी कोई विशेषज्ञ ऑनलाइन नहीं है।",
+    "expert.toast.none-online-hours": "अभी कोई विशेषज्ञ ऑनलाइन नहीं है। हमारे विशेषज्ञ {hours} IST के बीच उपलब्ध रहते हैं।",
     "paywall.toast.verify-failed": "आपकी पहुंच सत्यापित करने में समस्या — कृपया पुनः प्रयास करें।",
 
     "community.title": "कम्युनिटी",

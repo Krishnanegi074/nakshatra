@@ -251,6 +251,15 @@
         return supabase.from("experts_public").select("id, name, specialty").eq("is_online", true);
       },
 
+      // The daily hours experts have committed to (015_expert_hours.sql),
+      // for the "Experts are available 6 pm - 10 pm IST" message when
+      // nobody is online. Rows with no fixed hours come back with null
+      // start/end and are skipped by the caller. Same narrow public view
+      // as above - no email, nothing private.
+      async loadExpertHours() {
+        return supabase.from("experts_public").select("hours_start, hours_end");
+      },
+
       // Name/specialty for one specific expert, regardless of online status
       // or assignment — used to resume an already-paid session (see
       // loadActiveExpertSession() below), where the expert who was matched

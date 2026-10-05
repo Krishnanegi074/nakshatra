@@ -483,12 +483,12 @@ function initLangSwitch() {
   }
 }
 
-function toast(msg) {
+function toast(msg, ms) {
   const t = $("#toast");
   t.textContent = msg;
   t.classList.add("show");
   clearTimeout(toast._h);
-  toast._h = setTimeout(() => t.classList.remove("show"), 2200);
+  toast._h = setTimeout(() => t.classList.remove("show"), ms || 2200);
 }
 
 function showScreen(id, opts) {
@@ -2250,6 +2250,47 @@ function stopExpertSessionRealtime() {
   if (stopExpertStatusRealtime) { stopExpertStatusRealtime(); stopExpertStatusRealtime = null; }
 }
 
+// "6:00:00" / "18:30:00" -> "6 am" / "6:30 pm" (Postgres `time` text).
+function formatExpertClock(t) {
+  const m = /^(\d{1,2}):(\d{2})/.exec(String(t || ""));
+  if (!m) return null;
+  const h24 = Number(m[1]);
+  const min = m[2];
+  const suffix = h24 >= 12 ? "pm" : "am";
+  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+  return h12 + (min === "00" ? "" : ":" + min) + " " + suffix;
+}
+
+// Shown when nobody is online. If experts keep fixed daily hours
+// (015_expert_hours.sql), say when they're around instead of a bare "no
+// experts online" - an out-of-hours visitor can then come back at the
+// right time. Several experts with different windows are listed
+// side by side; if any expert has no fixed window the plain message is used
+// (their availability isn't a daily slot). Any failure falls back to the plain message; this is only
+// ever a nicety layered on top of a check that has already failed.
+async function noExpertsOnlineMessage(dbInstance) {
+  try {
+    const { data, error } = await backendCall(dbInstance.loadExpertHours(), "loadExpertHours");
+    if (error || !data) return tr("expert.toast.none-online");
+    const windows = [];
+    let hasUnscheduled = false;
+    data.forEach((row) => {
+      const from = formatExpertClock(row.hours_start);
+      const to = formatExpertClock(row.hours_end);
+      // No window (or start == end, i.e. all day) means this expert isn't
+      // bound to a daily slot, so quoting other experts' hours would
+      // mislead - fall back to the plain message below.
+      if (!from || !to || row.hours_start === row.hours_end) { hasUnscheduled = true; return; }
+      const label = from + " – " + to;
+      if (!windows.includes(label)) windows.push(label);
+    });
+    if (hasUnscheduled || !windows.length) return tr("expert.toast.none-online");
+    return tr("expert.toast.none-online-hours", { hours: windows.join(", ") });
+  } catch (e) {
+    return tr("expert.toast.none-online");
+  }
+}
+
 async function onTalkToExpertClick() {
   const dbInstance = backendDb();
   if (!dbInstance) return toast("Please check your connection and try again.");
@@ -2267,7 +2308,7 @@ async function onTalkToExpertClick() {
 
   const { data: online, error } = await backendCall(dbInstance.loadOnlineExperts(), "loadOnlineExperts");
   if (error) return toast(tr("expert.toast.check-failed"));
-  if (!online || !online.length) return toast(tr("expert.toast.none-online"));
+  if (!online || !online.length) return toast(await noExpertsOnlineMessage(dbInstance), 5000);
 
   // initExpertChat()'s pay-submit handler deliberately leaves this button
   // disabled through a successful purchase (same double-click-order fix as

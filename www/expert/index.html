@@ -79,6 +79,14 @@ button { font-family: inherit; cursor: pointer; }
 .status-label { font-size: 0.85rem; font-weight: 600; }
 .status-label.on { color: var(--success); }
 .status-label.off { color: var(--text-faint); }
+.hours-note { margin-top: 2px; font-size: 0.78rem; color: var(--text-faint); }
+.hours-note.go { color: var(--gold-bright); }
+.hours-note.warn { color: var(--danger); }
+.alerts-row { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--text-faint); margin-right: 10px; }
+.alerts-row button {
+  width: auto; padding: 4px 10px; font-size: 0.75rem; border-radius: var(--radius-sm);
+  background: transparent; color: var(--gold-bright); border: 1px solid var(--border);
+}
 
 .dash-body { flex: 1; display: flex; min-height: 0; }
 .queue-pane {
@@ -148,9 +156,14 @@ button { font-family: inherit; cursor: pointer; }
       <div>
         <strong id="dash-expert-name" style="font-size:0.95rem"></strong>
         <div class="muted" id="dash-expert-specialty"></div>
+        <div class="hours-note" id="dash-hours"></div>
       </div>
     </div>
     <div class="online-toggle">
+      <div class="alerts-row">
+        <span id="alerts-status"></span>
+        <button type="button" id="btn-enable-alerts" class="hidden">Enable alerts</button>
+      </div>
       <span class="status-label off" id="online-status-label">Offline</span>
       <div class="switch" id="online-toggle-switch" role="button" tabindex="0" aria-label="Toggle online status"></div>
       <button class="btn-ghost" id="btn-signout" style="width:auto;padding:6px 12px;font-size:0.8rem;margin-left:14px">Sign Out</button>
@@ -213,13 +226,14 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const $ = (sel) => document.querySelector(sel);
 
-let me = null;              // { id, name, specialty, is_online }
+let me = null;              // { id, name, specialty, is_online, hours_start, hours_end }
 let sessions = [];           // this expert's active chat_sessions
 let activeSessionId = null;
 let queueChannel = null;
 let messagesChannel = null;
 let openSessionSeq = 0;   // bumped per openSession() so a stale timer can't redraw over a newer one
 let heartbeatInterval = null; // 014_expert_presence.sql's last_seen_at pinger, see startHeartbeat()
+let hoursInterval = null;     // re-renders the daily-hours note once a minute, see renderHours()
 
 function showScreen(id) {
   $("#screen-login").classList.toggle("hidden", id !== "login");
@@ -263,7 +277,7 @@ async function afterSignedIn() {
   // re-filtering by the caller's id client-side.
   const { data: expertRow, error } = await sb
     .from("experts")
-    .select("id, name, specialty, is_online")
+    .select("id, name, specialty, is_online, hours_start, hours_end")
     .maybeSingle();
 
   if (error || !expertRow) {
@@ -276,6 +290,8 @@ async function afterSignedIn() {
   $("#dash-expert-name").textContent = me.name;
   $("#dash-expert-specialty").textContent = me.specialty;
   renderOnlineToggle();
+  startHoursNote();
+  renderAlertStatus();
   showScreen("dashboard");
   startQueueRealtime();
   if (me.is_online) startHeartbeat(); // resume pinging after a page reload while already online
@@ -285,6 +301,8 @@ async function signOut() {
   stopQueueRealtime();
   stopMessagesRealtime();
   stopHeartbeat();
+  stopHoursNote();
+  clearAllSessionAlerts();
   await sb.auth.signOut();
   me = null;
   sessions = [];
@@ -337,7 +355,205 @@ async function toggleOnline() {
   if (error) { alert("Couldn't update your status — please try again."); return; }
   me.is_online = next;
   renderOnlineToggle();
+  renderHours();
   if (next) startHeartbeat(); else stopHeartbeat();
+  // Going online is a user gesture - the one moment the browser lets us
+  // unlock sound and ask for notification permission, which is exactly
+  // when an expert is about to start waiting for customers.
+  if (next) enableAlerts();
+}
+
+
+// ================= DAILY HOURS =================
+// Experts commit to a fixed daily window (015_expert_hours.sql; set by the
+// site admin, read-only here). The server only matches an expert who is
+// online AND inside their window, in India Standard Time. This note tells
+// the expert where they stand so "I'm online but nobody comes" is never a
+// mystery. It is informational only - the database is what enforces it.
+function clockToMinutes(t) {
+  const m = /^(\d{1,2}):(\d{2})/.exec(String(t || ""));
+  return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+}
+
+function formatClock(t) {
+  const mins = clockToMinutes(t);
+  if (mins === null) return "";
+  const h24 = Math.floor(mins / 60), min = mins % 60;
+  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+  return h12 + (min === 0 ? "" : ":" + String(min).padStart(2, "0")) + " " + (h24 >= 12 ? "pm" : "am");
+}
+
+function istMinutesNow() {
+  const parts = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date());
+  return Number(parts.find(p => p.type === "hour").value) * 60 + Number(parts.find(p => p.type === "minute").value);
+}
+
+// Mirrors public.expert_within_hours(): no window (or start == end) means
+// no restriction; a window may cross midnight.
+function insideHours(startT, endT, nowMin) {
+  const s = clockToMinutes(startT), e = clockToMinutes(endT);
+  if (s === null || e === null || s === e) return true;
+  return s < e ? (nowMin >= s && nowMin < e) : (nowMin >= s || nowMin < e);
+}
+
+function renderHours() {
+  const el = $("#dash-hours");
+  if (!me) { el.textContent = ""; return; }
+  const s = clockToMinutes(me.hours_start), e = clockToMinutes(me.hours_end);
+  if (s === null || e === null || s === e) {
+    el.className = "hours-note";
+    el.textContent = "No fixed hours — you're available whenever you're online.";
+    return;
+  }
+  const label = formatClock(me.hours_start) + " – " + formatClock(me.hours_end) + " IST";
+  const inside = insideHours(me.hours_start, me.hours_end, istMinutesNow());
+  if (inside && !me.is_online) {
+    el.className = "hours-note go";
+    el.textContent = "Your hours (" + label + ") are on — switch Online to receive customers.";
+  } else if (!inside && me.is_online) {
+    el.className = "hours-note warn";
+    el.textContent = "You're online but outside your hours (" + label + ") — customers won't be matched to you until then.";
+  } else if (inside) {
+    el.className = "hours-note";
+    el.textContent = "Your hours: " + label + " — you're live.";
+  } else {
+    el.className = "hours-note";
+    el.textContent = "Your hours: " + label + ".";
+  }
+}
+
+function startHoursNote() {
+  stopHoursNote();
+  renderHours();
+  hoursInterval = setInterval(renderHours, 60000);
+}
+
+function stopHoursNote() {
+  if (hoursInterval) { clearInterval(hoursInterval); hoursInterval = null; }
+}
+
+// ================= NEW-SESSION ALERTS =================
+// A paid customer is waiting the moment a session row appears, so the
+// dashboard must be impossible to miss even in a background tab: a chime
+// that repeats until the session is opened (or ended), a browser
+// notification while the tab is hidden, and a "(n)" prefix on the tab
+// title. Sound needs one user gesture to unlock (browser autoplay rules) -
+// going online, clicking "Enable alerts", or any click on the page does it.
+const ALERT_REPEAT_MS = 6000;
+const ALERT_MAX_REPEATS = 20;       // ~2 minutes of ringing, then stop nagging; the queue + title badge remain
+const BASE_TITLE = document.title;
+let audioCtx = null;
+let pendingAlerts = new Set();      // session ids not yet opened by the expert
+let alertTimer = null;
+let alertRepeats = 0;
+let alertNotifications = {};        // session id -> Notification, so opening a session can dismiss it
+
+function unlockAudio() {
+  try {
+    if (!audioCtx) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      audioCtx = new Ctx();
+    }
+    if (audioCtx.state !== "running") audioCtx.resume().then(renderAlertStatus).catch(() => {});
+  } catch (e) { console.error("Audio unlock failed:", e); }
+  renderAlertStatus();
+}
+
+function enableAlerts() {
+  unlockAudio();
+  if ("Notification" in window && Notification.permission === "default") {
+    try {
+      // Older Safari uses the callback form, newer browsers return a promise.
+      const p = Notification.requestPermission(renderAlertStatus);
+      if (p && p.then) p.then(renderAlertStatus);
+    } catch (e) { console.error("Notification permission request failed:", e); }
+  }
+  renderAlertStatus();
+}
+
+function renderAlertStatus() {
+  const status = $("#alerts-status"), btn = $("#btn-enable-alerts");
+  if (!status || !btn) return;
+  const soundOn = !!audioCtx && audioCtx.state === "running";
+  const notifSupported = "Notification" in window;
+  const perm = notifSupported ? Notification.permission : "unsupported";
+  const needsClick = !soundOn || perm === "default";
+  btn.classList.toggle("hidden", !needsClick);
+  const bits = [];
+  bits.push(soundOn ? "Sound on" : "Sound off");
+  if (perm === "granted") bits.push("pop-ups on");
+  else if (perm === "denied") bits.push("pop-ups blocked in browser");
+  else if (perm === "default") bits.push("pop-ups off");
+  status.textContent = bits.join(" · ");
+}
+
+function playChime() {
+  if (!audioCtx || audioCtx.state !== "running") return false;
+  const t0 = audioCtx.currentTime;
+  [[880, 0], [1175, 0.18], [1568, 0.36]].forEach(([freq, offset]) => {
+    const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.0001, t0 + offset);
+    gain.gain.exponentialRampToValueAtTime(0.25, t0 + offset + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + offset + 0.5);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(t0 + offset);
+    osc.stop(t0 + offset + 0.55);
+  });
+  return true;
+}
+
+function updateTitleBadge() {
+  document.title = pendingAlerts.size ? "(" + pendingAlerts.size + ") New session — " + BASE_TITLE : BASE_TITLE;
+}
+
+function stopAlertTimer() {
+  if (alertTimer) { clearInterval(alertTimer); alertTimer = null; }
+  alertRepeats = 0;
+}
+
+function showSessionNotification(sessionId) {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  if (!document.hidden) return; // the expert is looking at the page - the chime and queue are enough
+  try {
+    const n = new Notification("New Nakshatra session", {
+      body: customerLabel(sessionId) + " is waiting for you.",
+      tag: "nk-session-" + sessionId,
+      requireInteraction: true,
+    });
+    n.onclick = () => { window.focus(); openSession(sessionId); n.close(); };
+    alertNotifications[sessionId] = n;
+  } catch (e) { console.error("Notification failed:", e); }
+}
+
+function startNewSessionAlert(sessionId) {
+  pendingAlerts.add(sessionId);
+  updateTitleBadge();
+  playChime();
+  showSessionNotification(sessionId);
+  if (!alertTimer) {
+    alertTimer = setInterval(() => {
+      if (!pendingAlerts.size || ++alertRepeats > ALERT_MAX_REPEATS) { stopAlertTimer(); return; }
+      playChime();
+    }, ALERT_REPEAT_MS);
+  }
+}
+
+// The expert opened the session, or it ended (customer left first) - either
+// way there's nothing left to ring about.
+function acknowledgeSession(sessionId) {
+  pendingAlerts.delete(sessionId);
+  if (alertNotifications[sessionId]) { try { alertNotifications[sessionId].close(); } catch (e) {} delete alertNotifications[sessionId]; }
+  if (!pendingAlerts.size) stopAlertTimer();
+  updateTitleBadge();
+}
+
+function clearAllSessionAlerts() {
+  Array.from(pendingAlerts).forEach(acknowledgeSession);
+  stopAlertTimer();
 }
 
 // ================= QUEUE =================
@@ -384,6 +600,7 @@ async function handleQueueInsert(payload) {
   const { data: nameRow } = await sb.from("expert_customer_names").select("customer_name").eq("session_id", row.id).maybeSingle();
   if (nameRow) customerNames[row.id] = nameRow.customer_name;
   renderQueue();
+  startNewSessionAlert(row.id);
 }
 
 // Covers a session ending — most commonly the customer ending it (this
@@ -395,6 +612,7 @@ function handleQueueUpdate(payload) {
   const row = payload.new;
   if (row.status === "ended") {
     sessions = sessions.filter(s => s.id !== row.id);
+    acknowledgeSession(row.id);
     if (activeSessionId === row.id) stopMessagesRealtime();
   } else {
     const existing = sessions.find(s => s.id === row.id);
@@ -464,6 +682,7 @@ function customerLabel(sessionId) {
 // so postgres_changes delivered nothing. Access to the topic is enforced by
 // an RLS policy on realtime.messages (only this session's customer/expert).
 async function openSession(sessionId) {
+  acknowledgeSession(sessionId);
   activeSessionId = sessionId;
   renderQueue(); // re-render to highlight the selected item
   stopMessagesRealtime();
@@ -608,6 +827,13 @@ document.addEventListener("DOMContentLoaded", () => {
   $("#btn-chat-send").addEventListener("click", sendReply);
   $("#chat-input").addEventListener("keydown", (e) => { if (e.key === "Enter") sendReply(); });
   $("#btn-end-session").addEventListener("click", endActiveSession);
+  $("#btn-enable-alerts").addEventListener("click", enableAlerts);
+  // After a page reload there's no "go online" click to unlock sound, so
+  // the first click or keypress anywhere does it (the status line next to
+  // the toggle says "Sound off" until then).
+  ["pointerdown", "keydown"].forEach(evt => document.addEventListener(evt, () => {
+    if (!audioCtx || audioCtx.state !== "running") unlockAudio();
+  }));
 
   // Resume an already-signed-in expert on page reload, same idea as the
   // consumer app's bootstrapSession() in app/app.js.

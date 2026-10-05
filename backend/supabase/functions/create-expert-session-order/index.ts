@@ -108,21 +108,22 @@ Deno.serve(async (req: Request) => {
 
     const adminClient = createClient(SUPABASE_URL, SECRET_KEY);
 
-    // Courtesy pre-check — see the file header. Uses the service_role
-    // client (not userClient) purely so this works the same regardless of
-    // whether experts_public's grant to `authenticated` is in place; the
-    // real access boundary this function relies on is
-    // complete_expert_session_order()'s own lock, not this check. The
-    // last_seen_at staleness filter mirrors that function's own matching
-    // query (014_expert_presence.sql) so a dead dashboard tab is rejected
-    // here, before Razorpay checkout even opens, instead of only being
-    // caught later at payment-verification time.
+    // Courtesy pre-check — see the file header. Asks the experts_public
+    // view (015_expert_hours.sql) rather than the raw table, so "available"
+    // has ONE definition shared with complete_expert_session_order(): the
+    // expert flipped themselves online, their dashboard heartbeat is under
+    // 2 minutes old (014_expert_presence.sql), AND the clock is inside
+    // their daily hours when they have any. A dead tab or an out-of-hours
+    // expert is therefore rejected here, before Razorpay checkout even
+    // opens, instead of only being caught (and refunded) at payment-
+    // verification time. Uses the service_role client (not userClient);
+    // 015 grants service_role SELECT on the view explicitly. The real
+    // access boundary this function relies on is still
+    // complete_expert_session_order()'s own lock, not this check.
     const { data: onlineExperts, error: onlineErr } = await adminClient
-      .from("experts")
+      .from("experts_public")
       .select("id")
-      .eq("is_online", true)
-      .not("last_seen_at", "is", null)
-      .gte("last_seen_at", new Date(Date.now() - 2 * 60 * 1000).toISOString());
+      .eq("is_online", true);
     if (onlineErr) {
       console.error("Failed to check online experts:", onlineErr);
       return json({ error: "Something went wrong — please try again." }, 500);
