@@ -289,6 +289,27 @@ async function loadUserDataFromBackend() {
     state.entitlements.tiers = entitlementsRes.data.map(row => row.tier);
   }
   state.entitlementsLoadFailed = !!entitlementsRes.error;
+  if (state.entitlementsLoadFailed) scheduleEntitlementsRetry();
+}
+
+// One automatic retry for a failed entitlements fetch (TODO.md), so a
+// transient network blip doesn't strand a paying user behind the
+// "couldn't verify your access" toast until they manually reload or
+// renavigate. Single attempt, not a loop — if the retry also fails,
+// showScreen()'s existing toast+redirect guard still applies normally,
+// exactly as it did before this fix. Re-fetches only entitlements, not
+// the full loadUserDataFromBackend() payload, since that's the one thing
+// that actually failed.
+let entitlementsRetryTimer = null;
+function scheduleEntitlementsRetry() {
+  clearTimeout(entitlementsRetryTimer);
+  entitlementsRetryTimer = setTimeout(async () => {
+    const dbInstance = backendDb();
+    if (!dbInstance) return;
+    const res = await backendCall(dbInstance.loadEntitlements(), "loadEntitlements");
+    state.entitlementsLoadFailed = !!res.error;
+    if (res.data) state.entitlements.tiers = res.data.map(row => row.tier);
+  }, 1800);
 }
 
 // Set by initAuth()'s password-recovery detection (below) BEFORE
@@ -474,7 +495,7 @@ function showScreen(id, opts) {
   opts = opts || {};
   if (id === "screen-fullreport" && !hasFullReportAccess()) {
     if (state.entitlementsLoadFailed) {
-      toast("Couldn't verify your access — please try again.");
+      toast(tr("paywall.toast.verify-failed"));
       showScreen("screen-dashboard", opts);
       return;
     }
@@ -2764,6 +2785,25 @@ function fitFontSize(ctx, text, maxWidth, startPx, minPx, fontFor) {
 
 // Returns a promise: the canvas is only fully drawn once it resolves, so
 // callers that read it (Download, Post to Community) must wait for that.
+// Deterministic PRNG (mulberry32, seeded from a short string hash) — used
+// so the share card's star field looks the same across re-opens for the
+// same user on the same day, instead of reshuffling every single draw
+// (TODO.md). Purely decorative, never used anywhere security-sensitive.
+function seededRandom(seedStr) {
+  let h = 1779033703 ^ seedStr.length;
+  for (let i = 0; i < seedStr.length; i++) {
+    h = Math.imul(h ^ seedStr.charCodeAt(i), 3432918353);
+    h = (h << 13) | (h >>> 19);
+  }
+  let a = h >>> 0;
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 async function drawShareCard() {
   await loadShareCardFonts();
 
@@ -2786,10 +2826,15 @@ async function drawShareCard() {
   grad.addColorStop(0, T.navy1); grad.addColorStop(0.42, T.navy2); grad.addColorStop(1, T.navy0);
   ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
 
+  // Seeded by user + day, not a fixed global pattern — the same user
+  // re-opening or re-sharing today's card sees the same star field, but
+  // it's different for other users and changes again tomorrow.
+  const starSeed = (state.user && state.user.email ? state.user.email : "guest") + "-" + new Date().toISOString().slice(0, 10);
+  const starRand = seededRandom(starSeed);
   ctx.fillStyle = "rgba(255,255,255,0.7)";
   for (let i = 0; i < 140; i++) {
-    const x = Math.random() * W, y = Math.random() * H, r = Math.random() * 2.4;
-    ctx.globalAlpha = Math.random() * 0.8 + 0.15;
+    const x = starRand() * W, y = starRand() * H, r = starRand() * 2.4;
+    ctx.globalAlpha = starRand() * 0.8 + 0.15;
     ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
   }
   ctx.globalAlpha = 1;

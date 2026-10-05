@@ -213,6 +213,7 @@ const I18N = {
     "expert.session.fallback-name": "Your expert",
     "expert.toast.check-failed": "Couldn't check expert availability — please try again.",
     "expert.toast.none-online": "No experts online right now.",
+    "paywall.toast.verify-failed": "Couldn't verify your access — please try again.",
 
     "community.title": "Community",
     "community.demo-note": "This is a shared community feed — a few posts are seeded examples, but your own posts and likes are real and visible to other users of the app.",
@@ -563,6 +564,7 @@ const I18N = {
     "expert.session.fallback-name": "आपका विशेषज्ञ",
     "expert.toast.check-failed": "विशेषज्ञ उपलब्धता जांचने में समस्या — कृपया पुनः प्रयास करें।",
     "expert.toast.none-online": "अभी कोई विशेषज्ञ ऑनलाइन नहीं है।",
+    "paywall.toast.verify-failed": "आपकी पहुंच सत्यापित करने में समस्या — कृपया पुनः प्रयास करें।",
 
     "community.title": "कम्युनिटी",
     "community.demo-note": "यह एक साझा कम्युनिटी फ़ीड है — कुछ पोस्ट उदाहरण के तौर पर बनाई गई हैं, लेकिन आपकी अपनी पोस्ट और लाइक असली हैं और ऐप के अन्य उपयोगकर्ताओं को दिखती हैं।",
