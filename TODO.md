@@ -30,6 +30,19 @@ daily-hours rule were checked live; these items are still open.
 - [ ] A full end-to-end journey rehearsal: signup, onboarding, report purchase,
   expert checkout, chat, refund, as a customer and as the expert.
 
+## Monthly expert earnings report
+
+- [x] Written and tested locally (2026-10-06): `backend/scripts/expert-earnings-report.js` and
+  `backend/tests/test-earnings-report.js` (40 checks, fake API only). How to run it and the
+  counting rules are in `backend/SETUP.md`. Not run against production yet.
+- [ ] Before the first real run: create `~/Documents/nakshatra-reports/config.json` with each
+  expert's share rate (no default, payouts stay blank until set) and the user ids of your own test
+  accounts (`krishnanegi074@gmail.com`'s id for the rehearsal payments). The owner decides when to run it.
+- [ ] Known limits: gross only (no Razorpay/Google fees or GST), `razorpay_orders` stores no payment
+  id (reconcile by order id in the Razorpay dashboard), a Play `manual` refund is never marked done in
+  the ledger so it stays held back until someone settles it, and a past month's numbers can change if a
+  refund lands later (each report carries an "as of" time).
+
 ## Paused: full journey rehearsal with two real ₹199 payments
 
 Paused on 2026-10-06 after step 0; to be done in the owner's free time. It uses the

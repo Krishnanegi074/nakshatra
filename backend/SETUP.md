@@ -699,3 +699,31 @@ replied once and then went quiet (both are for a human to judge).
 **Tuning.** The 5 minutes is `GRACE_MINUTES` at the top of the edge function
 (tell experts the same number; the dashboard notice text also says 5).
 **Turning it off:** `select cron.unschedule('sweep-silent-expert-sessions');`
+
+## Monthly expert earnings report
+
+`backend/scripts/expert-earnings-report.js` reads (GET only) the paid expert sessions, the refund
+ledger and the order status, and writes three files per month into a folder OUTSIDE the repo
+(default `~/Documents/nakshatra-reports/<YYYY-MM>/`): `expert-earnings-<month>.csv` (a row per
+expert + TOTAL), `sessions-<month>.csv` (one row per session, ids only) and
+`needs-attention-<month>.txt`. It refuses to write inside the repo.
+
+    source ~/.nakshatra-realtime-test.env        # SUPABASE_SERVICE_ROLE_KEY (never printed or written)
+    node backend/scripts/expert-earnings-report.js --month 2026-10
+    node backend/scripts/expert-earnings-report.js --month 2026-10 --no-exclusions   # reconcile with Razorpay
+
+Create `~/Documents/nakshatra-reports/config.json` yourself (not in git):
+
+    { "expertRates": { "<expert id>": 0.4 }, "excludeUserIds": ["<your test user id>"] }
+
+A rate is a fraction of gross (0.4 = 40%). There is no default: an expert with no rate gets a
+blank payout. `--no-exclusions` ignores `excludeUserIds` (output goes to `<month>-no-exclusions/`).
+
+Rules: the month is the month the customer paid (IST) and a later refund is netted against it;
+refunded and silent-refunded sessions earn 0; ledger `pending` / `failed` / `manual` rows,
+unverified orders and `expert_silent` sessions with no ledger row are held back and listed in
+needs-attention; answered-then-quiet sessions are earned; still-active sessions count and are
+flagged; Rs 0 sessions are always ignored; gross only (Razorpay/Google fees and GST are not
+subtracted). `razorpay_orders` has no payment id, so reconcile with the Razorpay dashboard using the
+order id in the sessions file. Tests: `node backend/tests/test-earnings-report.js` (fake API only).
+
