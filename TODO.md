@@ -21,10 +21,17 @@ daily-hours rule were checked live; these items are still open.
   If it recurs, add a temporary write-log trigger on `public.experts` (old/new
   `is_online`, `auth.uid()`, user-agent, origin) to see who writes. Matters before
   real experts go live, because a stuck-online expert on live keys can take real money.
-- [ ] Make the app tests (`app/test-*.js`) refuse to run against production. Most
-  of them sign up real accounts, and on a machine with internet they hit the
-  production Supabase (a Mac run on 2026-10-06 created 13 junk `@example.com`
-  accounts, since deleted). They should fail fast unless pointed at fakes or a scratch project.
+- [x] Make the app tests refuse to run against production — built 2026-10-06 (local commits, see
+  `backend/SETUP.md`, "Running the app tests"): `app/test-guard.js` (`launchGuarded`) blocks every
+  non-local hostname for all 18 browser-driven files, `app/test-guard-selftest.js` proves it on the machine
+  (passed 9/9 on the owner's Mac, including the production REST host, the realtime WebSocket and Razorpay),
+  `app/run-tests.js` lints, runs the self-test first, then the tests, and the two scripts that deliberately write
+  to production need `CONFIRM_PRODUCTION=yes` (never set it automatically). Playwright is not a repo
+  dependency: reuse `~/comet-karts/node_modules` through `NODE_PATH`.
+- [ ] RLS test cases not run: `backend/tests/test-rls.js` needs a local Postgres (`nakshatra_test`) and this Mac has none
+  (no Postgres, Docker or Homebrew), so Group 9 and the two new 018 cases are **written but not run** (decision: option C).
+  Run them wherever a scratch Postgres exists (the original sandbox), or install Postgres later. Live evidence for 018:
+  the constraint exists and is validated in production, and its pattern passed 21/21 edge cases in the SQL Editor.
 - [ ] Test the heartbeat in a tab left in the background for a long time (browsers
   throttle timers; one gap of ~56s was seen, the stale limit is 2 minutes).
 - [ ] A full end-to-end journey rehearsal: signup, onboarding, report purchase,

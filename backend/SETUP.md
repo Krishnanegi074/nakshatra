@@ -727,3 +727,27 @@ flagged; Rs 0 sessions are always ignored; gross only (Razorpay/Google fees and 
 subtracted). `razorpay_orders` has no payment id, so reconcile with the Razorpay dashboard using the
 order id in the sessions file. Tests: `node backend/tests/test-earnings-report.js` (fake API only).
 
+## Running the app tests (guarded: they cannot reach production)
+
+The browser tests load the app, which embeds the production Supabase URL and key. They are only run
+through `launchGuarded()` (`app/test-guard.js`), which makes every hostname except localhost fail to
+resolve, so Supabase, its realtime WebSocket, Razorpay and the CDN are unreachable and the app stays in
+demo mode (the condition the tests were written for).
+
+    cd app && npm ci                                      # astronomy-engine (once; node_modules is gitignored)
+    export NODE_PATH=$HOME/comet-karts/node_modules       # Playwright: NOT a dependency of this repo
+    node app/test-guard-selftest.js                       # proves the guard on this machine
+    node app/run-tests.js                                 # lint + self-test + every test file
+    node app/run-tests.js --list                          # what it would run
+
+Dependencies: Node 18+; **Playwright** (this repo does not install it; on the owner's Mac reuse the copy in
+`~/comet-karts/node_modules`, Playwright 1.63, via `NODE_PATH`); `astronomy-engine` (from `app/package.json`).
+Set `PW_CHROMIUM_PATH` to use a specific browser binary. `app/run-tests.js` stops before running anything if
+the guard self-test fails or if a test calls `chromium.launch()` directly.
+
+Two scripts really do write to production and are never run by the runner: `backend/tests/realtime-test.js`
+and `backend/tests/manual-chat-session.js`. They refuse to start unless `CONFIRM_PRODUCTION=yes` is in the
+environment. Type it for the one run you mean; never put it in a shell profile or a script.
+`backend/tests/test-rls.js` only talks to a local Postgres named `nakshatra_test*`; it needs Postgres, which this
+Mac does not have, so its cases (including the two 018 email-check cases) are written but not run here.
+
