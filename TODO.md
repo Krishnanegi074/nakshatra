@@ -28,6 +28,16 @@ daily-hours rule were checked live; these items are still open.
   `app/run-tests.js` lints, runs the self-test first, then the tests, and the two scripts that deliberately write
   to production need `CONFIRM_PRODUCTION=yes` (never set it automatically). Playwright is not a repo
   dependency: reuse `~/comet-karts/node_modules` through `NODE_PATH`.
+- [ ] `app/tests-backend/test-backend-integration.js` has a **pre-existing failing check**: "Exactly one palm_reports row
+  exists after generating" (then a TypeError). It fails identically on `ac32bba` (the previous live release), on `b015b43`
+  and on current `main`, so it is a stale test, not a regression and not caused by the guard: it clicks the first option in
+  every palm option grid and then "Generate", but Generate stays disabled until the photo-scan flow has enabled it (the palm
+  CV feature came after this test was last updated, 2026-09-22). Fix the test, not the app.
+- [x] First guarded run on the owner's Mac, 2026-10-06: 19 of 20 files clean (the 20th is the stale test above). `test-astro-chat`
+  and `test-final` first failed only because they ignored just the sandbox's `ERR_TUNNEL_CONNECTION_FAILED` console error and the
+  guard produces `ERR_NAME_NOT_RESOLVED`; their filters were widened. `test-e2e-comprehensive` and `test-final` each timed out once
+  in a later full run (this Mac was slow) and passed alone in their normal time (64s and 24s). Production counts and content hashes
+  (16 tables + auth users) were identical before and after every run.
 - [ ] RLS test cases not run: `backend/tests/test-rls.js` needs a local Postgres (`nakshatra_test`) and this Mac has none
   (no Postgres, Docker or Homebrew), so Group 9 and the two new 018 cases are **written but not run** (decision: option C).
   Run them wherever a scratch Postgres exists (the original sandbox), or install Postgres later. Live evidence for 018:
