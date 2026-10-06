@@ -117,9 +117,19 @@ Open:
   order the claim function inserts the ledger row as `manual` straight away, and the
   function's `manual` counter only counts rows it later leases. The ledger row
   being `manual` is the correct end state. (`~/Desktop/nakshatra-next-steps.md` still says `manual:1`.)
-- [ ] Add an email-format check to `kundli_waitlist`: an anonymous insert of
+- [ ] (see the next item for status) Add an email-format check to `kundli_waitlist`: an anonymous insert of
   `email = "x"` was accepted (a junk row was created by a test and deleted). Anon
   insert is open by design (`with check (true)`); a `check (email ~* ...)` or similar would stop garbage.
+- [ ] **`kundli_waitlist` email check, written but not applied or pushed.** Local commits:
+  `018_kundli_waitlist_email_check.sql`, the form change in `kundli-waitlist.js`, and two
+  tests. Apply 018 in the SQL Editor first (the table has 0 rows, so it validates instantly;
+  test the pattern beforehand with the select-only query at the bottom of the 018 file), then
+  push the form change. **The two new test cases (`test-kundli-waitlist.js`: "a@b" is stopped
+  and a forced 23514 shows the friendly message; `backend/tests/test-rls.js` Group 9: bad
+  address rejected, good one accepted) have NOT been run.** They must wait for the production
+  guard on the tests (the "Make the app tests refuse to run against production" item): `test-kundli-waitlist.js`'s first run loads the real
+  supabase-js when the machine has internet and would talk to production, and the RLS test needs
+  018 loaded into the scratch Postgres.
 - [ ] Google Play sessions: they have no Razorpay order, so `claim_silent_expert_sessions`
   queues them as `manual` at claim time (they never get an automatic refund and
   the sweep summary shows `manual:0` for them). Someone has to refund them in Play
@@ -194,6 +204,12 @@ Open:
 - [x] ~~Automatic retry for a failed entitlements fetch~~ — done 2026-10-05 in `app/app.js`: when `loadUserDataFromBackend()` sees an entitlements error it schedules ONE background retry (`scheduleEntitlementsRetry()`, ~1.8s later, entitlements only) so a transient blip heals without a reload. If the retry also fails, the existing toast+redirect guard still applies. Source edit only; not in a release build yet.
 - [x] Review the Hindi strings added with the Today score and Current Dasha work (`e7a7c20`): `fr.section.today`, `fr.section.dasha`, `fr.dasha.mahadasha`, `fr.dasha.antardasha`, `fr.today-recovery`, `fr.dasha-recovery`, `fr.time-approx`, plus the "आज की रीडिंग, वर्तमान दशा" addition to the Hindi `content.hi-note` sentence. Reviewed 2026-09-30: grammar and astrological terminology (महादशा, अंतर्दशा, etc.) confirmed correct, and all consistent with existing phrasing in the app. Not a blocker any more.
 - [ ] Optional: a true native-speaker fluency/naturalness pass over those same strings, for extra confidence. The review above was a careful check, not a certified native review, so this is nice-to-have rather than required. Changes would be one-line edits per key in `app/i18n.js`, then a rebuild and a redeploy of the release build (the strings are live).
+- [ ] Hindi review list: the Kundli waitlist form's new validation message, "That doesn't
+  look like a valid email address — please check it and try again." (`kundli-waitlist.js`,
+  shown for a malformed or database-rejected address). It is English-only for now, like every
+  other message in that form (success, already-on-the-list, "Something went wrong"); there is
+  no Hindi version of the waitlist messages yet. Translate and review all of them together
+  if/when the form gets Hindi, via `marketing-i18n.js`.
 - [x] ~~Daily hours for experts~~ — built 2026-10-05, **not applied yet**: `backend/sql/015_expert_hours.sql` (`experts.hours_start/hours_end`, India time, admin-set only; matching, the `experts_public` view and the `create-expert-session-order` pre-check all require being inside the window; no hours = old behaviour), customer message "No experts online right now. Our experts are available 6 pm – 10 pm IST." (`app/app.js` `noExpertsOnlineMessage()`, en + hi; source only until the next release build), and an hours note on the expert dashboard. Needs: run 014 then 015 in Supabase, redeploy the edge function, push (see `~/Desktop/nakshatra-next-steps.md`). Tested against a scratch Postgres plus headless-browser checks.
 - [x] ~~New-session alert on the expert dashboard~~ — built 2026-10-05 in `expert/index.html` (+ `www/` mirror): repeating chime until the session is opened, browser notification while the tab is hidden, "(n)" tab-title badge. Goes live with the next push. Limits: needs the dashboard tab open (no push when closed), and sound needs one click after a page reload (the status line says so).
 - [x] ~~Auto-end and refund when a matched expert never replies~~ — built 2026-10-06, **not applied yet**: `backend/sql/016_silent_expert_refund.sql`, edge function `sweep-silent-expert-sessions` (Razorpay refund, retries, Google Play sessions flagged `manual`), scheduling file `backend/sql/optional_schedule_silent_sweep.sql`, a refund explanation in the customer chat (en + hi; source only until the next release build) and a notice on the expert dashboard. Rule: customer's first message older than 5 minutes with no expert reply -> session ended + refunded. Needs: run 016, set the `SWEEP_SECRET` secret, deploy the function with Verify JWT OFF, schedule it, push (see `~/Desktop/nakshatra-next-steps.md` step 6 and `backend/SETUP.md` section 016). Not covered: customer who never wrote; expert who replied once then went quiet.
