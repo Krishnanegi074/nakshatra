@@ -18,6 +18,8 @@
 
   var SUPABASE_URL = 'https://xinelwrxgveztrtokwbt.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_TCpwYsH_r77QM7kRkdBLrw_BPW26GHs';
+  // Mirrors the check constraint in backend/sql/018_kundli_waitlist_email_check.sql.
+  var EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
   document.addEventListener('DOMContentLoaded', function () {
     var form = document.getElementById('waitlist-form');
@@ -64,6 +66,14 @@
       var email = (input.value || '').trim().toLowerCase();
       if (!email) return;
 
+      // Same rule as 018_kundli_waitlist_email_check.sql, checked here first so a
+      // malformed address gets an immediate message with no round trip. type=email
+      // alone lets "a@b" (no dot) through; the database check is the backstop.
+      if (!EMAIL_PATTERN.test(email) || email.length > 254) {
+        setStatus("That doesn't look like a valid email address — please check it and try again.", 'error');
+        return;
+      }
+
       setBusy(true);
       setStatus('Joining…', null);
 
@@ -83,6 +93,13 @@
         if (error.code === '23505' || /duplicate key|already exists/i.test(error.message || '')) {
           input.value = '';
           setStatus("You're already on the list — we'll email you the moment it's ready.", 'success');
+          return;
+        }
+
+        // 23514 = check_violation (018's kundli_waitlist_email_format): the database
+        // rejected the address as malformed even though the checks above passed.
+        if (error.code === '23514' || /kundli_waitlist_email_format/.test(error.message || '')) {
+          setStatus("That doesn't look like a valid email address — please check it and try again.", 'error');
           return;
         }
 
