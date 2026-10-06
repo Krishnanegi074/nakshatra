@@ -10,6 +10,7 @@
 // in app.js, which resets state.communityLikes from the backend's liked_by_me
 // flags on every refresh rather than merging into whatever was there before.
 const { chromium } = require("playwright");
+const { launchGuarded } = require("./test-guard");
 const path = require("path");
 
 function check(label, cond, results) {
@@ -18,7 +19,7 @@ function check(label, cond, results) {
 }
 
 (async () => {
-  const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium", headless: true });
+  const browser = await launchGuarded(chromium, { executablePath: "/opt/pw-browsers/chromium", headless: true });
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   const results = [];
   const errors = [];

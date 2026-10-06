@@ -7,6 +7,7 @@
 // multiple columns at wider widths, and scrolling still reaches below-the-fold
 // content at every size.
 const { chromium } = require("playwright");
+const { launchGuarded } = require("./test-guard");
 const path = require("path");
 
 function check(label, cond, results) {
@@ -32,7 +33,7 @@ async function reachDashboard(page) {
 }
 
 (async () => {
-  const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium", headless: true });
+  const browser = await launchGuarded(chromium, { executablePath: "/opt/pw-browsers/chromium", headless: true });
   const results = [];
   const errors = [];
 

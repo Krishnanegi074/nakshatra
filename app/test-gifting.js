@@ -5,11 +5,12 @@
 // own unlock status untouched, giftCodes surviving logout while giftInProgress
 // does not, self-checkout not accidentally treated as a gift).
 const { chromium } = require("playwright");
+const { launchGuarded } = require("./test-guard");
 const path = require("path");
 const fs = require("fs");
 
 (async () => {
-  const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium", headless: true });
+  const browser = await launchGuarded(chromium, { executablePath: "/opt/pw-browsers/chromium", headless: true });
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   const errors = [];
   page.on("pageerror", (e) => errors.push("PAGEERROR: " + e.message));

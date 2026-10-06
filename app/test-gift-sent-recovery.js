@@ -24,6 +24,7 @@
 // Supabase), following the same pattern as test-gifting.js and
 // tests-backend/test-backend-integration.js's Group 12 reload test.
 const { chromium } = require("playwright");
+const { launchGuarded } = require("./test-guard");
 const path = require("path");
 const fs = require("fs");
 
@@ -33,7 +34,7 @@ function check(label, cond, results) {
 }
 
 (async () => {
-  const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium", headless: true });
+  const browser = await launchGuarded(chromium, { executablePath: "/opt/pw-browsers/chromium", headless: true });
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   const results = [];
   const errors = [];

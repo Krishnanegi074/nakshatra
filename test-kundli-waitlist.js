@@ -22,6 +22,7 @@
 //      its much larger schema) — exercises success, case-insensitive
 //      duplicate handling, and a forced generic failure.
 const { chromium } = require("playwright");
+const { launchGuarded } = require("./app/test-guard");
 const path = require("path");
 
 function check(label, cond, results) {
@@ -86,7 +87,7 @@ const FAKE_SUPABASE_SRC = `
 `;
 
 (async () => {
-  const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium", headless: true });
+  const browser = await launchGuarded(chromium, { executablePath: "/opt/pw-browsers/chromium", headless: true });
   const results = [];
   const url = "file://" + path.resolve(__dirname, "kundli-matching.html");
 

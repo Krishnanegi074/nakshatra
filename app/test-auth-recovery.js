@@ -17,6 +17,7 @@
 // app/nakshatra-app.html, following the same fake-supabase.js pattern as
 // test-gifting.js/test-community.js/etc.
 const { chromium } = require("playwright");
+const { launchGuarded } = require("./test-guard");
 const path = require("path");
 const fs = require("fs");
 
@@ -26,7 +27,7 @@ function check(label, cond, results) {
 }
 
 (async () => {
-  const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium", headless: true });
+  const browser = await launchGuarded(chromium, { executablePath: "/opt/pw-browsers/chromium", headless: true });
   const results = [];
   const fakeSupabaseSrc = fs.readFileSync(path.join(__dirname, "tests-backend", "fake-supabase.js"), "utf8");
 

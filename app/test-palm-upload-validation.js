@@ -8,6 +8,7 @@
 // This exercises the real browser upload path (not a Node-side unit test),
 // following the same flow test-cv-ui.js already uses to reach screen-palm.
 const { chromium } = require("playwright");
+const { launchGuarded } = require("./test-guard");
 const path = require("path");
 
 function check(label, cond, results) {
@@ -16,7 +17,7 @@ function check(label, cond, results) {
 }
 
 (async () => {
-  const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium", headless: true });
+  const browser = await launchGuarded(chromium, { executablePath: "/opt/pw-browsers/chromium", headless: true });
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   const results = [];
   const errors = [];
