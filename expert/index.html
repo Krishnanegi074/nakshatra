@@ -539,7 +539,11 @@ function stopAlertTimer() {
 
 function showSessionNotification(sessionId) {
   if (!("Notification" in window) || Notification.permission !== "granted") return;
-  if (!document.hidden) return; // the expert is looking at the page - the chime and queue are enough
+  // Skip only when the expert is genuinely looking at the dashboard: its tab is
+  // visible AND its window has focus. A tab can be the active one in its window
+  // while another app is in front (document.hidden is false then), and that expert
+  // still needs the pop-up.
+  if (!document.hidden && document.hasFocus()) return;
   try {
     const n = new Notification("New Nakshatra session", {
       body: customerLabel(sessionId) + " is waiting for you.",
