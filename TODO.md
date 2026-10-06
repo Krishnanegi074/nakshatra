@@ -30,6 +30,50 @@ daily-hours rule were checked live; these items are still open.
 - [ ] A full end-to-end journey rehearsal: signup, onboarding, report purchase,
   expert checkout, chat, refund, as a customer and as the expert.
 
+## Added 2026-10-06 (later): migration gaps, sweep, and working rules
+
+Done:
+- [x] Migrations **013** (Google Play Billing) and **007** (`kundli_waitlist`) were
+  never applied to production. Found because the silent-expert sweep failed with
+  `column cs.play_purchase_token does not exist` (016 needs 013), then confirmed by
+  checking every table/view/column/function in 002-016 against the live API. Both
+  are now applied. Only trigger functions (`handle_new_user`,
+  `broadcast_chat_message`) don't show in that API check, and both work. Until 007
+  was applied the Kundli matching "Join the Waitlist" form had been failing.
+- [x] Silent-expert sweep: `SWEEP_SECRET` set, `sweep-silent-expert-sessions`
+  deployed with Verify JWT OFF, answers 401 without/with a wrong secret. A
+  ₹0 fake session was claimed correctly (ended, `expert_silent`, ledger `manual`,
+  no refund attempted) and cleaned up.
+- [x] `017_lock_down_gift_and_delete.sql` applied: `redeem_gift_code(text)` and
+  `delete_own_account()` are now `false/true/true` for anon/authenticated/service_role.
+  A privilege check of all SECURITY DEFINER functions showed every payment,
+  entitlement, refund and Play function at `false/false/true`.
+
+Open:
+- [ ] **Schedule the sweep** (`optional_schedule_silent_sweep.sql`, step 6e): not done.
+  It needs the real secret pasted in (never commit that edit). Until it runs, silent
+  sessions are NOT auto-refunded. The Razorpay refund call itself is still untested
+  (the ₹0 test had no payment behind it); only a real silent ₹199 session, or the
+  optional paid test, exercises it.
+- [ ] Fix the next-steps checklist: a ₹0 sweep test returns
+  `{"claimed":1,"refunded":0,"manual":0,...}`, not `"manual":1`. With no Razorpay
+  order the claim function inserts the ledger row as `manual` straight away, and the
+  function's `manual` counter only counts rows it later leases. The ledger row
+  being `manual` is the correct end state. (`~/Desktop/nakshatra-next-steps.md` still says `manual:1`.)
+- [ ] Add an email-format check to `kundli_waitlist`: an anonymous insert of
+  `email = "x"` was accepted (a junk row was created by a test and deleted). Anon
+  insert is open by design (`with check (true)`); a `check (email ~* ...)` or similar would stop garbage.
+- [ ] Google Play sessions: they have no Razorpay order, so `claim_silent_expert_sessions`
+  queues them as `manual` at claim time (they never get an automatic refund and
+  the sweep summary shows `manual:0` for them). Someone has to refund them in Play
+  Console; list `status = 'manual'` rows in `expert_session_refunds` regularly.
+- [ ] Working rule: **ask before creating accounts, or any other rows, in production**
+  (including throwaway/test ones and "just a quick probe" inserts). Tests that touch
+  Supabase should use fakes or a scratch project. If a production probe is
+  unavoidable, get approval first, use obviously-named accounts, and delete them by id
+  right after. (This rule exists because a test run created 13 junk accounts and a
+  probe wrote a junk `kundli_waitlist` row on 2026-10-06.)
+
 ## Do now
 
 - [x] ~~Commit today's uncommitted work~~ — done: Google Play Billing
