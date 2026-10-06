@@ -19,3 +19,6 @@ android-signing/
 
 # Monthly expert earnings reports hold financial data; the report script writes them outside the repo.
 nakshatra-reports/
+
+# Screenshot written by app/verify-fixes.js on every run (regenerated, not worth keeping).
+app/verify-shots-*.png
