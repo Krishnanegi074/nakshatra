@@ -41,6 +41,8 @@ const FAKE_SUPABASE_SRC = `
   window.__fakeWaitlistRows = rows;
   window.__fakeWaitlistForceError = false;
   window.__fakeWaitlistSetForceError = function (v) { window.__fakeWaitlistForceError = v; };
+  window.__fakeWaitlistForceCheckViolation = false;
+  window.__fakeWaitlistSetForceCheckViolation = function (v) { window.__fakeWaitlistForceCheckViolation = v; };
   window.__fakeWaitlistInsertDelayMs = 0;
 
   function insert(payload) {
@@ -49,6 +51,11 @@ const FAKE_SUPABASE_SRC = `
         if (window.__fakeWaitlistForceError) {
           window.__fakeWaitlistForceError = false;
           resolve({ data: null, error: { message: "simulated failure" } });
+          return;
+        }
+        if (window.__fakeWaitlistForceCheckViolation) {
+          window.__fakeWaitlistForceCheckViolation = false;
+          resolve({ data: null, error: { code: "23514", message: "new row for relation \\"kundli_waitlist\\" violates check constraint \\"kundli_waitlist_email_format\\"" } });
           return;
         }
         var email = payload.email;
@@ -187,6 +194,25 @@ const FAKE_SUPABASE_SRC = `
     check("Error message is rendered with the error color class", await page.$eval("#waitlist-status", (el) => el.classList.contains("nk-km-note--error")), results);
     const rowCountAfterForcedError = await page.evaluate(() => window.__fakeWaitlistRows.length);
     check("A failed join is not silently recorded server-side", rowCountAfterForcedError === 2, results); // priya + loading-check only
+
+    // --- 018: malformed-but-type=email-valid address is stopped by the form itself ---
+    const rowsBeforeBadEmail = await page.evaluate(() => window.__fakeWaitlistRows.length);
+    await page.fill("#waitlist-email", "a@b"); // type=email accepts this; the 018 pattern does not
+    await page.click("#waitlist-submit");
+    await page.waitForTimeout(150);
+    statusText = (await page.textContent("#waitlist-status")) || "";
+    check("018: 'a@b' (no dot) shows 'doesn't look like a valid email address' instead of 'something went wrong'", /doesn't look like a valid email/i.test(statusText), results);
+    check("018: ...in the error color", await page.$eval("#waitlist-status", (el) => el.classList.contains("nk-km-note--error")), results);
+    check("018: ...and nothing was sent to the backend for it", (await page.evaluate(() => window.__fakeWaitlistRows.length)) === rowsBeforeBadEmail, results);
+
+    // --- 018: the database's own rejection (check violation 23514) gets the same friendly message ---
+    await page.fill("#waitlist-email", "valid-looking@example.com");
+    await page.evaluate(() => window.__fakeWaitlistSetForceCheckViolation(true));
+    await page.click("#waitlist-submit");
+    await page.waitForTimeout(150);
+    statusText = (await page.textContent("#waitlist-status")) || "";
+    check("018: a database check-violation (23514) shows the same friendly message, not 'something went wrong'", /doesn't look like a valid email/i.test(statusText) && !/something went wrong/i.test(statusText), results);
+    check("018: the field stays editable after the rejection", await page.evaluate(() => !document.getElementById("waitlist-email").disabled && !document.getElementById("waitlist-submit").disabled), results);
 
     // --- Native email validation still gates submission (real <form>, not onsubmit="return false") ---
     await page.fill("#waitlist-email", "not-an-email");

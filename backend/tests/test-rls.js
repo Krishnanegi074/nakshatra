@@ -331,6 +331,18 @@ async function expectError(promise, label) {
       "A duplicate email (different case) is rejected by the case-insensitive unique index"
     );
 
+    // sql/018_kundli_waitlist_email_check.sql — NOT YET RUN: needs 018 loaded into the scratch DB.
+    await expectError(
+      asAnon(c, () => c.query(
+        "insert into public.kundli_waitlist (email) values ($1)", ["not-an-email"]
+      )),
+      "018: a malformed address ('not-an-email') is rejected by the email-format check"
+    );
+    await asAnon(c, () => c.query(
+      "insert into public.kundli_waitlist (email) values ($1)", ["rlstest-valid.address+tag@example.co.in"]
+    ));
+    check("018: a well-formed address (with + and a two-part domain) is still accepted", true);
+
     await expectError(
       asAnon(c, () => c.query("select * from public.kundli_waitlist")),
       "anon cannot SELECT from kundli_waitlist — collected addresses are never readable from the client"
