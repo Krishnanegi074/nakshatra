@@ -28,13 +28,16 @@ function check(label, cond) {
   console.log((cond ? "PASS" : "FAIL") + " - " + label);
 }
 
+// This test runs against a LOCAL scratch Postgres only. These constants are asserted so a future edit
+// cannot quietly point it at a real database.
+const TEST_DB = { host: "127.0.0.1", user: "app_test_login", password: "testpass123", database: "nakshatra_test" };
+if (!["127.0.0.1", "localhost", "::1"].includes(TEST_DB.host) || !/^nakshatra_test/.test(TEST_DB.database)) {
+  console.error("test-rls.js refuses to run: it must target a local database named nakshatra_test*.");
+  process.exit(1);
+}
+
 async function client() {
-  const c = new Client({
-    host: "127.0.0.1",
-    user: "app_test_login",
-    password: "testpass123",
-    database: "nakshatra_test",
-  });
+  const c = new Client(TEST_DB);
   await c.connect();
   return c;
 }

@@ -14,12 +14,14 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const { createClient } = require("@supabase/supabase-js");
+const { requireProductionConfirmation } = require("./production-gate");
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://xinelwrxgveztrtokwbt.supabase.co";
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const EXPERT_EMAIL = process.env.EXPERT_EMAIL || "krishnanegikdp@gmail.com";
 const STATE_FILE = path.join(os.tmpdir(), "nakshatra-manual-chat-state.json");
 
+requireProductionConfirmation({ script: "manual-chat-session.js", url: SUPABASE_URL, willDo: "create (setup) or delete (cleanup) a throwaway customer account and an active chat session." });
 if (!SERVICE_ROLE_KEY) { console.error("Set SUPABASE_SERVICE_ROLE_KEY."); process.exit(1); }
 const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
 const rand = () => Math.random().toString(36).slice(2, 8);

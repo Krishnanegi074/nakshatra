@@ -39,6 +39,7 @@
 // marked below, never for the actual subscribe/send/receive test itself.
 
 const { createClient } = require("@supabase/supabase-js");
+const { requireProductionConfirmation } = require("./production-gate");
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://xinelwrxgveztrtokwbt.supabase.co";
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "sb_publishable_TCpwYsH_r77QM7kRkdBLrw_BPW26GHs";
@@ -46,6 +47,7 @@ const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const EXPERT_EMAIL = process.env.EXPERT_EMAIL || "krishnanegikdp@gmail.com";
 const EXPERT_PASSWORD = process.env.EXPERT_PASSWORD;
 
+requireProductionConfirmation({ script: "realtime-test.js", url: SUPABASE_URL, willDo: "create two throwaway accounts and one chat session, exchange test messages, then delete them (and sign in as the expert account)." });
 if (!SERVICE_ROLE_KEY) { console.error("Set SUPABASE_SERVICE_ROLE_KEY (Project Settings -> API -> service_role)."); process.exit(1); }
 if (!EXPERT_PASSWORD) { console.error("Set EXPERT_PASSWORD to whatever you set when creating the krishnanegikdp@gmail.com account."); process.exit(1); }
 
