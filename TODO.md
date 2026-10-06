@@ -30,6 +30,63 @@ daily-hours rule were checked live; these items are still open.
 - [ ] A full end-to-end journey rehearsal: signup, onboarding, report purchase,
   expert checkout, chat, refund, as a customer and as the expert.
 
+## Paused: full journey rehearsal with two real ₹199 payments
+
+Paused on 2026-10-06 after step 0; to be done in the owner's free time. It uses the
+LIVE Razorpay keys and the owner's own money, so nothing runs until the owner says go.
+Step 0 was clean on 2026-10-06 (expert offline, 0 sessions, empty refund ledger, 3
+unpaid report orders, 5 users, sweep returns all zeros).
+
+Setup and costs:
+- Customer = `krishnanegi074@gmail.com` in an **incognito window** (a fresh browser
+  profile). Expert = `krishnanegikdp@gmail.com` in a normal Chrome window. No new accounts.
+- ₹199 per payment. Payment 1 (answered) is not auto-refunded: keep it or refund it by
+  hand in the Razorpay dashboard. Payment 2 (silent) should be refunded by the sweep.
+  Razorpay keeps its fee (a few rupees each); the refund is `speed: normal`, 5-7 working days.
+- The live customer app is still the `ed02b8f624` release build, so the customer will NOT
+  see the "you've been refunded" chat message (source-only). The expert dashboard notice is live.
+- The sweep is not scheduled; call it by hand with `SWEEP_SECRET` (in
+  `~/.nakshatra-realtime-test.env`) after the 5-minute grace.
+- Hours are optional (skipped): the expert has none and is matched whenever online. If wanted:
+  `update public.experts set hours_start='00:00', hours_end='23:59' where name='Test Expert';`
+  and reset with both set to null. Times are IST.
+
+Steps (what the owner does, what Claude checks in the database):
+- [ ] **0. Pre-flight (Claude).** Expert offline, 0 active sessions, empty ledger, sweep
+  returns `{"claimed":0,...}`. Start the read-only watcher.
+- [ ] **1. Expert online (owner).** Open `/expert/`, hard-refresh, sign in, click **Enable
+  alerts**, toggle Online ONCE. Check: `is_online` true, `last_seen` refreshing about every 30s,
+  `experts_public` online.
+- [ ] **2. Customer buys session 1 (owner, incognito).** Sign in, Talk to a Real Expert, Pay &
+  Connect ₹199, pay once, land in the chat. Check: one `expert_session` order `verified` with a
+  payment id, one `chat_sessions` row `active` for 19900, no ledger row.
+- [ ] **3. Expert sees the customer (owner).** Session listed with the customer's name. Owner
+  observes and reports: **did the chime play (about every 6s)?, did the tab title show "(1) New
+  session"?, did the pop-up appear?** These alerts, and the pop-up focus rule `b0f02d4`, have
+  never been observed live. Test with the dashboard tab hidden behind another Chrome tab, and
+  again with Chrome behind another app.
+- [ ] **4. Messages both ways (owner).** Customer and expert exchange 3-4 messages each; reload
+  the customer tab; all messages return once, in order. Check: `chat_messages` has `user` and
+  `astro` rows, no duplicates.
+- [ ] **5. Expert ends session 1 (owner).** Click End Session. Check: session `ended`,
+  `ended_reason` empty (not `expert_silent`), no ledger row. Owner reports whether the
+  customer's chat locked.
+- [ ] **6. Session 2, the silent one (owner).** Customer buys again (expert must be free),
+  sends exactly ONE message, the expert does NOT reply or end it. Check: second order
+  `verified`, second session `active`, note the customer message's time (grace counts from it).
+- [ ] **7. Sweep (Claude), about 6 minutes after the message.** Call the sweep. Expect
+  `claimed:1, refunded:1`; session `ended` with `expert_silent`; ledger `refunded` with a
+  Razorpay `refund_id`. Owner reports **what the customer screen shows after the sweep** and
+  whether the expert dashboard shows the red refund notice; also check the refund in the
+  Razorpay dashboard. If `retrying`/`failed`, stop and read `last_error`.
+- [ ] **8. Wrap up.** Owner toggles the expert Offline (and resets hours if set). Check: expert
+  offline, 0 active sessions, 2 paid orders, 2 ended sessions, 1 refunded ledger row. Do NOT
+  delete these rows (real payment records). Then record results here and decide on scheduling the sweep.
+
+Stop if: a step doesn't match, the expert flips offline unexpectedly (record the time; don't repeat
+the payment), or a payment is captured with no session (verify should auto-refund; check the ledger
+and Razorpay).
+
 ## Added 2026-10-06 (later): migration gaps, sweep, and working rules
 
 Done:
