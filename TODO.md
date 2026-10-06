@@ -1,6 +1,34 @@
 # Nakshatra — Project Checklist
 
-Last updated: 2026-10-01
+Last updated: 2026-10-06
+
+## Open after the 2026-10-06 expert presence/hours/alerts rollout
+
+Migrations 014-016 are applied, `create-expert-session-order` is redeployed, and
+the dashboard is live (`b559fa7`, then `b0f02d4`). The presence heartbeat and the
+daily-hours rule were checked live; these items are still open.
+
+- [ ] Step 5 alert test was only partly observed: the chime and the "(1) New
+  session" tab-title badge were **not observed** (not a pass, not a fail). Rerun
+  it with the dashboard tab hidden behind another Chrome tab, and again with
+  Chrome behind another app.
+- [ ] The pop-up focus rule (`b0f02d4`: show the pop-up unless the tab is visible
+  AND the window is focused) is pushed but **not tested live**.
+- [ ] Unexplained expert on/off flips: on 2026-10-06 `experts.is_online` flipped
+  back to false within seconds of the expert toggling Online (10:11, 10:25 and
+  10:35 IST, and once at 10:44). Not caused by my scripts or by any code other than
+  the dashboard's toggle. Later clean attempts did not reproduce it. Cause unknown.
+  If it recurs, add a temporary write-log trigger on `public.experts` (old/new
+  `is_online`, `auth.uid()`, user-agent, origin) to see who writes. Matters before
+  real experts go live, because a stuck-online expert on live keys can take real money.
+- [ ] Make the app tests (`app/test-*.js`) refuse to run against production. Most
+  of them sign up real accounts, and on a machine with internet they hit the
+  production Supabase (a Mac run on 2026-10-06 created 13 junk `@example.com`
+  accounts, since deleted). They should fail fast unless pointed at fakes or a scratch project.
+- [ ] Test the heartbeat in a tab left in the background for a long time (browsers
+  throttle timers; one gap of ~56s was seen, the stale limit is 2 minutes).
+- [ ] A full end-to-end journey rehearsal: signup, onboarding, report purchase,
+  expert checkout, chat, refund, as a customer and as the expert.
 
 ## Do now
 
