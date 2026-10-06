@@ -70,7 +70,7 @@ async function logout(page) {
   // deliberately forces that one RPC call to fail to test the error path.
   page.on("console", (msg) => {
     if (msg.type() !== "error") return;
-    if (msg.text().includes("ERR_TUNNEL_CONNECTION_FAILED")) return;
+    if (/ERR_TUNNEL_CONNECTION_FAILED|ERR_NAME_NOT_RESOLVED/.test(msg.text())) return;
     if (msg.text().includes("simulated failure")) return;
     errors.push("CONSOLE ERROR: " + msg.text());
   });

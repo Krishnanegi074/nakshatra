@@ -16,7 +16,7 @@ const fs = require("fs");
   page.on("pageerror", (e) => errors.push("PAGEERROR: " + e.message));
   page.on("console", (msg) => {
     if (msg.type() !== "error") return;
-    if (msg.text().includes("ERR_TUNNEL_CONNECTION_FAILED")) return; // expected in this sandbox — no real network
+    if (/ERR_TUNNEL_CONNECTION_FAILED|ERR_NAME_NOT_RESOLVED/.test(msg.text())) return; // expected in this sandbox — no real network
     errors.push("CONSOLE ERROR: " + msg.text());
   });
 

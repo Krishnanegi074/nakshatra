@@ -7,7 +7,7 @@ const path = require("path");
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   const errors = [];
   page.on("pageerror", (e) => errors.push("PAGEERROR: " + e.message));
-  page.on("console", (msg) => { if (msg.type() === "error" && !msg.text().includes("ERR_TUNNEL")) errors.push("CONSOLE: " + msg.text()); });
+  page.on("console", (msg) => { if (msg.type() === "error" && !/ERR_TUNNEL|ERR_NAME_NOT_RESOLVED/.test(msg.text())) errors.push("CONSOLE: " + msg.text()); });
   const results = [];
   const check = (label, cond) => { results.push({ label, pass: !!cond }); console.log((cond ? "PASS" : "FAIL") + " - " + label); };
 
