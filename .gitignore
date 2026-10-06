@@ -16,3 +16,6 @@ app/nakshatra-app.html
 android-signing/
 *.keystore
 *.jks
+
+# Monthly expert earnings reports hold financial data; the report script writes them outside the repo.
+nakshatra-reports/
