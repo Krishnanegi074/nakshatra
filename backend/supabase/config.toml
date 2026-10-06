@@ -412,3 +412,9 @@ enabled = true
 # declarative_schema_path = "./database"
 # JSON string passed through to pg-delta SQL formatting.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":80,\"commaStyle\":\"trailing\"}"
+
+# sweep-silent-expert-sessions is called by pg_cron/pg_net, not by a signed-in
+# user, so it can't carry a user JWT; it authenticates with its own shared
+# secret (SWEEP_SECRET) instead. See that function's header comment.
+[functions.sweep-silent-expert-sessions]
+verify_jwt = false

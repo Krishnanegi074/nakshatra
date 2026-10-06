@@ -2485,6 +2485,17 @@ function handleExpertSessionStatusUpdate(row) {
   if (row.status !== "ended" || state.activeExpertSession.ended) return; // already handled — a duplicate/retried event is a no-op, not a second toast
   state.activeExpertSession.ended = true;
   setExpertSessionInputEnabled(false);
+  if (row.ended_reason === "expert_silent") {
+    // The server ended this session because the expert never replied and is
+    // refunding the payment (backend/sql/016_silent_expert_refund.sql) —
+    // say so plainly, and leave the explanation in the chat itself so it
+    // doesn't vanish with the toast.
+    const msg = tr("expert.session.expert-silent-refund", { amount: EXPERT_SESSION_PRICE.label });
+    toast(msg, 6000);
+    const box = $("#expert-session-messages");
+    if (box) box.insertAdjacentHTML("beforeend", `<p class="muted center" style="margin:14px 8px">${escapeHtml(msg)}</p>`);
+    return;
+  }
   toast(tr("expert.session.ended-by-other-side"));
 }
 

@@ -644,3 +644,58 @@ expert. Clients call `supabase.realtime.setAuth()` then join with
 schema) — verify with `node tests/realtime-test.js` against the live project
 after applying. `chat_sessions` status/queue subscriptions still use
 `postgres_changes`.
+
+## 016 — Automatic end + refund when an expert never replies
+
+**What it does.** A customer pays, is matched to an expert, sends a message, and
+hears nothing for 5 minutes (counted from their FIRST message). The session is
+then ended automatically (`chat_sessions.ended_reason = 'expert_silent'`, which
+also frees the expert) and the Rs.199 is refunded through Razorpay. The customer
+app explains it in the chat; the expert dashboard shows a notice. Deliberately
+NOT covered: a customer who paid but never wrote anything, and an expert who
+replied once and then went quiet (both are for a human to judge).
+
+**Pieces.**
+- `sql/016_silent_expert_refund.sql` — `chat_sessions.ended_reason`, a private
+  ledger table `expert_session_refunds` (service_role only), and two
+  service_role-only functions: `claim_silent_expert_sessions()` (decides + ends
+  sessions) and `lease_expert_refunds()` (hands out pending refunds so two runs
+  never refund twice). Run after 009 and 013.
+- `supabase/functions/sweep-silent-expert-sessions/` — does the Razorpay part.
+  Not called by browsers: deploy with **Verify JWT OFF**; it is protected by a
+  shared secret instead. `supabase/config.toml` has the matching
+  `verify_jwt = false` for CLI deploys.
+- `sql/optional_schedule_silent_sweep.sql` — schedules it every minute with
+  pg_cron + pg_net (run by hand once; contains a placeholder for the secret).
+
+**Deploy, in this order.**
+1. Run `016_silent_expert_refund.sql` in the SQL Editor (after 014 and 015).
+2. Generate a secret (`openssl rand -hex 32`) and add it as the edge-function
+   secret `SWEEP_SECRET` (Edge Functions -> Secrets). The function refuses to
+   run if it is missing or shorter than 24 characters.
+3. Deploy `sweep-silent-expert-sessions` (dashboard: Edge Functions -> Deploy a
+   new function -> paste `index.ts` -> turn **Verify JWT OFF** -> Deploy; or
+   `supabase functions deploy sweep-silent-expert-sessions --no-verify-jwt`).
+   It uses the same Razorpay secrets as the other expert functions
+   (`EXPERT_RAZORPAY_KEY_ID/_SECRET` win when both are set) — a refund must be
+   made with the keys that took the payment.
+4. Try it by hand before scheduling:
+   `curl -X POST -H "Authorization: Bearer <SWEEP_SECRET>" https://<project>.supabase.co/functions/v1/sweep-silent-expert-sessions`
+   -> `{"claimed":0,"refunded":0,"manual":0,"retrying":0,"failed":0}`. A wrong
+   or missing secret must return 401.
+5. Schedule it with `sql/optional_schedule_silent_sweep.sql`.
+
+**Watching it.**
+
+    -- every automatic refund, newest first
+    select r.status, r.amount_paise, r.refund_id, r.attempts, r.last_error, r.created_at, r.session_id
+    from public.expert_session_refunds r order by r.created_at desc;
+
+    -- things that need a human: Google Play purchases ('manual': refund in Play
+    -- Console) and refunds that gave up after 8 attempts ('failed': refund from
+    -- the Razorpay dashboard, then set status = 'refunded' here)
+    select * from public.expert_session_refunds where status in ('manual', 'failed');
+
+**Tuning.** The 5 minutes is `GRACE_MINUTES` at the top of the edge function
+(tell experts the same number; the dashboard notice text also says 5).
+**Turning it off:** `select cron.unschedule('sweep-silent-expert-sessions');`

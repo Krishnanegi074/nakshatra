@@ -82,6 +82,12 @@ button { font-family: inherit; cursor: pointer; }
 .hours-note { margin-top: 2px; font-size: 0.78rem; color: var(--text-faint); }
 .hours-note.go { color: var(--gold-bright); }
 .hours-note.warn { color: var(--danger); }
+.dash-notice {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 20px; font-size: 0.85rem; background: rgba(239,127,127,0.12);
+  border-bottom: 1px solid var(--danger); color: var(--text);
+}
+.dash-notice button { width: auto; padding: 4px 10px; font-size: 0.75rem; border-radius: var(--radius-sm); background: transparent; color: var(--text-dim); border: 1px solid var(--border); }
 .alerts-row { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--text-faint); margin-right: 10px; }
 .alerts-row button {
   width: auto; padding: 4px 10px; font-size: 0.75rem; border-radius: var(--radius-sm);
@@ -168,6 +174,11 @@ button { font-family: inherit; cursor: pointer; }
       <div class="switch" id="online-toggle-switch" role="button" tabindex="0" aria-label="Toggle online status"></div>
       <button class="btn-ghost" id="btn-signout" style="width:auto;padding:6px 12px;font-size:0.8rem;margin-left:14px">Sign Out</button>
     </div>
+  </div>
+
+  <div class="dash-notice hidden" id="dash-notice" role="status">
+    <span id="dash-notice-text"></span>
+    <button type="button" id="btn-dismiss-notice">Dismiss</button>
   </div>
 
   <div class="dash-body">
@@ -303,6 +314,7 @@ async function signOut() {
   stopHeartbeat();
   stopHoursNote();
   clearAllSessionAlerts();
+  hideNotice();
   await sb.auth.signOut();
   me = null;
   sessions = [];
@@ -363,6 +375,16 @@ async function toggleOnline() {
   if (next) enableAlerts();
 }
 
+
+// ================= NOTICES =================
+function showNotice(text) {
+  $("#dash-notice-text").textContent = text;
+  $("#dash-notice").classList.remove("hidden");
+}
+
+function hideNotice() {
+  $("#dash-notice").classList.add("hidden");
+}
 
 // ================= DAILY HOURS =================
 // Experts commit to a fixed daily window (015_expert_hours.sql; set by the
@@ -613,6 +635,13 @@ function handleQueueUpdate(payload) {
   if (row.status === "ended") {
     sessions = sessions.filter(s => s.id !== row.id);
     acknowledgeSession(row.id);
+    if (row.ended_reason === "expert_silent") {
+      // The server (sweep-silent-expert-sessions) ended this one: the
+      // customer wrote, nobody answered within the grace period, and they
+      // were refunded. Tell the expert plainly - it's their cue to reply
+      // faster, and otherwise the session just vanishes from their queue.
+      showNotice("A customer was refunded and their session ended because no reply was sent within 5 minutes of their first message. Please reply promptly to new sessions.");
+    }
     if (activeSessionId === row.id) stopMessagesRealtime();
   } else {
     const existing = sessions.find(s => s.id === row.id);
@@ -828,6 +857,7 @@ document.addEventListener("DOMContentLoaded", () => {
   $("#chat-input").addEventListener("keydown", (e) => { if (e.key === "Enter") sendReply(); });
   $("#btn-end-session").addEventListener("click", endActiveSession);
   $("#btn-enable-alerts").addEventListener("click", enableAlerts);
+  $("#btn-dismiss-notice").addEventListener("click", hideNotice);
   // After a page reload there's no "go online" click to unlock sound, so
   // the first click or keypress anywhere does it (the status line next to
   // the toggle says "Sound off" until then).
