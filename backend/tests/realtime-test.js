@@ -6,7 +6,7 @@
 // as unverifiable from a local-only environment.
 //
 // What it does, in order:
-//   1. Looks up the real krishnanegikdp@gmail.com expert account + its
+//   1. Looks up the real expert account (EXPERT_EMAIL) + its
 //      public.experts row (created manually beforehand — see the chat
 //      this script came from).
 //   2. Creates two THROWAWAY auth accounts: a test customer and an
@@ -44,12 +44,13 @@ const { requireProductionConfirmation } = require("./production-gate");
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://xinelwrxgveztrtokwbt.supabase.co";
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "sb_publishable_TCpwYsH_r77QM7kRkdBLrw_BPW26GHs";
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const EXPERT_EMAIL = process.env.EXPERT_EMAIL || "krishnanegikdp@gmail.com";
+const EXPERT_EMAIL = process.env.EXPERT_EMAIL;   // kept out of the repo: it lives in ~/.nakshatra-realtime-test.env
 const EXPERT_PASSWORD = process.env.EXPERT_PASSWORD;
 
 requireProductionConfirmation({ script: "realtime-test.js", url: SUPABASE_URL, willDo: "create two throwaway accounts and one chat session, exchange test messages, then delete them (and sign in as the expert account)." });
 if (!SERVICE_ROLE_KEY) { console.error("Set SUPABASE_SERVICE_ROLE_KEY (Project Settings -> API -> service_role)."); process.exit(1); }
-if (!EXPERT_PASSWORD) { console.error("Set EXPERT_PASSWORD to whatever you set when creating the krishnanegikdp@gmail.com account."); process.exit(1); }
+if (!EXPERT_EMAIL) { console.error("Set EXPERT_EMAIL to the expert account's login email (it is in ~/.nakshatra-realtime-test.env: `source` that file first)."); process.exit(1); }
+if (!EXPERT_PASSWORD) { console.error("Set EXPERT_PASSWORD to whatever you set when creating the expert account (it is in ~/.nakshatra-realtime-test.env)."); process.exit(1); }
 
 const rand = () => Math.random().toString(36).slice(2, 10);
 const CUSTOMER_EMAIL = `nakshatra-realtime-test-customer-${rand()}@example.com`;

@@ -841,14 +841,14 @@ alter publication supabase_realtime add table public.chat_sessions;
 -- ============================================================================
 -- SEEDING THE TEST EXPERT
 --
--- This migration deliberately does NOT hardcode krishnanegikdp@gmail.com (or
+-- This migration deliberately does NOT hardcode the expert's email (or
 -- any other expert's email) anywhere in application code — the email lives
 -- ONLY in the Supabase Auth user record you create by hand, so swapping in
 -- the real expert later is just "create a different auth user, insert a
 -- different experts row", never a code change.
 --
 -- 1. Supabase dashboard -> Authentication -> Users -> Add user. Email
---    krishnanegikdp@gmail.com, set a password (give it to whoever's testing
+--    the expert's email, set a password (give it to whoever's testing
 --    the expert dashboard), and use "Auto Confirm User" so it doesn't need
 --    a real confirmation email.
 -- 2. Copy the UUID that user gets assigned (shown in the Users list).
