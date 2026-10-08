@@ -75,6 +75,19 @@ daily-hours rule were checked live; these items are still open.
   `expert.toast.none-online-hours` (the times inside it stay English, "6 pm – 10 pm") and `paywall.toast.verify-failed`. They are in
   the Hindi review workbook and can be corrected there.
 
+## Release log
+
+- **2026-10-08: release `7ecc152`** (build sha1 `f3d4af81ac`, from the sources at `5c9f0c0`). Replaced `index.html` and `app/index.html` only
+  (byte-identical; `www/` and `android/` untouched). Verified live by hash 55 s after the push; beta markers 0; `/expert/` and
+  `kundli-matching.html` 200. Five customer-visible changes: failed-access retry and seeded share-card stars (both have tests,
+  `app/test-release-small.js`), and the translated verify-failed toast, the expert-hours message and the silent-expert refund note
+  (**no tests**; the backend-dependent ones are not yet exercised live).
+  - Previous live build: `ed02b8f624` (release commit `0f4ef4c`). Backup copies outside the repo:
+    `~/Documents/nakshatra-reports/release-backups/` (`live-index-ed02b8f624.html`, `live-app-index-ed02b8f624.html`).
+  - **Rollback:** `git checkout 0f4ef4c -- index.html app/index.html && git commit -m "Roll back the 2026-10-08 release (restore ed02b8f624)" && git push`
+    (Pages republishes in about 1-2 minutes; check the live hash is `ed02b8f624`).
+  - Still to watch: the refund note appears only after the sweep ends a session, and the sweep is not scheduled.
+
 ## Paused: full journey rehearsal with two real ₹199 payments
 
 Paused on 2026-10-06 after step 0; to be done in the owner's free time. It uses the
