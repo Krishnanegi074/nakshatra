@@ -1,0 +1,46 @@
+# The ONLY files that may be published to the public website repo (nakshatra-site).
+# scripts/publish-site.sh copies exactly these, nothing else, and refuses anything not listed or not tracked by git.
+# Format: a path (copied to the same path), or "source => destination". Blank lines and # comments are ignored.
+# Derived from a crawl of the live site on 2026-10-08 (every page opened in a browser, plus every link, script, stylesheet,
+# icon and sitemap/robots reference). Not included on purpose: CNAME (added only at cutover with --cname), backend/, android/,
+# www/, app/ sources and tests, TODO.md, README.md, deploy.sh, package files, test files.
+
+# --- the apps: the built single-file app is published twice (root and /app/, byte-identical) ---
+app/nakshatra-app.html => index.html
+app/nakshatra-app.html => app/index.html
+expert/index.html
+
+# --- marketing pages ---
+about.html
+faq.html
+how-it-works.html
+kundli-matching.html
+pricing.html
+privacy.html
+refund-policy.html
+responsible-guidance.html
+sample-report.html
+terms.html
+
+# --- styles and scripts the marketing pages load ---
+style.css
+about.css
+pricing.css
+kundli-matching.css
+main.js
+marketing-lang.js
+marketing-i18n.js
+kundli-waitlist.js
+
+# --- site files ---
+robots.txt
+sitemap.xml
+favicon.ico
+
+# --- icons and share image (no page links them today; browsers, iOS and crawlers request some by default) ---
+apple-touch-icon.png
+favicon-16.png
+favicon-32.png
+icon-192.png
+icon-512.png
+og-image.png
