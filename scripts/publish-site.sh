@@ -17,6 +17,7 @@
 #   --compare-live      after the copy, fetch every published file from the live site and compare bytes
 #   --poll-timeout S    seconds to wait for the live site to match (default 180)
 #   --branch NAME       branch of the site repo to push (default main)
+#   --manifest FILE     the file list to use (default scripts/site-files.txt; only for tests)
 #
 # Guarantees: refuses to run if THIS source tree is dirty; publishes only what scripts/site-files.txt lists and only files that
 # git tracks (plus the freshly built app); never uses "git add -A" (every path is added by name); runs the beta-marker check, the
@@ -28,7 +29,7 @@ set -euo pipefail
 die() { echo "ERROR: $*" >&2; exit 1; }
 sha() { shasum -a 256 "$1" | cut -c1-64; }
 
-DEST=""; MSG=""; DRY=0; SCRATCH=0; NOPUSH=0; NOPOLL=0; CNAME=""; LIVE_URL="https://nakshatra.ind.in"; COMPARE=0; POLL_TIMEOUT=180; BRANCH="main"
+DEST=""; MSG=""; DRY=0; SCRATCH=0; NOPUSH=0; NOPOLL=0; CNAME=""; LIVE_URL="https://nakshatra.ind.in"; COMPARE=0; POLL_TIMEOUT=180; BRANCH="main"; MANIFEST=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --dest) DEST="${2:-}"; shift 2 ;;
@@ -42,6 +43,7 @@ while [ $# -gt 0 ]; do
     --compare-live) COMPARE=1; shift ;;
     --poll-timeout) POLL_TIMEOUT="${2:-180}"; shift 2 ;;
     --branch) BRANCH="${2:-main}"; shift 2 ;;
+    --manifest) MANIFEST="${2:-}"; shift 2 ;;
     -h|--help) sed -n '2,28p' "$0"; exit 0 ;;
     *) die "unknown option: $1 (see --help)" ;;
   esac
@@ -53,7 +55,8 @@ LIVE_URL="${LIVE_URL%/}"
 # ---------------------------------------------------------------- 1. the source repo must be clean
 SRC="$(cd "$(dirname "$0")/.." && git rev-parse --show-toplevel)"
 cd "$SRC"
-[ -f scripts/site-files.txt ] || die "scripts/site-files.txt is missing"
+[ -n "$MANIFEST" ] || MANIFEST="scripts/site-files.txt"
+[ -f "$MANIFEST" ] || die "$MANIFEST is missing"
 DIRTY="$(git status --porcelain)"
 if [ -n "$DIRTY" ]; then echo "$DIRTY" | head -10 >&2; die "the source working tree is not clean (commit or discard the changes above first)"; fi
 SRC_ID="$(git rev-parse HEAD)"; SRC_SHORT="$(git rev-parse --short HEAD)"; SRC_SUBJECT="$(git log -1 --format=%s)"
@@ -74,14 +77,14 @@ while IFS= read -r raw || [ -n "$raw" ]; do
   line="$(echo "$raw" | sed -e 's/#.*$//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
   [ -n "$line" ] || continue
   if echo "$line" | grep -q '=>'; then src="$(echo "${line%%=>*}" | sed 's/[[:space:]]*$//')"; dst="$(echo "${line#*=>}" | sed 's/^[[:space:]]*//')"; else src="$line"; dst="$line"; fi
-  case "$src$dst" in /*|*..*|*"//"*) die "unsafe path in site-files.txt: $line" ;; esac
-  [ -n "$src" ] && [ -n "$dst" ] || die "bad line in site-files.txt: $line"
+  case "$src$dst" in /*|*..*|*"//"*) die "unsafe path in the file list: $line" ;; esac
+  [ -n "$src" ] && [ -n "$dst" ] || die "bad line in the file list: $line"
   [ -f "$src" ] && [ ! -L "$src" ] || die "listed source is missing or a symlink: $src"
   if [ "$src" != "$BUILT" ]; then git ls-files --error-unmatch -- "$src" >/dev/null 2>&1 || die "listed source is not tracked by git: $src"; fi
   echo "$src|$dst" >> "$LIST"
-done < scripts/site-files.txt
-[ -s "$LIST" ] || die "site-files.txt lists no files"
-DUP="$(cut -d'|' -f2 "$LIST" | sort | uniq -d)"; [ -z "$DUP" ] || die "duplicate destination(s) in site-files.txt: $DUP"
+done < "$MANIFEST"
+[ -s "$LIST" ] || die "$MANIFEST lists no files"
+DUP="$(cut -d'|' -f2 "$LIST" | sort | uniq -d)"; [ -z "$DUP" ] || die "duplicate destination(s) in the file list: $DUP"
 
 # ---------------------------------------------------------------- 4. stage exactly those files
 while IFS='|' read -r src dst; do mkdir -p "$STAGE/$(dirname "$dst")"; cp "$src" "$STAGE/$dst"; done < "$LIST"
