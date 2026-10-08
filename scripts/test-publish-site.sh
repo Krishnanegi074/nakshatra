@@ -40,7 +40,7 @@ echo "../outside.txt" > "$T/m.txt"; expect_fail "refuses a path with .." "unsafe
 echo "/etc/hosts" > "$T/m.txt"; expect_fail "refuses an absolute path" "unsafe path" "$PUB" --dest "$T/s4" --scratch --manifest "$T/m.txt"
 printf 'about.html => x.html\nfaq.html => x.html\n' > "$T/m.txt"; expect_fail "refuses two files with the same destination" "duplicate destination" "$PUB" --dest "$T/s5" --scratch --manifest "$T/m.txt"
 echo x > "$SRC/app/verify-shots-publish-test.png"; echo "app/verify-shots-publish-test.png" > "$T/m.txt"; expect_fail "refuses a file that exists but is not tracked by git" "not tracked" "$PUB" --dest "$T/s6" --scratch --manifest "$T/m.txt"; rm -f "$SRC/app/verify-shots-publish-test.png"
-printf 'app/nakshatra-app.html => index.html\n' > "$T/m.txt"; mkdir -p "$T/notrepo"; echo y > "$T/notrepo/f"; expect_fail "refuses a destination that is neither a git repo nor a --scratch folder" "not a git repo" "$PUB" --dest "$T/notrepo" --manifest "$T/m.txt" --dry-run
+mkdir -p "$T/notrepo"; echo y > "$T/notrepo/f"; expect_fail "refuses a destination that is neither a git repo nor a --scratch folder" "not a git repo" "$PUB" --dest "$T/notrepo" --dry-run
 mkdir -p "$T/full"; echo y > "$T/full/other.txt"; expect_fail "refuses --scratch into a non-empty folder it did not create" "not empty" "$PUB" --dest "$T/full" --scratch
 
 echo; echo "== real-repo behaviour against a scratch repo with a local bare remote"
@@ -72,11 +72,14 @@ out="$(echo y | "$PUB" --dest "$T/site" -m "Second publish" --live-url "http://1
 if [ $rc -eq 0 ] && echo "$out" | grep -q "pushed" && echo "$out" | grep -q "DONE:" && echo "$out" | grep -q "live root matches"; then ok "push, then poll the live hash, then check every file: all passed"; else bad "push/poll run failed" "rc=$rc: $(echo "$out" | tail -3 | tr '\n' ' ' | cut -c1-200)"; fi
 [ "$(git -C "$T/remote.git" rev-parse main)" = "$(git -C "$T/site" rev-parse HEAD)" ] && ok "the commit reached the (local) remote" || bad "remote not updated"
 # stale 'live' site: serve an old copy, the poll must fail
-kill "$SERVER_PID" 2>/dev/null; SERVER_PID=""; mkdir -p "$T/stale"; echo "<html>old</html>" > "$T/stale/index.html"
+kill "$SERVER_PID" 2>/dev/null; wait "$SERVER_PID" 2>/dev/null; SERVER_PID=""
+for i in 1 2 3 4 5 6 7 8 9 10; do curl -s -m 1 -o /dev/null "http://127.0.0.1:$PORT/" || break; sleep 1; done      # wait until the old server has really stopped
+PORT=$(( PORT + 1 )); mkdir -p "$T/stale"; echo "<html>old</html>" > "$T/stale/index.html"
 ( cd "$T/stale" && python3 -m http.server "$PORT" --bind 127.0.0.1 >/dev/null 2>&1 ) & SERVER_PID=$!; sleep 1
+curl -s "http://127.0.0.1:$PORT/index.html" | grep -q "old" || bad "test setup: the stale server is not the one answering"
 git -C "$T/site" rm -q favicon-16.png; git -C "$T/site" commit -q -m "remove favicon-16 (test)"; git -C "$T/site" push -q origin main
 out="$(echo y | "$PUB" --dest "$T/site" -m "Third publish" --live-url "http://127.0.0.1:$PORT" --poll-timeout 12 2>&1)"; rc=$?
-if [ $rc -ne 0 ] && echo "$out" | grep -q "did not serve the new build"; then ok "if the live site never matches, the script reports failure instead of success"; else bad "stale live site was not detected" "rc=$rc"; fi
+if [ $rc -ne 0 ] && echo "$out" | grep -q "did not serve the new build"; then ok "if the live site never matches, the script reports failure instead of success"; else bad "stale live site was not detected" "rc=$rc: $(echo "$out" | tail -3 | tr '\n' ' ' | cut -c1-220)"; fi
 
 echo; echo "== source tree untouched by all of this"; [ -z "$(git status --porcelain)" ] && ok "source working tree still clean" || bad "the tests left the source tree dirty" "$(git status --porcelain | head -3 | tr '\n' ' ')"
 echo; echo "=== RESULT: $PASS passed, $FAIL failed ==="
