@@ -238,6 +238,24 @@ Open:
   other message in that form (success, already-on-the-list, "Something went wrong"); there is
   no Hindi version of the waitlist messages yet. Translate and review all of them together
   if/when the form gets Hindi, via `marketing-i18n.js`.
+- [ ] **Hindi review workbook** (built 2026-10-08, outside the repo in `~/Documents/nakshatra-reports/hindi-review/`:
+  `nakshatra-hindi-review.xlsx`, 25 tabs, and `nakshatra-hindi-legal-review.xlsx`, 6 tabs, legal text marked
+  "needs legal review"). Open points:
+  1. **The apply script is not written yet.** It must apply only rows marked OK or change (blank and unsure rows are left
+     alone: existing Hindi stays, missing Hindi stays English), check that `{placeholders}` and `<tags>` still match the
+     English and that the text is Devanagari, and show a diff before touching `app/i18n.js` or `marketing-i18n.js`.
+  2. **The share card needs a Devanagari-capable font.** Check by rendering the card in Hindi before any release (the text
+     drawn with `fillText` in `app/app.js`).
+  3. **"A MESSAGE FROM {name}"** (gift card) needs a small code change for Hindi word order: the Hindi is "{name} की ओर से
+     संदेश", so the name comes first.
+  4. **The "turned off in the private beta" toast** (`app/app.js`) is probably dead, since the beta build was removed, and
+     doesn't need Hindi. Confirm and remove it.
+  5. **The 10 technical server messages stay English** (for example "POST only", "Unauthorized.", "Unknown tier."). They have no
+     draft in the workbook.
+  6. **Toasts and server messages need a separate wiring step.** Only the workbook text exists; the code still shows English
+     until each message is mapped to a dictionary key (the server messages need error codes or a mapping on the client).
+  7. **The drafts are unreviewed.** The 95 drafts on the "No Hindi yet" tab were written by Claude and are marked "draft, not
+     reviewed". Nothing from the workbook goes live until a reviewer marks it OK or change.
 - [x] ~~Daily hours for experts~~ — built 2026-10-05, **not applied yet**: `backend/sql/015_expert_hours.sql` (`experts.hours_start/hours_end`, India time, admin-set only; matching, the `experts_public` view and the `create-expert-session-order` pre-check all require being inside the window; no hours = old behaviour), customer message "No experts online right now. Our experts are available 6 pm – 10 pm IST." (`app/app.js` `noExpertsOnlineMessage()`, en + hi; source only until the next release build), and an hours note on the expert dashboard. Needs: run 014 then 015 in Supabase, redeploy the edge function, push (see `~/Desktop/nakshatra-next-steps.md`). Tested against a scratch Postgres plus headless-browser checks.
 - [x] ~~New-session alert on the expert dashboard~~ — built 2026-10-05 in `expert/index.html` (+ `www/` mirror): repeating chime until the session is opened, browser notification while the tab is hidden, "(n)" tab-title badge. Goes live with the next push. Limits: needs the dashboard tab open (no push when closed), and sound needs one click after a page reload (the status line says so).
 - [x] ~~Auto-end and refund when a matched expert never replies~~ — built 2026-10-06, **not applied yet**: `backend/sql/016_silent_expert_refund.sql`, edge function `sweep-silent-expert-sessions` (Razorpay refund, retries, Google Play sessions flagged `manual`), scheduling file `backend/sql/optional_schedule_silent_sweep.sql`, a refund explanation in the customer chat (en + hi; source only until the next release build) and a notice on the expert dashboard. Rule: customer's first message older than 5 minutes with no expert reply -> session ended + refunded. Needs: run 016, set the `SWEEP_SECRET` secret, deploy the function with Verify JWT OFF, schedule it, push (see `~/Desktop/nakshatra-next-steps.md` step 6 and `backend/SETUP.md` section 016). Not covered: customer who never wrote; expert who replied once then went quiet.
