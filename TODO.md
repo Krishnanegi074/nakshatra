@@ -173,6 +173,15 @@ Open:
 
 ## Do now
 
+- [ ] Working rule: **this repo is public, so notes never contain a real name or email address.** Write "a real customer",
+  "the owner" or "the expert test account", never the person's name or email (this applies to `TODO.md`, `SETUP.md`, SQL comments,
+  tests, scripts and commit messages). Keep real addresses in `~/.nakshatra-realtime-test.env` or other files outside the repo.
+  (On 2026-10-06 a customer's email and name, and the owner's and expert's addresses, had to be removed from the current files;
+  they remain in earlier commits of the public history.)
+- [ ] Small check script that scans the tracked files for email addresses and fails on any that is not on a short allow-list:
+  `support@nakshatra.ind.in`, `@example.*` (and obvious placeholders like `a@b.com`), and the library licence notice inside the
+  bundled astronomy library (a third-party author's address in its MIT header). **Not built yet.** Idea: `backend/scripts/check-no-emails.js`,
+  run before pushing (and from `app/run-tests.js`); it prints file and line but masks the address.
 - [x] ~~Commit today's uncommitted work~~ — done: Google Play Billing
   integration is `b015b43`, the 2026-10-01 QA pass's 8 bug fixes are
   `2df6689`. Both are local commits on `main`, not yet pushed (see the
