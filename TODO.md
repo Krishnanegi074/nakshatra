@@ -75,6 +75,19 @@ daily-hours rule were checked live; these items are still open.
   `expert.toast.none-online-hours` (the times inside it stay English, "6 pm – 10 pm") and `paywall.toast.verify-failed`. They are in
   the Hindi review workbook and can be corrected there.
 
+## Splitting source and site (in progress)
+
+- [x] **Step 1 done (2026-10-08, local commits):** `scripts/site-files.txt` (the 30 files the live site needs, from a crawl),
+  `scripts/publish-site.sh` (refuses a dirty tree, publishes only the listed tracked files, no `git add -A`, runs
+  `scripts/site-checks.js`, shows the exact change list and asks, puts the source commit id in the site commit message, polls the
+  live hash), and `scripts/test-publish-site.sh` (36 checks, scratch repos and a local server only; mutation-checked). A dry run into
+  a scratch folder produced 30 files byte-identical to the live site. The business plan was moved out of the repo
+  (`~/Documents/nakshatra-private/`) and is no longer served; README updated.
+- [ ] Remaining steps are in the plan: verify the domain (owner), create `nakshatra-site`, test on a `staging.` subdomain, cut over the
+  domain, soak a week, then make this repo private and retire `deploy.sh`. Nothing of that has been done: no repo, DNS or setting was changed.
+- [ ] `scripts/site-checks.js` already enforces the email allow-list on what gets published. The separate to-do above (a check over ALL
+  tracked files in this repo) is still open: reuse its allow-list.
+
 ## Release log
 
 - **2026-10-08: release `7ecc152`** (build sha1 `f3d4af81ac`, from the sources at `5c9f0c0`). Replaced `index.html` and `app/index.html` only
