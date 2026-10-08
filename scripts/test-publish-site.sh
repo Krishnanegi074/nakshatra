@@ -40,6 +40,9 @@ echo "../outside.txt" > "$T/m.txt"; expect_fail "refuses a path with .." "unsafe
 echo "/etc/hosts" > "$T/m.txt"; expect_fail "refuses an absolute path" "unsafe path" "$PUB" --dest "$T/s4" --scratch --manifest "$T/m.txt"
 printf 'about.html => x.html\nfaq.html => x.html\n' > "$T/m.txt"; expect_fail "refuses two files with the same destination" "duplicate destination" "$PUB" --dest "$T/s5" --scratch --manifest "$T/m.txt"
 echo x > "$SRC/app/verify-shots-publish-test.png"; echo "app/verify-shots-publish-test.png" > "$T/m.txt"; expect_fail "refuses a file that exists but is not tracked by git" "not tracked" "$PUB" --dest "$T/s6" --scratch --manifest "$T/m.txt"; rm -f "$SRC/app/verify-shots-publish-test.png"
+# a manifest that stages a tracked file containing beta-marker text under an .html name: publish-site.sh itself must stop on the check
+printf 'app/nakshatra-app.html => index.html\napp/nakshatra-app.html => app/index.html\napp/build.js => leak.html\n' > "$T/m.txt"; expect_fail "publish-site.sh stops when site-checks finds a violation in what it would publish" "site-checks failed" "$PUB" --dest "$T/s7" --scratch --manifest "$T/m.txt"
+[ ! -e "$T/s7/leak.html" ] && ok "...and nothing was copied to the destination" || bad "files were copied despite the failed check"
 mkdir -p "$T/notrepo"; echo y > "$T/notrepo/f"; expect_fail "refuses a destination that is neither a git repo nor a --scratch folder" "not a git repo" "$PUB" --dest "$T/notrepo" --dry-run
 mkdir -p "$T/full"; echo y > "$T/full/other.txt"; expect_fail "refuses --scratch into a non-empty folder it did not create" "not empty" "$PUB" --dest "$T/full" --scratch
 
