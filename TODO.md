@@ -85,6 +85,10 @@ daily-hours rule were checked live; these items are still open.
   (`~/Documents/nakshatra-private/`) and is no longer served; README updated.
 - [ ] Remaining steps are in the plan: verify the domain (owner), create `nakshatra-site`, test on a `staging.` subdomain, cut over the
   domain, soak a week, then make this repo private and retire `deploy.sh`. Nothing of that has been done: no repo, DNS or setting was changed.
+- [ ] **After the cutover soak: change the `www` DNS record to point at `krishnanegi074.github.io`** (today `https://www.nakshatra.ind.in`
+  shows a certificate warning because `www` points at the apex, so GitHub issues no certificate for it; `http://www` already redirects to the
+  apex). Check `https://www` afterwards (`scripts/check-live.sh nakshatra.ind.in --holder new` reports it as INFO). Nothing in the cutover
+  depends on this.
 - [ ] `scripts/site-checks.js` already enforces the email allow-list on what gets published. The separate to-do above (a check over ALL
   tracked files in this repo) is still open: reuse its allow-list.
 
