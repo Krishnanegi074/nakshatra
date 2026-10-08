@@ -54,7 +54,7 @@ daily-hours rule were checked live; these items are still open.
   counting rules are in `backend/SETUP.md`. Not run against production yet.
 - [ ] Before the first real run: create `~/Documents/nakshatra-reports/config.json` with each
   expert's share rate (no default, payouts stay blank until set) and the user ids of your own test
-  accounts (`krishnanegi074@gmail.com`'s id for the rehearsal payments). The owner decides when to run it.
+  accounts (the owner's account id, for the rehearsal payments). The owner decides when to run it.
 - [ ] Known limits: gross only (no Razorpay/Google fees or GST), `razorpay_orders` stores no payment
   id (reconcile by order id in the Razorpay dashboard), a Play `manual` refund is never marked done in
   the ledger so it stays held back until someone settles it, and a past month's numbers can change if a
@@ -68,8 +68,8 @@ Step 0 was clean on 2026-10-06 (expert offline, 0 sessions, empty refund ledger,
 unpaid report orders, 5 users, sweep returns all zeros).
 
 Setup and costs:
-- Customer = `krishnanegi074@gmail.com` in an **incognito window** (a fresh browser
-  profile). Expert = `krishnanegikdp@gmail.com` in a normal Chrome window. No new accounts.
+- Customer = the owner's account in an **incognito window** (a fresh browser
+  profile). Expert = the owner's expert test account in a normal Chrome window. No new accounts.
 - ₹199 per payment. Payment 1 (answered) is not auto-refunded: keep it or refund it by
   hand in the Razorpay dashboard. Payment 2 (silent) should be refunded by the sweep.
   Razorpay keeps its fee (a few rupees each); the refund is `speed: normal`, 5-7 working days.
@@ -199,11 +199,9 @@ Open:
   fine for a test wrapper, but means it can't be used to test real purchases.
 - [x] ~~Delete stale beta signups with `backend/scripts/beta-cleanup.js`~~ —
   ran as a dry run 2026-10-01: 5 users total, only 1 matched the `--since
-  2026-09-30` filter — `guptasians.yash03@gmail.com` ("yash gupta"), and
-  investigation showed it's not a beta tester. It's a real signup from
-  2026-10-01 (after today's launch), with one saved chart and a single
-  unpaid ₹399 report order (status `created`, no payment id — they tapped
-  Buy and never completed checkout). Left alone; deleting would have cost a
+  2026-09-30` filter — a real customer, and investigation showed they
+  are not a beta tester (a real public signup from 2026-10-01, after
+  launch). Left alone; deleting would have cost a
   real person their account and chart for no reason. No `--yes` run was
   needed — there was nothing left to clean up. Note for later: the
   `--since 2026-09-30` cutoff is now stale for distinguishing beta testers
@@ -218,7 +216,7 @@ Open:
   2026-10-01 review. This section had simply never been updated after that
   work shipped.
 
-- [x] Rotate the password on the expert test account (`krishnanegikdp@gmail.com`). Its session was still active during tonight's card preview testing, which is a sign it's overdue. Done 2026-09-30: new random password set, old one rejected, all sessions revoked, `EXPERT_PASSWORD` in `~/.nakshatra-realtime-test.env` updated (file also tightened to mode 600).
+- [x] Rotate the password on the expert test account (the owner's). Its session was still active during tonight's card preview testing, which is a sign it's overdue. Done 2026-09-30: new random password set, old one rejected, all sessions revoked, `EXPERT_PASSWORD` in `~/.nakshatra-realtime-test.env` updated (file also tightened to mode 600).
 
 ## Backlog — no urgency
 
