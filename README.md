@@ -15,7 +15,6 @@ talks to Supabase directly from the browser, protected by Row Level Security.
 ```
 app/        Frontend source + build script + the full Playwright test suite
 backend/    Database schema, Row Level Security policies, and backend-only tests
-docs/       Product/business planning doc
 ```
 
 ### `app/`
@@ -79,10 +78,6 @@ docs/       Product/business planning doc
 - `SETUP.md` — the full story: what's been verified, what hasn't (and why —
   this sandbox has no network access to supabase.com or api.razorpay.com),
   and the exact steps to point a real Supabase + Razorpay project at this app.
-
-### `docs/`
-
-- `Astrology_App_Business_Plan.docx` — original product/business plan.
 
 ## Deploying a change
 
