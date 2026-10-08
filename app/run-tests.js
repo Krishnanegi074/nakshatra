@@ -31,7 +31,7 @@ if (process.argv.includes("--list")) { console.log(tests.join("\n")); process.ex
 function fatal(msg) { console.error("\n" + msg + "\n"); process.exit(1); }
 
 // 1. lint: every file that drives a browser must go through the guard
-const offenders = [...tests, "app/bughunt.js"].filter((f) => {
+const offenders = [...tests, "app/bughunt.js", "app/preview.js"].filter((f) => {
   const p = path.join(ROOT, f); if (!fs.existsSync(p)) return false;
   return /chromium\.launch\s*\(/.test(fs.readFileSync(p, "utf8"));
 });
