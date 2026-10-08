@@ -60,6 +60,21 @@ daily-hours rule were checked live; these items are still open.
   the ledger so it stays held back until someone settles it, and a past month's numbers can change if a
   refund lands later (each report carries an "as of" time).
 
+## Release prep (2026-10-08)
+
+- [ ] **When we do the Play Billing track, refresh the Android bundle:** `www/` and the Android project (`capacitor.config.json`,
+  `android/`) bundle their own copy of the web app. They are deliberately left alone by the web release (the thin wrapper APK in
+  `~/Documents/nakshatra-app` loads the live site and needs nothing). At that point: refresh `www/` from a fresh build, run
+  `npx cap sync android`, rebuild, and also add `@capacitor/app` (back button). `android/app/src/main/assets/public` is already
+  about 199 lines behind `www/`.
+- [ ] **A customer who leaves the chat before the sweep ends the session never sees the refund explanation.** The note is shown
+  only through the live session-status subscription, and the app has no history screen for ended sessions
+  (`loadActiveExpertSession` returns only active ones). The refund itself still happens; only the explanation is missed. Consider
+  showing it the next time they open the expert screen (e.g. read their latest ended session with `ended_reason = 'expert_silent'`).
+- [ ] The release adds three Hindi strings that have had no native review: `expert.session.expert-silent-refund`,
+  `expert.toast.none-online-hours` (the times inside it stay English, "6 pm – 10 pm") and `paywall.toast.verify-failed`. They are in
+  the Hindi review workbook and can be corrected there.
+
 ## Paused: full journey rehearsal with two real ₹199 payments
 
 Paused on 2026-10-06 after step 0; to be done in the owner's free time. It uses the
@@ -108,7 +123,8 @@ Steps (what the owner does, what Claude checks in the database):
   `claimed:1, refunded:1`; session `ended` with `expert_silent`; ledger `refunded` with a
   Razorpay `refund_id`. Owner reports **what the customer screen shows after the sweep** and
   whether the expert dashboard shows the red refund notice; also check the refund in the
-  Razorpay dashboard. If `retrying`/`failed`, stop and read `last_error`.
+  Razorpay dashboard. Also check: **did the rehearsal customer get any email or SMS about the refund?** (Razorpay may send its
+  own refund notification; the app sends nothing.) If `retrying`/`failed`, stop and read `last_error`.
 - [ ] **8. Wrap up.** Owner toggles the expert Offline (and resets hours if set). Check: expert
   offline, 0 active sessions, 2 paid orders, 2 ended sessions, 1 refunded ledger row. Do NOT
   delete these rows (real payment records). Then record results here and decide on scheduling the sweep.
